@@ -1,4 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
+import { vercel } from "@react-router/dev/vercel";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -15,8 +16,7 @@ if (
   delete process.env.HOST;
 }
 
-const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost")
-  .hostname;
+const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost").hostname;
 
 let hmrConfig;
 if (host === "localhost") {
@@ -29,7 +29,7 @@ if (host === "localhost") {
 } else {
   hmrConfig = {
     protocol: "wss",
-    host: host,
+    host,
     port: parseInt(process.env.FRONTEND_PORT!) || 8002,
     clientPort: 443,
   };
@@ -44,13 +44,13 @@ export default defineConfig({
     port: Number(process.env.PORT || 3000),
     hmr: hmrConfig,
     fs: {
-      // See https://vitejs.dev/config/server-options.html#server-fs-allow for more information
       allow: ["app", "node_modules"],
     },
   },
   plugins: [
-    reactRouter(),
     tsconfigPaths(),
+    reactRouter(),
+    vercel(), // ✅ THIS is the key for Vercel SSR routing
   ],
   build: {
     assetsInlineLimit: 0,
