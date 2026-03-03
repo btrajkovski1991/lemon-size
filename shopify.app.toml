@@ -5,6 +5,12 @@ name = "Lemon-size"
 application_url = "https://example.com"
 embedded = true
 
+
+[app_proxy]
+prefix = "apps"
+subpath = "lemon-size"
+url = "https://lemon-size.vercel.app/proxy/lemon-size"
+
 [build]
 automatically_update_urls_on_dev = true
 
