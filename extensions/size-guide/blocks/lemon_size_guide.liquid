@@ -4,15 +4,13 @@
     class="lemon-size__btn"
     data-lemon-size-trigger
     data-proxy-base="/apps/lemon-size/size-chart"
-    data-product-id="{{ product.id }}"
     data-product-handle="{{ product.handle | escape }}"
   >
-    Size guide
+    {{ section.settings.button_label | default: "Size guide" }}
   </button>
 
   <div class="lemon-size__modal" hidden data-lemon-size-modal>
     <div class="lemon-size__overlay" data-lemon-size-close></div>
-
     <div class="lemon-size__dialog" role="dialog" aria-modal="true" aria-label="Size guide">
       <button type="button" class="lemon-size__close" aria-label="Close" data-lemon-size-close>×</button>
       <div data-lemon-size-chart></div>

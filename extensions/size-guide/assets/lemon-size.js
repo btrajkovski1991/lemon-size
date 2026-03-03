@@ -115,27 +115,20 @@
       const content = root.querySelector("[data-lemon-size-chart]");
       if (!btn || !modal || !content) return;
 
-      btn.addEventListener("click", async (e) => {
-        // Only on real user click + after interaction gate
-        if (!e.isTrusted) return;
-        if (!userInteracted) return;
+btn.addEventListener("click", async () => {
+  console.log("[LemonSize] clicked");
 
-        content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
-        openModal(modal, btn);
+  content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
+  openModal(modal, btn);
 
-        try {
-          const data = await fetchChart(btn);
-          render(content, data);
-        } catch (err) {
-          console.error("[LemonSize] Fetch/render error:", err);
-          content.innerHTML = `
-            <div class="lemon-size__error">
-              Couldn’t load size chart.<br>
-              <small>${escapeHtml(err && err.message ? err.message : "Unknown error")}</small>
-            </div>
-          `;
-        }
-      });
+  try {
+    const data = await fetchChart(btn);
+    render(content, data);
+  } catch (err) {
+    console.error("[LemonSize] Fetch/render error:", err);
+    content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
+  }
+});
 
       // Close clicks inside this root only
       root.addEventListener("click", (e) => {
