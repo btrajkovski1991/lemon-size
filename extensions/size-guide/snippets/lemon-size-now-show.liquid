@@ -1,0 +1,32 @@
+{%- comment -%}
+  Usage:
+  {% render 'lemon-size-now-show', product: product %}
+
+  The storefront loads the correct size chart via App Proxy based on DB rules.
+{%- endcomment -%}
+
+<link rel="stylesheet" href="{{ 'lemon-size.css' | asset_url }}">
+
+<div class="lemon-size" data-lemon-size data-product-handle="{{ product.handle | escape }}">
+  <button type="button" class="lemon-size__btn" data-lemon-size-open>
+    Size guide
+  </button>
+
+  <div class="lemon-size__modal" hidden data-lemon-size-modal>
+    <div class="lemon-size__overlay" data-lemon-size-close></div>
+
+    <div class="lemon-size__dialog" role="dialog" aria-modal="true" aria-label="Size guide">
+      <button type="button" class="lemon-size__close" aria-label="Close" data-lemon-size-close>×</button>
+
+      <h3 class="lemon-size__title" data-lemon-size-title>Size guide</h3>
+
+      <div class="lemon-size__body">
+        <div class="lemon-size__loading" data-lemon-size-loading>Loading…</div>
+        <div class="lemon-size__error" hidden data-lemon-size-error></div>
+        <div class="lemon-size__content" hidden data-lemon-size-content></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ 'lemon-size.js' | asset_url }}" defer></script>

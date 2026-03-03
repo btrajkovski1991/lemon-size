@@ -1,0 +1,81 @@
+/* --- Force hidden attribute to always win --- */
+.lemon-size__modal[hidden] {
+  display: none !important;
+}
+
+/* Button */
+.lemon-size__btn {
+  padding: 10px 14px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Modal container (NO display here!) */
+.lemon-size__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  place-items: center;
+}
+
+/* Only when NOT hidden → show it */
+.lemon-size__modal:not([hidden]) {
+  display: grid;
+}
+
+.lemon-size__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+}
+
+.lemon-size__dialog {
+  position: relative;
+  width: min(720px, calc(100vw - 24px));
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.lemon-size__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 22px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.lemon-size__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.lemon-size__table th,
+.lemon-size__table td {
+  border-bottom: 1px solid #eee;
+  padding: 10px;
+  text-align: left;
+}
+
+.lemon-size__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.lemon-size__sub {
+  opacity: .75;
+  margin-top: 4px;
+}
+
+.lemon-size__error {
+  padding: 12px;
+  background: #fff3f3;
+  border: 1px solid #ffd1d1;
+  border-radius: 12px;
+}

@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+/**
+ * Stores per-shop app data (NOT Shopify sessions).
+ * This is where you keep your size charts, rules, settings, etc.
+ */
+model Shop {
+  id        String   @id @default(cuid())
+  shop      String   @unique // e.g. mystore.myshopify.com
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sizeCharts      SizeChart[]
+  sizeAssignments SizeChartAssignment[]
+
+  @@index([shop])
+}
+
+/**
+ * A size chart is a table definition with dynamic columns.
+ * columns is stored as Json for SQLite compatibility.
+ */
+model SizeChart {
+  id        String  @id @default(cuid())
+  shopId    String
+  title     String
+  unit      String  @default("cm") // "cm" | "in"
+  columns   Json // e.g. ["Chest", "Waist", "Hip"]
+  isDefault Boolean @default(false)
+
+  shop    Shop                  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  rows    SizeChartRow[]
+  assigns SizeChartAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([shopId, isDefault])
+}
+
+/**
+ * Rows inside a chart.
+ * values is Json mapping column -> number/string.
+ */
+model SizeChartRow {
+  id        String @id @default(cuid())
+  chartId   String
+  label     String // e.g. "S", "M", "L"
+  sortOrder Int    @default(0)
+  values    Json // e.g. { "Chest": 92, "Waist": 78, "Hip": 96 }
+
+  chart SizeChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  @@index([chartId, sortOrder])
+}
+
+/**
+ * Assign charts to products (v1), later you can add collection/tag/type rules.
+ * productId from Liquid is typically a GID string like "gid://shopify/Product/123"
+ */
+model SizeChartAssignment {
+  id      String @id @default(cuid())
+  shopId  String
+  chartId String
+
+  // Rule priority: lower number = higher priority
+  priority Int @default(100)
+
+  // What does this rule apply to?
+  // "ALL" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG" | "PRODUCT"
+  scope String
+
+  // Value depends on scope:
+  // ALL        -> null
+  // COLLECTION -> collection handle (recommended) e.g. "shoes"
+  // TYPE       -> product.type string e.g. "Suits"
+  // VENDOR     -> product.vendor string e.g. "Nike"
+  // TAG        -> exact tag e.g. "Suits & Blazers"
+  // PRODUCT    -> product GID e.g. "gid://shopify/Product/123"
+  scopeValue String?
+
+  enabled Boolean @default(true)
+
+  shop  Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  chart SizeChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId, priority])
+  @@index([shopId, scope, scopeValue])
+}
