@@ -2,6 +2,57 @@ import { data } from "react-router";
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 
+async function resolveChart(args: {
+  shopId: string;
+  productId?: string;
+  productHandle?: string;
+  collectionHandle?: string;
+}) {
+  const { shopId, productId, productHandle, collectionHandle } = args;
+
+  // A) productId rule (highest specificity)
+  if (productId) {
+    const assignment = await prisma.sizeChartAssignment.findFirst({
+      where: { shopId, enabled: true, productId },
+      include: {
+        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
+      },
+      orderBy: { priority: "asc" }, // lower wins
+    });
+    if (assignment?.chart) return assignment.chart;
+  }
+
+  // B) productHandle rule
+  if (productHandle) {
+    const assignment = await prisma.sizeChartAssignment.findFirst({
+      where: { shopId, enabled: true, productHandle },
+      include: {
+        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
+      },
+      orderBy: { priority: "asc" },
+    });
+    if (assignment?.chart) return assignment.chart;
+  }
+
+  // C) collectionHandle rule (✅ this is what you need for “Nike collection”)
+  if (collectionHandle) {
+    const assignment = await prisma.sizeChartAssignment.findFirst({
+      where: { shopId, enabled: true, collectionHandle },
+      include: {
+        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
+      },
+      orderBy: { priority: "asc" },
+    });
+    if (assignment?.chart) return assignment.chart;
+  }
+
+  // D) default fallback
+  return prisma.sizeChart.findFirst({
+    where: { shopId, isDefault: true },
+    include: { rows: { orderBy: { sortOrder: "asc" } } },
+  });
+}
+
 export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
 
@@ -23,9 +74,14 @@ export async function loader({ request }: { request: Request }) {
   const shop = url.searchParams.get("shop");
   if (!shop) return data({ ok: false, error: "Missing shop" }, { status: 400 });
 
-  // 3) Read product hints (sent from theme)
+  // 3) Read params
+  const mode = url.searchParams.get("mode") || undefined;
+
   const productId = url.searchParams.get("product_id") || undefined;
   const productHandle = url.searchParams.get("product_handle") || undefined;
+
+  // ✅ optional param (you can pass it from theme if you want)
+  const collectionHandle = url.searchParams.get("collection_handle") || undefined;
 
   // 4) Ensure DB shop row exists
   const dbShop = await prisma.shop.upsert({
@@ -34,42 +90,21 @@ export async function loader({ request }: { request: Request }) {
     create: { shop },
   });
 
-  let chart: any = null;
+  // 5) Resolve chart
+  const chart = await resolveChart({
+    shopId: dbShop.id,
+    productId,
+    productHandle,
+    collectionHandle,
+  });
 
-  // ✅ A) Match product-specific assignment (if you store productId on assignment)
-  if (productId) {
-    const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: { shopId: dbShop.id, enabled: true, productId },
-      include: {
-        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
-      },
-      // lower wins
-      orderBy: { priority: "asc" },
-    });
-    chart = assignment?.chart ?? null;
+  // ✅ 6) exists mode (for “show the button only if matched”)
+  if (mode === "exists") {
+    if (!chart) return new Response(null, { status: 404 });
+    return new Response(null, { status: 204 });
   }
 
-  // ✅ B) Optional: Match handle-specific assignment (ONLY if you have this field)
-  if (!chart && productHandle) {
-    const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: { shopId: dbShop.id, enabled: true, productHandle },
-      include: {
-        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
-      },
-      orderBy: { priority: "asc" },
-    });
-    chart = assignment?.chart ?? null;
-  }
-
-  // ✅ C) Default chart fallback
-  if (!chart) {
-    chart = await prisma.sizeChart.findFirst({
-      where: { shopId: dbShop.id, isDefault: true },
-      include: { rows: { orderBy: { sortOrder: "asc" } } },
-    });
-  }
-
-  // 5) If no chart configured
+  // 7) If no chart configured
   if (!chart) {
     return data(
       { ok: true, chart: null, message: "No size chart configured" },
@@ -77,7 +112,7 @@ export async function loader({ request }: { request: Request }) {
     );
   }
 
-  // 6) Return JSON in the exact shape your lemon-size.js expects
+  // 8) Return JSON in the exact shape lemon-size.js expects
   const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
 
   return data(
@@ -90,7 +125,7 @@ export async function loader({ request }: { request: Request }) {
         columns,
         rows: chart.rows.map((r: any) => ({
           label: r.label,
-          values: r.values, // must be an object: { [columnName]: value }
+          values: r.values,
         })),
       },
     },

@@ -3,22 +3,10 @@
   if (window.__LEMON_SIZE_INIT__) return;
   window.__LEMON_SIZE_INIT__ = true;
 
-  // Hard gate: only allow opening after the user actually interacted with the page
-  let userInteracted = false;
-  function markInteracted() {
-    userInteracted = true;
-    window.removeEventListener("pointerdown", markInteracted, true);
-    window.removeEventListener("keydown", markInteracted, true);
-    window.removeEventListener("touchstart", markInteracted, true);
-  }
-  window.addEventListener("pointerdown", markInteracted, true);
-  window.addEventListener("keydown", markInteracted, true);
-  window.addEventListener("touchstart", markInteracted, true);
-
   function openModal(modal, trigger) {
     modal.hidden = false;
     modal._trigger = trigger;
-    const closeBtn = modal.querySelector("[data-lemon-size-close]");
+    const closeBtn = modal.querySelector(".lemon-size__close");
     if (closeBtn) closeBtn.focus();
   }
 
@@ -27,13 +15,24 @@
     if (modal._trigger) modal._trigger.focus();
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   async function fetchChart(trigger) {
-    const proxyBase =trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
+    const proxyBase =
+      trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
     const productId = trigger.getAttribute("data-product-id") || "";
     const productHandle = trigger.getAttribute("data-product-handle") || "";
 
     const url = new URL(proxyBase, window.location.origin);
 
+    // keep your param names (match your backend)
     if (productId) url.searchParams.set("product_id", productId);
     if (productHandle) url.searchParams.set("product_handle", productHandle);
 
@@ -56,6 +55,24 @@
 
     if (!json) throw new Error("Response was not JSON.");
     return json;
+  }
+
+  async function hasChartFor(trigger) {
+    const proxyBase =
+      trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
+    const productId = trigger.getAttribute("data-product-id") || "";
+    const productHandle = trigger.getAttribute("data-product-handle") || "";
+
+    const url = new URL(proxyBase, window.location.origin);
+    url.searchParams.set("mode", "exists"); // ✅ IMPORTANT
+
+    if (productId) url.searchParams.set("product_id", productId);
+    if (productHandle) url.searchParams.set("product_handle", productHandle);
+
+    const res = await fetch(url.toString(), { credentials: "same-origin" });
+
+    // Expect: 204/200 = yes, 404 = no
+    return res.ok;
   }
 
   function render(container, data) {
@@ -91,44 +108,61 @@
     `;
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
   function init() {
     // Ensure all modals are closed on load
-    document.querySelectorAll("[data-lemon-size-modal]").forEach((m) => (m.hidden = true));
+    document
+      .querySelectorAll("[data-lemon-size-modal]")
+      .forEach((m) => (m.hidden = true));
 
-    // Bind per root (future-proof)
-    document.querySelectorAll("[data-lemon-size-root]").forEach((root) => {
-      // Avoid binding twice for the same root
+    const roots = Array.from(document.querySelectorAll("[data-lemon-size-root]"));
+
+    // Hide by default, show only if matched
+    roots.forEach((root) => {
+      root.hidden = true;
+    });
+
+    // Bind per root
+    roots.forEach(async (root) => {
       if (root.__lemonBound) return;
       root.__lemonBound = true;
 
       const btn = root.querySelector("[data-lemon-size-trigger]");
       const modal = root.querySelector("[data-lemon-size-modal]");
       const content = root.querySelector("[data-lemon-size-chart]");
-      if (!btn || !modal || !content) return;
+      if (!btn || !modal || !content) {
+        root.remove();
+        return;
+      }
 
-btn.addEventListener("click", async () => {
-  console.log("[LemonSize] clicked");
+      // ✅ CHECK IF THIS PRODUCT HAS A MATCHED TABLE
+      try {
+        const ok = await hasChartFor(btn);
+        if (!ok) {
+          root.remove(); // remove whole block if no chart assignment
+          return;
+        }
+        root.hidden = false; // ✅ show button
+      } catch (e) {
+        // fail closed
+        root.remove();
+        return;
+      }
 
-  content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
-  openModal(modal, btn);
+      // Open + fetch on click
+      btn.addEventListener("click", async () => {
+        console.log("[LemonSize] clicked");
 
-  try {
-    const data = await fetchChart(btn);
-    render(content, data);
-  } catch (err) {
-    console.error("[LemonSize] Fetch/render error:", err);
-    content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
-  }
-});
+        content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
+        openModal(modal, btn);
+
+        try {
+          const data = await fetchChart(btn);
+          render(content, data);
+        } catch (err) {
+          console.error("[LemonSize] Fetch/render error:", err);
+          content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
+        }
+      });
 
       // Close clicks inside this root only
       root.addEventListener("click", (e) => {
@@ -137,10 +171,17 @@ btn.addEventListener("click", async () => {
         closeModal(modal);
       });
 
-      // ESC closes the open modal (only if this modal is open)
-      document.addEventListener("keydown", (e) => {
-        if (e.key !== "Escape") return;
-        if (modal.hidden) return;
+      // Store reference so ESC handler can close the correct modal
+      root.__lemonModal = modal;
+    });
+
+    // ✅ One ESC listener total (not one per root)
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+
+      document.querySelectorAll("[data-lemon-size-root]").forEach((root) => {
+        const modal = root.__lemonModal;
+        if (!modal || modal.hidden) return;
         closeModal(modal);
       });
     });
