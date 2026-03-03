@@ -2,7 +2,7 @@
 
 client_id = "3f346ff664f04a26a4ead06e841ca0ff"
 name = "Lemon-size"
-application_url = "https://example.com"
+application_url = "https://lemon-size.vercel.app"
 embedded = true
 
 
@@ -24,7 +24,11 @@ api_version = "2026-04"
 scopes = "write_metaobject_definitions,write_metaobjects,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://lemon-size.vercel.app/auth",
+  "https://lemon-size.vercel.app/auth/callback",
+  "https://lemon-size.vercel.app/api/auth"
+]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
