@@ -33,4 +33,4 @@ dist
 .shopify.lock
 
 # React Router generated files
-.react-router/
+.react-router/.vercel
