@@ -2,14 +2,34 @@ import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
 
-function parseCsv(value?: string | null) {
-  if (!value) return [];
+/* ------------------------------
+CACHE
+------------------------------ */
 
-  return value
+const RULE_CACHE = new Map<
+  string,
+  {
+    expires: number;
+    byProduct: Map<string, any>;
+    byProductHandle: Map<string, any>;
+    byCollection: Map<string, any>;
+    defaultChart: any | null;
+  }
+>();
+
+const CACHE_TTL = 60_000; // 1 minute
+
+/* ------------------------------
+UTILS
+------------------------------ */
+
+function parseCsv(v?: string | null) {
+  if (!v) return [];
+  return v
     .split(",")
-    .map((v) => v.trim().toLowerCase())
+    .map((x) => x.trim().toLowerCase())
     .filter(Boolean)
-    .filter((v) => v !== "all");
+    .filter((x) => x !== "all");
 }
 
 function normalize(v?: string | null) {
@@ -17,23 +37,18 @@ function normalize(v?: string | null) {
   return v.trim().toLowerCase();
 }
 
-async function resolveChartFast({
-  shopId,
-  productId,
-  productHandle,
-  collectionHandles = [],
-  includeDefault = true,
-}: {
-  shopId: string;
-  productId?: string;
-  productHandle?: string;
-  collectionHandles?: string[];
-  includeDefault?: boolean;
-}) {
-  const productGid = productId ? `gid://shopify/Product/${productId}` : null;
-  const productHandleNorm = normalize(productHandle);
+/* ------------------------------
+LOAD RULES INTO CACHE
+------------------------------ */
 
-  // Fetch ALL rules once
+async function loadRules(shopId: string) {
+  const now = Date.now();
+  const cached = RULE_CACHE.get(shopId);
+
+  if (cached && cached.expires > now) {
+    return cached;
+  }
+
   const assignments = await prisma.sizeChartAssignment.findMany({
     where: { shopId, enabled: true },
     orderBy: { priority: "asc" },
@@ -46,52 +61,97 @@ async function resolveChartFast({
     },
   });
 
-  if (!assignments.length) {
-    if (!includeDefault) return null;
-
-    return prisma.sizeChart.findFirst({
-      where: { shopId, isDefault: true },
-      include: { rows: { orderBy: { sortOrder: "asc" } } },
-    });
-  }
+  const byProduct = new Map<string, any>();
+  const byProductHandle = new Map<string, any>();
+  const byCollection = new Map<string, any>();
 
   for (const a of assignments) {
+    if (!a.chart) continue;
+
     const scope = (a.scope || "").toUpperCase();
     const value = normalize(a.scopeValue);
 
-    if (!a.chart) continue;
+    if (!value) continue;
 
-    // PRODUCT
-    if (scope === "PRODUCT" && productGid && value === normalize(productGid)) {
-      return a.chart;
+    if (scope === "PRODUCT" && !byProduct.has(value)) {
+      byProduct.set(value, a.chart);
     }
 
-    // PRODUCT HANDLE
-    if (
-      scope === "PRODUCT_HANDLE" &&
-      productHandleNorm &&
-      value === productHandleNorm
-    ) {
-      return a.chart;
+    if (scope === "PRODUCT_HANDLE" && !byProductHandle.has(value)) {
+      byProductHandle.set(value, a.chart);
     }
 
-    // COLLECTION
-    if (scope === "COLLECTION" && value) {
-      for (const h of collectionHandles) {
-        if (value === h) {
-          return a.chart;
-        }
-      }
+    if (scope === "COLLECTION" && !byCollection.has(value)) {
+      byCollection.set(value, a.chart);
     }
   }
 
-  if (!includeDefault) return null;
-
-  return prisma.sizeChart.findFirst({
+  const defaultChart = await prisma.sizeChart.findFirst({
     where: { shopId, isDefault: true },
     include: { rows: { orderBy: { sortOrder: "asc" } } },
   });
+
+  const cacheEntry = {
+    expires: now + CACHE_TTL,
+    byProduct,
+    byProductHandle,
+    byCollection,
+    defaultChart,
+  };
+
+  RULE_CACHE.set(shopId, cacheEntry);
+
+  return cacheEntry;
 }
+
+/* ------------------------------
+RESOLVE CHART
+------------------------------ */
+
+async function resolveChart({
+  shopId,
+  productId,
+  productHandle,
+  collectionHandles,
+  includeDefault = true,
+}: {
+  shopId: string;
+  productId?: string;
+  productHandle?: string;
+  collectionHandles: string[];
+  includeDefault?: boolean;
+}) {
+  const cache = await loadRules(shopId);
+
+  const productGid = productId
+    ? `gid://shopify/Product/${productId}`.toLowerCase()
+    : null;
+
+  const handle = normalize(productHandle);
+
+  if (productGid && cache.byProduct.has(productGid)) {
+    return cache.byProduct.get(productGid);
+  }
+
+  if (handle && cache.byProductHandle.has(handle)) {
+    return cache.byProductHandle.get(handle);
+  }
+
+  for (const c of collectionHandles) {
+    const chart = cache.byCollection.get(c);
+    if (chart) return chart;
+  }
+
+  if (includeDefault) {
+    return cache.defaultChart;
+  }
+
+  return null;
+}
+
+/* ------------------------------
+LOADER
+------------------------------ */
 
 export async function loader({ request }: { request: Request }) {
   try {
@@ -116,7 +176,6 @@ export async function loader({ request }: { request: Request }) {
     }
 
     const shop = url.searchParams.get("shop");
-
     if (!shop) {
       return json({ ok: false, error: "Missing shop" }, { status: 400 });
     }
@@ -136,7 +195,7 @@ export async function loader({ request }: { request: Request }) {
       create: { shop },
     });
 
-    const chart = await resolveChartFast({
+    const chart = await resolveChart({
       shopId: dbShop.id,
       productId,
       productHandle,
@@ -150,34 +209,24 @@ export async function loader({ request }: { request: Request }) {
     }
 
     if (!chart) {
-      return json(
-        { ok: true, chart: null },
-        { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } }
-      );
+      return json({ ok: true, chart: null });
     }
 
     const columns = Array.isArray(chart.columns) ? chart.columns : [];
 
-    return json(
-      {
-        ok: true,
-        chart: {
-          id: chart.id,
-          title: chart.title,
-          unit: chart.unit,
-          columns,
-          rows: chart.rows.map((r: any) => ({
-            label: r.label,
-            values: r.values,
-          })),
-        },
+    return json({
+      ok: true,
+      chart: {
+        id: chart.id,
+        title: chart.title,
+        unit: chart.unit,
+        columns,
+        rows: chart.rows.map((r: any) => ({
+          label: r.label,
+          values: r.values,
+        })),
       },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=60, s-maxage=300",
-        },
-      }
-    );
+    });
   } catch (err) {
     console.error("[proxy size-chart] crash:", err);
     return new Response("Internal error", { status: 500 });
