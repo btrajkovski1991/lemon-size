@@ -1,5 +1,4 @@
 (function () {
-  // Prevent double init if script is injected twice
   if (window.__LEMON_SIZE_INIT__) return;
   window.__LEMON_SIZE_INIT__ = true;
 
@@ -24,17 +23,30 @@
       .replaceAll("'", "&#039;");
   }
 
+  function getCollections(trigger) {
+    const raw = trigger.getAttribute("data-collection-handles") || "";
+    // keep as comma list, but normalize whitespace
+    return raw
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .join(",");
+  }
+
   async function fetchChart(trigger) {
     const proxyBase =
       trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
     const productId = trigger.getAttribute("data-product-id") || "";
     const productHandle = trigger.getAttribute("data-product-handle") || "";
+    const collectionHandles = getCollections(trigger);
 
     const url = new URL(proxyBase, window.location.origin);
 
-    // keep your param names (match your backend)
     if (productId) url.searchParams.set("product_id", productId);
     if (productHandle) url.searchParams.set("product_handle", productHandle);
+
+    // ✅ NEW: pass collection handles
+    if (collectionHandles) url.searchParams.set("collection_handles", collectionHandles);
 
     const res = await fetch(url.toString(), { credentials: "same-origin" });
     const text = await res.text();
@@ -42,9 +54,7 @@
     let json = null;
     try {
       json = JSON.parse(text);
-    } catch (e) {
-      // not json
-    }
+    } catch (e) {}
 
     if (!res.ok) {
       const msg =
@@ -57,24 +67,28 @@
     return json;
   }
 
-async function hasChartFor(trigger) {
-  const proxyBase =
-    trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
-  const productId = trigger.getAttribute("data-product-id") || "";
-  const productHandle = trigger.getAttribute("data-product-handle") || "";
+  async function hasChartFor(trigger) {
+    const proxyBase =
+      trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
+    const productId = trigger.getAttribute("data-product-id") || "";
+    const productHandle = trigger.getAttribute("data-product-handle") || "";
+    const collectionHandles = getCollections(trigger);
 
-  const url = new URL(proxyBase, window.location.origin);
-  url.searchParams.set("mode", "exists");
+    const url = new URL(proxyBase, window.location.origin);
+    url.searchParams.set("mode", "exists");
 
-  if (productId) url.searchParams.set("product_id", productId);
-  if (productHandle) url.searchParams.set("product_handle", productHandle);
+    if (productId) url.searchParams.set("product_id", productId);
+    if (productHandle) url.searchParams.set("product_handle", productHandle);
 
-  const res = await fetch(url.toString(), { credentials: "same-origin" });
+    // ✅ NEW: pass collection handles
+    if (collectionHandles) url.searchParams.set("collection_handles", collectionHandles);
 
-  if (res.status === 404) return false;             // no chart
-  if (!res.ok) throw new Error(`Proxy error (${res.status})`); // 401/500 etc
-  return true;
-}
+    const res = await fetch(url.toString(), { credentials: "same-origin" });
+
+    // 204/200 = yes, 404 = no
+    return res.ok;
+  }
+
   function render(container, data) {
     if (!data || !data.chart) {
       container.innerHTML = `<div class="lemon-size__error">No size chart configured.</div>`;
@@ -109,19 +123,16 @@ async function hasChartFor(trigger) {
   }
 
   function init() {
-    // Ensure all modals are closed on load
     document
       .querySelectorAll("[data-lemon-size-modal]")
       .forEach((m) => (m.hidden = true));
 
     const roots = Array.from(document.querySelectorAll("[data-lemon-size-root]"));
 
-    // Hide by default, show only if matched
     roots.forEach((root) => {
       root.hidden = true;
     });
 
-    // Bind per root
     roots.forEach(async (root) => {
       if (root.__lemonBound) return;
       root.__lemonBound = true;
@@ -134,24 +145,19 @@ async function hasChartFor(trigger) {
         return;
       }
 
-      // ✅ CHECK IF THIS PRODUCT HAS A MATCHED TABLE
       try {
         const ok = await hasChartFor(btn);
         if (!ok) {
-          root.remove(); // remove whole block if no chart assignment
+          root.remove();
           return;
         }
-        root.hidden = false; // ✅ show button
+        root.hidden = false;
       } catch (e) {
-        // fail closed
         root.remove();
         return;
       }
 
-      // Open + fetch on click
       btn.addEventListener("click", async () => {
-        console.log("[LemonSize] clicked");
-
         content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
         openModal(modal, btn);
 
@@ -164,18 +170,15 @@ async function hasChartFor(trigger) {
         }
       });
 
-      // Close clicks inside this root only
       root.addEventListener("click", (e) => {
         const close = e.target.closest("[data-lemon-size-close]");
         if (!close) return;
         closeModal(modal);
       });
 
-      // Store reference so ESC handler can close the correct modal
       root.__lemonModal = modal;
     });
 
-    // ✅ One ESC listener total (not one per root)
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
 

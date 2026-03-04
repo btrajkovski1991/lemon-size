@@ -129,7 +129,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // UI TEST MODE: if no chartId, still create a placeholder assignment using DEFAULT chart
-    // We need a real chartId to satisfy DB constraint, so try to find default chart; if none, error.
     const fallback = await prisma.sizeChart.findFirst({
       where: { shopId: shopRow.id },
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
@@ -137,8 +136,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     if (!fallback?.id) {
-      // we can't save without a real chartId (db constraint)
-      // but we return a friendly message
       throw new Response(
         `No Size Charts found in DB. Create/seed charts first. (Demo selected: ${demoKey || "none"})`,
         { status: 400 },
@@ -159,21 +156,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true };
   }
 
+  // ✅ SAFE TOGGLE (won't throw if record missing)
   if (intent === "toggle") {
     const id = String(form.get("id") || "");
     const enabled = String(form.get("enabled") || "false") === "true";
     if (!id) throw new Response("Missing id", { status: 400 });
 
-    await prisma.sizeChartAssignment.update({ where: { id }, data: { enabled } });
-    return { ok: true };
+    const result = await prisma.sizeChartAssignment.updateMany({
+      where: { id, shopId: shopRow.id },
+      data: { enabled },
+    });
+
+    return { ok: true, updated: result.count };
   }
 
+  // ✅ SAFE DELETE (prevents P2025)
   if (intent === "delete") {
     const id = String(form.get("id") || "");
     if (!id) throw new Response("Missing id", { status: 400 });
 
-    await prisma.sizeChartAssignment.delete({ where: { id } });
-    return { ok: true };
+    const result = await prisma.sizeChartAssignment.deleteMany({
+      where: { id, shopId: shopRow.id },
+    });
+
+    return { ok: true, deleted: result.count };
   }
 
   return { ok: false };
@@ -242,9 +248,7 @@ function PreviewTable({
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ fontWeight: 650 }}>{title}</div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>
-        Unit: {unit}
-      </div>
+      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Unit: {unit}</div>
 
       <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -268,9 +272,7 @@ function PreviewTable({
               <tr key={idx} style={{ borderTop: "1px solid #f3f3f3" }}>
                 <td style={{ padding: 10, fontWeight: 600 }}>{r.label || "-"}</td>
                 {columns.map((c) => (
-                  <td key={c} style={{ padding: 10 }}>
-                    {r.values?.[c] ?? ""}
-                  </td>
+                  <td key={c} style={{ padding: 10 }}>{r.values?.[c] ?? ""}</td>
                 ))}
               </tr>
             ))}
@@ -282,17 +284,14 @@ function PreviewTable({
 }
 
 export default function Assignments() {
-  const { shopDomain, charts, rules, products, collections } =
-    useLoaderData<typeof loader>();
+  const { shopDomain, charts, rules, products, collections } = useLoaderData<typeof loader>();
 
   const chartsEmpty = charts.length === 0;
 
   // UI state
   const [scope, setScope] = useState<Scope>("PRODUCT");
   const [productId, setProductId] = useState<string>(products?.[0]?.id || "");
-  const [collectionHandle, setCollectionHandle] = useState<string>(
-    collections?.[0]?.handle || "",
-  );
+  const [collectionHandle, setCollectionHandle] = useState<string>(collections?.[0]?.handle || "");
   const [textValue, setTextValue] = useState<string>("");
 
   const defaultChartId = useMemo(() => {
@@ -328,7 +327,6 @@ export default function Assignments() {
         <Form method="post">
           <input type="hidden" name="intent" value="create" />
           <input type="hidden" name="scopeValue" value={scopeValue} />
-          {/* If DB charts exist, we submit chartId; if not, we submit demoKey for UI testing */}
           <input type="hidden" name="chartId" value={chartsEmpty ? "" : chartId} />
           <input type="hidden" name="demoKey" value={chartsEmpty ? demoKey : ""} />
 
@@ -450,7 +448,6 @@ export default function Assignments() {
             <s-box padding="base" borderWidth="base" borderRadius="base" style={{ width: 420 }}>
               <s-heading>Select size table</s-heading>
 
-              {/* If real charts exist -> show DB chart selector */}
               {!chartsEmpty ? (
                 <>
                   <div style={{ marginTop: 8 }}>
@@ -483,7 +480,6 @@ export default function Assignments() {
                 </>
               ) : (
                 <>
-                  {/* Demo selector so UI never looks empty */}
                   <div style={{ marginTop: 8 }}>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
                       Size table (demo)

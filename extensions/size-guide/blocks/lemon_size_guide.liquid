@@ -1,4 +1,4 @@
-<div data-lemon-size-root hidden>
+<div data-lemon-size-root>
   <button
     type="button"
     class="lemon-size__btn"
@@ -6,8 +6,9 @@
     data-proxy-base="/apps/lemon-size/size-chart"
     data-product-id="{{ product.id }}"
     data-product-handle="{{ product.handle | escape }}"
+    data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
   >
-    Size guide 
+    {{ section.settings.button_label | default: 'Size guide' }}
   </button>
 
   <div class="lemon-size__modal" hidden data-lemon-size-modal>
@@ -21,7 +22,7 @@
 </div>
 
 {{ 'lemon-size.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'lemon-size.js' | asset_url }}" defer></script>
+{{ 'lemon-size.js'  | asset_url | script_tag }}
 
 {% schema %}
 {

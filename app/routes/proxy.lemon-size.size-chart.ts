@@ -2,13 +2,21 @@ import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
 
+function parseCsv(value?: string | null) {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 async function resolveChart(args: {
   shopId: string;
   productId?: string;        // numeric id from storefront
-  productHandle?: string;
-  collectionHandle?: string;
+  productHandle?: string;    // optional
+  collectionHandles?: string[]; // ✅ list
 }) {
-  const { shopId, productId, productHandle, collectionHandle } = args;
+  const { shopId, productId, productHandle, collectionHandles } = args;
 
   // A) Product ID rule (DB stores product as GID)
   if (productId) {
@@ -18,25 +26,25 @@ async function resolveChart(args: {
       where: {
         shopId,
         enabled: true,
-        scope: "product",
+        scope: "PRODUCT",
         scopeValue: productGid,
       },
       include: {
         chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
       },
-      orderBy: { priority: "asc" }, // lower wins
+      orderBy: { priority: "asc" },
     });
 
     if (assignment?.chart) return assignment.chart;
   }
 
-  // B) Product handle rule (only if you actually store this scope)
+  // B) Product handle rule (only if you store this scope)
   if (productHandle) {
     const assignment = await prisma.sizeChartAssignment.findFirst({
       where: {
         shopId,
         enabled: true,
-        scope: "product_handle",
+        scope: "PRODUCT_HANDLE",
         scopeValue: productHandle,
       },
       include: {
@@ -48,14 +56,14 @@ async function resolveChart(args: {
     if (assignment?.chart) return assignment.chart;
   }
 
-  // C) Collection handle rule
-  if (collectionHandle) {
+  // C) Collection rule (match ANY of the product collections)
+  if (collectionHandles && collectionHandles.length) {
     const assignment = await prisma.sizeChartAssignment.findFirst({
       where: {
         shopId,
         enabled: true,
-        scope: "collection",
-        scopeValue: collectionHandle,
+        scope: "COLLECTION",
+        scopeValue: { in: collectionHandles },
       },
       include: {
         chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
@@ -99,7 +107,9 @@ export async function loader({ request }: { request: Request }) {
     const mode = url.searchParams.get("mode") || undefined;
     const productId = url.searchParams.get("product_id") || undefined;
     const productHandle = url.searchParams.get("product_handle") || undefined;
-    const collectionHandle = url.searchParams.get("collection_handle") || undefined;
+
+    // ✅ NEW: comma-separated list from Liquid
+    const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
 
     // 4) Ensure DB shop row exists
     const dbShop = await prisma.shop.upsert({
@@ -113,7 +123,7 @@ export async function loader({ request }: { request: Request }) {
       shopId: dbShop.id,
       productId,
       productHandle,
-      collectionHandle,
+      collectionHandles,
     });
 
     // 6) exists mode (show button only if matched)
