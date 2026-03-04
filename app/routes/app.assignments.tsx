@@ -147,35 +147,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const scopeValue = scope === "ALL" ? null : scopeValueRaw;
 
     const chartIdRaw = String(form.get("chartId") || "").trim();
-    const demoKey = String(form.get("demoKey") || "").trim();
 
     if (scope !== "ALL" && !scopeValue) {
       throw new Response("Missing scopeValue", { status: 400 });
     }
 
-    if (chartIdRaw) {
-      await prisma.sizeChartAssignment.create({
-        data: {
-          shopId: shopRow.id,
-          chartId: chartIdRaw,
-          priority,
-          scope,
-          scopeValue,
-          enabled: true,
-        },
-      });
-      return { ok: true };
-    }
-
-    const fallback = await prisma.sizeChart.findFirst({
-      where: { shopId: shopRow.id },
-      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-      select: { id: true },
-    });
-
-    if (!fallback?.id) {
+    // Require chart selection in production
+    if (!chartIdRaw) {
       throw new Response(
-        `No Size Charts found in DB. Create/seed charts first. (Demo selected: ${demoKey || "none"})`,
+        "Missing chartId. Seed/create size charts first, then select a table.",
         { status: 400 },
       );
     }
@@ -183,7 +163,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.sizeChartAssignment.create({
       data: {
         shopId: shopRow.id,
-        chartId: fallback.id,
+        chartId: chartIdRaw,
         priority,
         scope,
         scopeValue,
@@ -232,13 +212,6 @@ function ruleLabel(scope: string, scopeValue: string | null) {
   if (scope === "TAG") return `Tag: ${scopeValue || ""}`;
   return `${scope}${scopeValue ? `: ${scopeValue}` : ""}`;
 }
-
-/** Demo tables shown when DB has no charts (UI test mode). */
-const DEMO_TABLES = [
-  { key: "shoe", title: "Shoes (US/EU/Foot length)" },
-  { key: "suit", title: "Suits & Blazers (Chest/Waist)" },
-  { key: "default", title: "Default table" },
-];
 
 function Thumb({ url, alt }: { url?: string | null; alt?: string | null }) {
   return (
@@ -390,7 +363,6 @@ export default function Assignments() {
   }, [charts]);
 
   const [chartId, setChartId] = useState<string>(defaultChartId);
-  const [demoKey, setDemoKey] = useState<string>("shoe");
   const [priority, setPriority] = useState<string>("100");
 
   // scopeValue to save
@@ -523,11 +495,20 @@ export default function Assignments() {
                 <Thumb url={p.imageUrl} alt={p.imageAlt} />
 
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div
+                    style={{
+                      fontWeight: 750,
+                      fontSize: 14,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {p.title}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    {p.vendor ? `${p.vendor} • ` : ""}{p.handle}
+                    {p.vendor ? `${p.vendor} • ` : ""}
+                    {p.handle}
                   </div>
                 </div>
               </label>
@@ -629,7 +610,6 @@ export default function Assignments() {
           <input type="hidden" name="intent" value="create" />
           <input type="hidden" name="scopeValue" value={scopeValue} />
           <input type="hidden" name="chartId" value={chartsEmpty ? "" : chartId} />
-          <input type="hidden" name="demoKey" value={chartsEmpty ? demoKey : ""} />
 
           <s-stack direction="inline" gap="base" style={{ alignItems: "flex-start" }}>
             {/* LEFT */}
@@ -691,7 +671,15 @@ export default function Assignments() {
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <Thumb url={selectedProduct.imageUrl} alt={selectedProduct.imageAlt} />
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <div
+                                style={{
+                                  fontWeight: 750,
+                                  fontSize: 14,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
                                 {selectedProduct.title}
                               </div>
                               <div style={{ fontSize: 12, opacity: 0.75 }}>
@@ -774,7 +762,47 @@ export default function Assignments() {
             <s-box padding="base" borderWidth="base" borderRadius="base" style={{ width: 420 }}>
               <s-heading>Select size table</s-heading>
 
-              {!chartsEmpty ? (
+              {chartsEmpty ? (
+                <>
+                  <s-paragraph style={{ marginTop: 8 }}>
+                    <strong>No size tables found.</strong> Seed/create charts first (17 templates), then you can select a
+                    table here.
+                  </s-paragraph>
+
+                  <s-paragraph style={{ marginTop: 8 }}>
+                    Run: <code>SEED_SHOP="{shopDomain}" node prisma/seed.mjs</code>
+                  </s-paragraph>
+
+                  <div style={{ marginTop: 12 }}>
+                    <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                      Priority (lower wins)
+                    </label>
+                    <input
+                      name="priority"
+                      type="number"
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid #dfe3e8",
+                        background: "white",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: 12, opacity: 0.55 }}>
+                    <s-paragraph>“Save rule” will work after tables exist.</s-paragraph>
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <s-button variant="primary" type="submit" disabled>
+                      Save rule
+                    </s-button>
+                  </div>
+                </>
+              ) : (
                 <>
                   <div style={{ marginTop: 8 }}>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
@@ -803,16 +831,16 @@ export default function Assignments() {
                   <s-paragraph style={{ marginTop: 8 }}>
                     This selects an existing table from your database.
                   </s-paragraph>
-                </>
-              ) : (
-                <>
-                  <div style={{ marginTop: 8 }}>
+
+                  <div style={{ marginTop: 12 }}>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                      Size table (demo)
+                      Priority (lower wins)
                     </label>
-                    <select
-                      value={demoKey}
-                      onChange={(e) => setDemoKey(e.target.value)}
+                    <input
+                      name="priority"
+                      type="number"
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value)}
                       style={{
                         width: "100%",
                         padding: "10px 12px",
@@ -820,45 +848,16 @@ export default function Assignments() {
                         border: "1px solid #dfe3e8",
                         background: "white",
                       }}
-                    >
-                      {DEMO_TABLES.map((t) => (
-                        <option key={t.key} value={t.key}>
-                          {t.title}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
-                  <s-paragraph style={{ marginTop: 8 }}>
-                    No DB charts found yet — add charts to enable real selection.
-                  </s-paragraph>
+                  <div style={{ marginTop: 12 }}>
+                    <s-button variant="primary" type="submit">
+                      Save rule
+                    </s-button>
+                  </div>
                 </>
               )}
-
-              <div style={{ marginTop: 12 }}>
-                <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                  Priority (lower wins)
-                </label>
-                <input
-                  name="priority"
-                  type="number"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid #dfe3e8",
-                    background: "white",
-                  }}
-                />
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <s-button variant="primary" type="submit">
-                  Save rule
-                </s-button>
-              </div>
             </s-box>
           </s-stack>
         </Form>
