@@ -4,85 +4,87 @@ import { json } from "../untils/http";
 
 function parseCsv(value?: string | null) {
   if (!value) return [];
+
   return value
     .split(",")
-    .map((x) => x.trim())
+    .map((v) => v.trim().toLowerCase())
     .filter(Boolean)
-    .filter((h) => h !== "all"); // ✅ IMPORTANT: ignore Shopify "all" collection handle
+    .filter((v) => v !== "all");
 }
 
-async function resolveChart(args: {
+function normalize(v?: string | null) {
+  if (!v) return null;
+  return v.trim().toLowerCase();
+}
+
+async function resolveChartFast({
+  shopId,
+  productId,
+  productHandle,
+  collectionHandles = [],
+  includeDefault = true,
+}: {
   shopId: string;
-  productId?: string; // numeric id from storefront
-  productHandle?: string; // optional
-  collectionHandles?: string[]; // list
-  includeDefault?: boolean; // ✅ NEW: allow disabling default fallback (used for mode=exists)
+  productId?: string;
+  productHandle?: string;
+  collectionHandles?: string[];
+  includeDefault?: boolean;
 }) {
-  const {
-    shopId,
-    productId,
-    productHandle,
-    collectionHandles,
-    includeDefault = true,
-  } = args;
+  const productGid = productId ? `gid://shopify/Product/${productId}` : null;
+  const productHandleNorm = normalize(productHandle);
 
-  // A) Product ID rule (DB stores product as GID)
-  if (productId) {
-    const productGid = `gid://shopify/Product/${productId}`;
+  // Fetch ALL rules once
+  const assignments = await prisma.sizeChartAssignment.findMany({
+    where: { shopId, enabled: true },
+    orderBy: { priority: "asc" },
+    include: {
+      chart: {
+        include: {
+          rows: { orderBy: { sortOrder: "asc" } },
+        },
+      },
+    },
+  });
 
-    const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: {
-        shopId,
-        enabled: true,
-        scope: "PRODUCT",
-        scopeValue: productGid,
-      },
-      include: {
-        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
-      },
-      orderBy: { priority: "asc" },
+  if (!assignments.length) {
+    if (!includeDefault) return null;
+
+    return prisma.sizeChart.findFirst({
+      where: { shopId, isDefault: true },
+      include: { rows: { orderBy: { sortOrder: "asc" } } },
     });
-
-    if (assignment?.chart) return assignment.chart;
   }
 
-  // B) Product handle rule (only if you store this scope)
-  if (productHandle) {
-    const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: {
-        shopId,
-        enabled: true,
-        scope: "PRODUCT_HANDLE",
-        scopeValue: productHandle,
-      },
-      include: {
-        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
-      },
-      orderBy: { priority: "asc" },
-    });
+  for (const a of assignments) {
+    const scope = (a.scope || "").toUpperCase();
+    const value = normalize(a.scopeValue);
 
-    if (assignment?.chart) return assignment.chart;
+    if (!a.chart) continue;
+
+    // PRODUCT
+    if (scope === "PRODUCT" && productGid && value === normalize(productGid)) {
+      return a.chart;
+    }
+
+    // PRODUCT HANDLE
+    if (
+      scope === "PRODUCT_HANDLE" &&
+      productHandleNorm &&
+      value === productHandleNorm
+    ) {
+      return a.chart;
+    }
+
+    // COLLECTION
+    if (scope === "COLLECTION" && value) {
+      for (const h of collectionHandles) {
+        if (value === h) {
+          return a.chart;
+        }
+      }
+    }
   }
 
-  // C) Collection rule (match ANY of the product collections)
-  if (collectionHandles && collectionHandles.length) {
-    const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: {
-        shopId,
-        enabled: true,
-        scope: "COLLECTION",
-        scopeValue: { in: collectionHandles },
-      },
-      include: {
-        chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
-      },
-      orderBy: { priority: "asc" },
-    });
-
-    if (assignment?.chart) return assignment.chart;
-  }
-
-  // D) Default fallback (ONLY for normal fetch, NOT for mode=exists)
   if (!includeDefault) return null;
 
   return prisma.sizeChart.findFirst({
@@ -95,8 +97,8 @@ export async function loader({ request }: { request: Request }) {
   try {
     const url = new URL(request.url);
 
-    // 1) Verify proxy signature
     const secret = process.env.SHOPIFY_API_SECRET || "";
+
     if (!secret) {
       return json(
         { ok: false, error: "Missing SHOPIFY_API_SECRET" },
@@ -105,6 +107,7 @@ export async function loader({ request }: { request: Request }) {
     }
 
     const verification = verifyShopifyAppProxy(url, secret);
+
     if (!verification.ok) {
       return json(
         { ok: false, error: "Unauthorized", reason: verification.reason },
@@ -112,29 +115,28 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    // 2) Identify shop
     const shop = url.searchParams.get("shop");
-    if (!shop) return json({ ok: false, error: "Missing shop" }, { status: 400 });
 
-    // 3) Read params
+    if (!shop) {
+      return json({ ok: false, error: "Missing shop" }, { status: 400 });
+    }
+
     const mode = url.searchParams.get("mode") || undefined;
+
     const productId = url.searchParams.get("product_id") || undefined;
     const productHandle = url.searchParams.get("product_handle") || undefined;
 
-    // comma-separated list from Liquid
-    const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
+    const collectionHandles = parseCsv(
+      url.searchParams.get("collection_handles")
+    );
 
-    // 4) Ensure DB shop row exists
     const dbShop = await prisma.shop.upsert({
       where: { shop },
       update: {},
       create: { shop },
     });
 
-    // 5) Resolve chart
-    // ✅ IMPORTANT: exists mode should NOT count the default chart,
-    // otherwise the button appears everywhere.
-    const chart = await resolveChart({
+    const chart = await resolveChartFast({
       shopId: dbShop.id,
       productId,
       productHandle,
@@ -142,22 +144,19 @@ export async function loader({ request }: { request: Request }) {
       includeDefault: mode !== "exists",
     });
 
-    // 6) exists mode (show button only if a RULE matched)
     if (mode === "exists") {
       if (!chart) return new Response(null, { status: 404 });
       return new Response(null, { status: 204 });
     }
 
-    // 7) If no chart configured
     if (!chart) {
       return json(
-        { ok: true, chart: null, message: "No size chart configured" },
+        { ok: true, chart: null },
         { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } }
       );
     }
 
-    // 8) Return JSON in the exact shape lemon-size.js expects
-    const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
+    const columns = Array.isArray(chart.columns) ? chart.columns : [];
 
     return json(
       {
@@ -173,7 +172,11 @@ export async function loader({ request }: { request: Request }) {
           })),
         },
       },
-      { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } }
+      {
+        headers: {
+          "Cache-Control": "public, max-age=60, s-maxage=300",
+        },
+      }
     );
   } catch (err) {
     console.error("[proxy size-chart] crash:", err);
