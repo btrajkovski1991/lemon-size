@@ -1,36 +1,54 @@
+# Dependencies
 node_modules
 
 # macOS
 .DS_Store
 
-/.cache
-/build
+# Build / cache
+.cache
+build
+dist
 /app/build
-/public/build/
-/public/_dev
+/public/build
 /app/public/build
+/public/_dev
 
-# Prisma / SQLite
+# React Router generated files
+.react-router/
+
+# Prisma
+.prisma
 /prisma/dev.sqlite
 /prisma/dev.sqlite-journal
 database.sqlite
 *.db
 *.sqlite
 
-# Environment
+# Environment variables
 .env
 .env.*
+!.env.example
 
 # Vercel
 .vercel
-dist
-
-# Extensions build output
-/extensions/*/dist
 
 # Shopify dev files
-.shopify/*
+.shopify
 .shopify.lock
 
-# React Router generated files
-.react-router/.vercel
+# Shopify extension builds
+/extensions/*/dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode
+.idea
