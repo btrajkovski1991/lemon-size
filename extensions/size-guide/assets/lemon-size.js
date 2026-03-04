@@ -57,24 +57,24 @@
     return json;
   }
 
-  async function hasChartFor(trigger) {
-    const proxyBase =
-      trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
-    const productId = trigger.getAttribute("data-product-id") || "";
-    const productHandle = trigger.getAttribute("data-product-handle") || "";
+async function hasChartFor(trigger) {
+  const proxyBase =
+    trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
+  const productId = trigger.getAttribute("data-product-id") || "";
+  const productHandle = trigger.getAttribute("data-product-handle") || "";
 
-    const url = new URL(proxyBase, window.location.origin);
-    url.searchParams.set("mode", "exists"); // ✅ IMPORTANT
+  const url = new URL(proxyBase, window.location.origin);
+  url.searchParams.set("mode", "exists");
 
-    if (productId) url.searchParams.set("product_id", productId);
-    if (productHandle) url.searchParams.set("product_handle", productHandle);
+  if (productId) url.searchParams.set("product_id", productId);
+  if (productHandle) url.searchParams.set("product_handle", productHandle);
 
-    const res = await fetch(url.toString(), { credentials: "same-origin" });
+  const res = await fetch(url.toString(), { credentials: "same-origin" });
 
-    // Expect: 204/200 = yes, 404 = no
-    return res.ok;
-  }
-
+  if (res.status === 404) return false;             // no chart
+  if (!res.ok) throw new Error(`Proxy error (${res.status})`); // 401/500 etc
+  return true;
+}
   function render(container, data) {
     if (!data || !data.chart) {
       container.innerHTML = `<div class="lemon-size__error">No size chart configured.</div>`;

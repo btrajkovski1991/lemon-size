@@ -2,6 +2,11 @@ import { data } from "react-router";
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 
+
+console.log("[proxy] full url:", url.toString());
+console.log("[proxy] params:", Object.fromEntries(url.searchParams.entries()));
+
+
 async function resolveChart(args: {
   shopId: string;
   productId?: string;
