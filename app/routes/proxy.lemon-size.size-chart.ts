@@ -7,16 +7,24 @@ function parseCsv(value?: string | null) {
   return value
     .split(",")
     .map((x) => x.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((h) => h !== "all"); // ✅ IMPORTANT: ignore Shopify "all" collection handle
 }
 
 async function resolveChart(args: {
   shopId: string;
-  productId?: string;        // numeric id from storefront
-  productHandle?: string;    // optional
-  collectionHandles?: string[]; // ✅ list
+  productId?: string; // numeric id from storefront
+  productHandle?: string; // optional
+  collectionHandles?: string[]; // list
+  includeDefault?: boolean; // ✅ NEW: allow disabling default fallback (used for mode=exists)
 }) {
-  const { shopId, productId, productHandle, collectionHandles } = args;
+  const {
+    shopId,
+    productId,
+    productHandle,
+    collectionHandles,
+    includeDefault = true,
+  } = args;
 
   // A) Product ID rule (DB stores product as GID)
   if (productId) {
@@ -74,7 +82,9 @@ async function resolveChart(args: {
     if (assignment?.chart) return assignment.chart;
   }
 
-  // D) Default fallback
+  // D) Default fallback (ONLY for normal fetch, NOT for mode=exists)
+  if (!includeDefault) return null;
+
   return prisma.sizeChart.findFirst({
     where: { shopId, isDefault: true },
     include: { rows: { orderBy: { sortOrder: "asc" } } },
@@ -88,7 +98,10 @@ export async function loader({ request }: { request: Request }) {
     // 1) Verify proxy signature
     const secret = process.env.SHOPIFY_API_SECRET || "";
     if (!secret) {
-      return json({ ok: false, error: "Missing SHOPIFY_API_SECRET" }, { status: 500 });
+      return json(
+        { ok: false, error: "Missing SHOPIFY_API_SECRET" },
+        { status: 500 }
+      );
     }
 
     const verification = verifyShopifyAppProxy(url, secret);
@@ -108,7 +121,7 @@ export async function loader({ request }: { request: Request }) {
     const productId = url.searchParams.get("product_id") || undefined;
     const productHandle = url.searchParams.get("product_handle") || undefined;
 
-    // ✅ NEW: comma-separated list from Liquid
+    // comma-separated list from Liquid
     const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
 
     // 4) Ensure DB shop row exists
@@ -119,14 +132,17 @@ export async function loader({ request }: { request: Request }) {
     });
 
     // 5) Resolve chart
+    // ✅ IMPORTANT: exists mode should NOT count the default chart,
+    // otherwise the button appears everywhere.
     const chart = await resolveChart({
       shopId: dbShop.id,
       productId,
       productHandle,
       collectionHandles,
+      includeDefault: mode !== "exists",
     });
 
-    // 6) exists mode (show button only if matched)
+    // 6) exists mode (show button only if a RULE matched)
     if (mode === "exists") {
       if (!chart) return new Response(null, { status: 404 });
       return new Response(null, { status: 204 });
