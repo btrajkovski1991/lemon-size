@@ -20,8 +20,8 @@
   </div>
 </div>
 
-{{ 'lemon-size.css' | shopify_asset_url | stylesheet_tag }}
-<script src="{{ 'lemon-size.js' | shopify_asset_url }}" defer></script>
+{{ 'lemon-size.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'lemon-size.js' | asset_url }}" defer></script>
 
 {% schema %}
 {
