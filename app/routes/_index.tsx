@@ -1,9 +1,8 @@
-import { redirect } from "react-router";
+import { redirect } from "@remix-run/node";
 
 export function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
 
-  // Keep shop param if present
   const shop = url.searchParams.get("shop");
   const to = shop ? `/app?shop=${encodeURIComponent(shop)}` : "/app";
 

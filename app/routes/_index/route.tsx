@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { redirect, Form, useLoaderData } from "react-router";
+import { Form, useLoaderData } from "react-router";
+import { redirect } from "@react-router/node";
 
 import { login } from "../../shopify.server";
 import styles from "./styles.module.css";

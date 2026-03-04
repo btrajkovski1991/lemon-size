@@ -1,4 +1,4 @@
-import { data } from "react-router";
+import { json } from "@react-router/node";
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 

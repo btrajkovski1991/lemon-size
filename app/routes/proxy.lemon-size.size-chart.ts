@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { json } from "@react-router/node";
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 
