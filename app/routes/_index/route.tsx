@@ -1,17 +1,23 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Form, useLoaderData } from "react-router";
 
-
 import { login } from "../../shopify.server";
 import styles from "./styles.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
+  // If Shopify loads the app with ?shop=..., send user to /app while preserving params
   if (url.searchParams.get("shop")) {
-    throw redirect(`/app?${url.searchParams.toString()}`);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `/app?${url.searchParams.toString()}`,
+      },
+    });
   }
 
+  // Show login form if login handler exists
   return { showForm: Boolean(login) };
 };
 
