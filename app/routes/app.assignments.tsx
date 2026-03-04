@@ -7,7 +7,16 @@ import prisma from "../db.server";
 
 type Scope = "ALL" | "PRODUCT" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG";
 
-type ChartLite = { id: string; title: string; isDefault: boolean };
+type ChartPreviewRow = { label: string; sortOrder: number; values: Record<string, any> };
+type ChartLite = {
+  id: string;
+  title: string;
+  isDefault: boolean;
+  unit?: string | null;
+  columns?: string[] | null;
+  rows?: ChartPreviewRow[]; // preview rows
+};
+
 type RuleLite = {
   id: string;
   priority: number;
@@ -70,10 +79,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopDomain = await requireShopFromDb();
   const shopRow = await getOrCreateShopRow(shopDomain);
 
+  // ✅ include preview data (small + cheap): columns + first 5 rows
   const charts = await prisma.sizeChart.findMany({
     where: { shopId: shopRow.id },
     orderBy: [{ isDefault: "desc" }, { title: "asc" }],
-    select: { id: true, title: true, isDefault: true },
+    select: {
+      id: true,
+      title: true,
+      isDefault: true,
+      unit: true,
+      columns: true,
+      rows: {
+        orderBy: [{ sortOrder: "asc" }],
+        take: 5,
+        select: { label: true, sortOrder: true, values: true },
+      },
+    },
   });
 
   const rules = await prisma.sizeChartAssignment.findMany({
@@ -152,12 +173,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       throw new Response("Missing scopeValue", { status: 400 });
     }
 
-    // Require chart selection in production
     if (!chartIdRaw) {
-      throw new Response(
-        "Missing chartId. Seed/create size charts first, then select a table.",
-        { status: 400 },
-      );
+      throw new Response("Missing chartId. Seed/create size charts first, then select a table.", {
+        status: 400,
+      });
     }
 
     await prisma.sizeChartAssignment.create({
@@ -244,12 +263,14 @@ function ModalShell({
   onClose,
   children,
   footer,
+  wide,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: any;
   footer?: any;
+  wide?: boolean;
 }) {
   if (!open) return null;
 
@@ -273,7 +294,7 @@ function ModalShell({
     >
       <div
         style={{
-          width: "min(900px, 96vw)",
+          width: wide ? "min(980px, 96vw)" : "min(900px, 96vw)",
           maxHeight: "86vh",
           background: "white",
           borderRadius: 16,
@@ -293,7 +314,7 @@ function ModalShell({
             gap: 12,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{title}</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{title}</div>
           <button
             type="button"
             onClick={onClose}
@@ -329,6 +350,265 @@ function ModalShell({
   );
 }
 
+/** ✅ Simple SVG icon set per template title (admin UI only). */
+function IconForChartTitle({ title }: { title: string }) {
+  const common = { width: 42, height: 42, viewBox: "0 0 48 48", fill: "none" as const };
+
+  const stroke = "#2a2a2a";
+  const muted = "#9aa0a6";
+
+  const t = title.toLowerCase();
+
+  // shoes
+  if (t.includes("shoe")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M9 30c7 0 12-6 13-10l8 6c3 2 6 3 9 3h2v6H9v-5z"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path d="M10 35h32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  // tops
+  if (t.includes("tops")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M16 14l8-4 8 4 4 8-6 4v20H18V26l-6-4 4-8z"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  // bottoms
+  if (t.includes("bottom")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M18 10h12l2 28-7-2-3 8-3-8-7 2 2-28z"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  // blazer / jacket
+  if (t.includes("blazer") || t.includes("jacket")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M16 12l8-2 8 2 4 10-6 6v14H18V28l-6-6 4-10z"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path d="M24 10v32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  // dress
+  if (t.includes("dress")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M20 10h8l2 8-2 4 6 18H14l6-18-2-4 2-8z"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  // bra
+  if (t.includes("bra")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M14 22c2-6 8-8 10-8s8 2 10 8"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M14 22c0 6 2 10 6 10m22-10c0 6-2 10-6 10"
+          stroke={muted}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  // bikini / brief
+  if (t.includes("bikini") || t.includes("brief")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M16 18c2 4 4 6 8 6s6-2 8-6"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 18l-2 20h24l-2-20"
+          stroke={muted}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  // pet clothing / collar
+  if (t.includes("pet")) {
+    return (
+      <svg {...common}>
+        <circle cx="24" cy="20" r="8" stroke={stroke} strokeWidth="2" />
+        <path d="M16 36c2-6 14-6 16 0" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  // headwear
+  if (t.includes("headwear")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M12 28c2-8 8-12 12-12s10 4 12 12"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path d="M12 28h24v6H12v-6z" stroke={muted} strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  // bracelet
+  if (t.includes("bracelet")) {
+    return (
+      <svg {...common}>
+        <circle cx="24" cy="24" r="10" stroke={stroke} strokeWidth="2" />
+        <path d="M18 24h12" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  // ring
+  if (t.includes("ring")) {
+    return (
+      <svg {...common}>
+        <circle cx="24" cy="26" r="10" stroke={stroke} strokeWidth="2" />
+        <path d="M19 14l5-6 5 6" stroke={muted} strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  // necklace
+  if (t.includes("necklace")) {
+    return (
+      <svg {...common}>
+        <path
+          d="M14 18c3-4 7-6 10-6s7 2 10 6"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path d="M24 18v10" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+        <circle cx="24" cy="32" r="3" stroke={muted} strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  // default
+  return (
+    <svg {...common}>
+      <rect x="12" y="12" width="24" height="24" rx="6" stroke={stroke} strokeWidth="2" />
+      <path d="M16 20h16M16 26h16M16 32h10" stroke={muted} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChartPreview({ chart }: { chart: ChartLite | null }) {
+  if (!chart) return null;
+
+  const cols = (chart.columns ?? []).filter(Boolean);
+  const rows = chart.rows ?? [];
+
+  if (!cols.length || !rows.length) {
+    return (
+      <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid #eee", background: "#fafafa" }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>Preview</div>
+        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+          No preview rows yet for this chart.
+        </div>
+      </div>
+    );
+  }
+
+  const showCols = cols.slice(0, 3);
+
+  return (
+    <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid #eee", background: "white" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 800 }}>Preview</div>
+        <div style={{ fontSize: 12, opacity: 0.7 }}>{chart.unit ? String(chart.unit).toUpperCase() : ""}</div>
+      </div>
+
+      <div style={{ overflowX: "auto", marginTop: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 360 }}>
+          <thead>
+            <tr>
+              {showCols.map((c) => (
+                <th
+                  key={c}
+                  style={{
+                    textAlign: "left",
+                    fontSize: 12,
+                    padding: "10px 10px",
+                    borderBottom: "1px solid #eee",
+                    background: "#fafafa",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 4).map((r) => (
+              <tr key={`${r.label}-${r.sortOrder}`}>
+                {showCols.map((c) => (
+                  <td key={c} style={{ padding: "10px 10px", borderBottom: "1px solid #f2f2f2", fontSize: 12 }}>
+                    {String(r.values?.[c] ?? "")}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 8 }}>
+        Showing first {Math.min(4, rows.length)} rows & {showCols.length} columns.
+      </div>
+    </div>
+  );
+}
+
 export default function Assignments() {
   const { shopDomain, charts, rules, products, collections } = useLoaderData<typeof loader>();
   const chartsEmpty = charts.length === 0;
@@ -347,6 +627,10 @@ export default function Assignments() {
   const [productQuery, setProductQuery] = useState("");
   const [collectionQuery, setCollectionQuery] = useState("");
 
+  // Chart picker modal
+  const [chartPickerOpen, setChartPickerOpen] = useState(false);
+  const [chartQuery, setChartQuery] = useState("");
+
   const selectedProduct = useMemo(
     () => products.find((p) => p.id === productId) || null,
     [products, productId],
@@ -364,6 +648,11 @@ export default function Assignments() {
 
   const [chartId, setChartId] = useState<string>(defaultChartId);
   const [priority, setPriority] = useState<string>("100");
+
+  const selectedChart = useMemo(
+    () => charts.find((c: ChartLite) => c.id === chartId) || null,
+    [charts, chartId],
+  );
 
   // scopeValue to save
   const scopeValue = useMemo(() => {
@@ -392,6 +681,12 @@ export default function Assignments() {
       return c.title.toLowerCase().includes(q) || c.handle.toLowerCase().includes(q);
     });
   }, [collections, collectionQuery]);
+
+  const filteredCharts = useMemo(() => {
+    const q = chartQuery.trim().toLowerCase();
+    if (!q) return charts;
+    return charts.filter((c: ChartLite) => c.title.toLowerCase().includes(q));
+  }, [charts, chartQuery]);
 
   return (
     <s-page heading="Size chart assignments">
@@ -495,20 +790,11 @@ export default function Assignments() {
                 <Thumb url={p.imageUrl} alt={p.imageAlt} />
 
                 <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontWeight: 750,
-                      fontSize: 14,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
+                  <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {p.title}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    {p.vendor ? `${p.vendor} • ` : ""}
-                    {p.handle}
+                    {p.vendor ? `${p.vendor} • ` : ""}{p.handle}
                   </div>
                 </div>
               </label>
@@ -605,6 +891,115 @@ export default function Assignments() {
         </div>
       </ModalShell>
 
+      {/* ✅ Chart picker modal (nice grid + SVG icons + preview-like feel) */}
+      <ModalShell
+        open={chartPickerOpen}
+        title="Choose size table"
+        onClose={() => setChartPickerOpen(false)}
+        wide
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setChartPickerOpen(false)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #cfd3d8",
+                background: "white",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </>
+        }
+      >
+        {chartsEmpty ? (
+          <s-paragraph>
+            No charts found. Seed/create charts first.
+          </s-paragraph>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <input
+                value={chartQuery}
+                onChange={(e) => setChartQuery(e.target.value)}
+                placeholder="Search templates…"
+                style={{
+                  width: "100%",
+                  padding: "12px 12px",
+                  borderRadius: 12,
+                  border: "1px solid #dfe3e8",
+                  background: "white",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {filteredCharts.map((c: ChartLite) => {
+                const active = c.id === chartId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setChartId(c.id);
+                      setChartPickerOpen(false);
+                    }}
+                    style={{
+                      textAlign: "left",
+                      borderRadius: 14,
+                      border: active ? "2px solid #3aa655" : "1px solid #e7e7e7",
+                      background: "white",
+                      padding: 12,
+                      cursor: "pointer",
+                      boxShadow: active ? "0 10px 20px rgba(58,166,85,.14)" : "0 8px 18px rgba(0,0,0,.06)",
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                    aria-pressed={active}
+                  >
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 14,
+                        border: "1px solid #eee",
+                        background: "#fafafa",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      <IconForChartTitle title={c.title} />
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 850, fontSize: 14, lineHeight: 1.1 }}>
+                        {c.title}
+                        {c.isDefault ? " (default)" : ""}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                        {c.unit ? String(c.unit).toUpperCase() : "—"} • {Array.isArray(c.columns) ? c.columns.length : 0} cols
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </ModalShell>
+
       <s-section heading="Create rule">
         <Form method="post">
           <input type="hidden" name="intent" value="create" />
@@ -671,15 +1066,7 @@ export default function Assignments() {
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <Thumb url={selectedProduct.imageUrl} alt={selectedProduct.imageAlt} />
                             <div style={{ minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontWeight: 750,
-                                  fontSize: 14,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
+                              <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {selectedProduct.title}
                               </div>
                               <div style={{ fontSize: 12, opacity: 0.75 }}>
@@ -740,9 +1127,9 @@ export default function Assignments() {
                       onChange={(e) => setTextValue(e.target.value)}
                       placeholder={
                         scope === "TYPE"
-                          ? "e.g. Shoes, Suits, Jeans"
+                          ? "e.g. Shoes, Tops (product)"
                           : scope === "VENDOR"
-                            ? "e.g. Nike, Adidas"
+                            ? "e.g. Nike"
                             : "e.g. oversized"
                       }
                       style={{
@@ -759,14 +1146,13 @@ export default function Assignments() {
             </s-box>
 
             {/* RIGHT */}
-            <s-box padding="base" borderWidth="base" borderRadius="base" style={{ width: 420 }}>
+            <s-box padding="base" borderWidth="base" borderRadius="base" style={{ width: 460 }}>
               <s-heading>Select size table</s-heading>
 
               {chartsEmpty ? (
                 <>
                   <s-paragraph style={{ marginTop: 8 }}>
-                    <strong>No size tables found.</strong> Seed/create charts first (17 templates), then you can select a
-                    table here.
+                    <strong>No size tables found.</strong> Seed/create charts first.
                   </s-paragraph>
 
                   <s-paragraph style={{ marginTop: 8 }}>
@@ -792,10 +1178,6 @@ export default function Assignments() {
                     />
                   </div>
 
-                  <div style={{ marginTop: 12, opacity: 0.55 }}>
-                    <s-paragraph>“Save rule” will work after tables exist.</s-paragraph>
-                  </div>
-
                   <div style={{ marginTop: 12 }}>
                     <s-button variant="primary" type="submit" disabled>
                       Save rule
@@ -804,33 +1186,57 @@ export default function Assignments() {
                 </>
               ) : (
                 <>
-                  <div style={{ marginTop: 8 }}>
-                    <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                      Size table
-                    </label>
-                    <select
-                      value={chartId}
-                      onChange={(e) => setChartId(e.target.value)}
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setChartPickerOpen(true)}
                       style={{
                         width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
+                        textAlign: "left",
+                        padding: "12px 12px",
+                        borderRadius: 12,
                         border: "1px solid #dfe3e8",
                         background: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
                       }}
                     >
-                      {charts.map((c: ChartLite) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                          {c.isDefault ? " (default)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            border: "1px solid #eee",
+                            background: "#fafafa",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flex: "0 0 auto",
+                          }}
+                        >
+                          <IconForChartTitle title={selectedChart?.title || ""} />
+                        </div>
 
-                  <s-paragraph style={{ marginTop: 8 }}>
-                    This selects an existing table from your database.
-                  </s-paragraph>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 850, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {selectedChart?.title || "Choose a table…"}
+                            {selectedChart?.isDefault ? " (default)" : ""}
+                          </div>
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>
+                            Click to change
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: 18, opacity: 0.7 }}>›</div>
+                    </button>
+
+                    <ChartPreview chart={selectedChart} />
+                  </div>
 
                   <div style={{ marginTop: 12 }}>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
