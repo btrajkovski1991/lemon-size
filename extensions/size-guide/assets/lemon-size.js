@@ -23,9 +23,8 @@
       .replaceAll("'", "&#039;");
   }
 
-  function getCollections(trigger) {
-    const raw = trigger.getAttribute("data-collection-handles") || "";
-    // keep as comma list, but normalize whitespace
+  function parseCsvAttr(trigger, attrName) {
+    const raw = trigger.getAttribute(attrName) || "";
     return raw
       .split(",")
       .map((x) => x.trim())
@@ -33,24 +32,44 @@
       .join(",");
   }
 
-  async function fetchChart(trigger) {
+  function buildProxyUrl(trigger, mode) {
     const proxyBase =
       trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
+
     const productId = trigger.getAttribute("data-product-id") || "";
     const productHandle = trigger.getAttribute("data-product-handle") || "";
-    const collectionHandles = getCollections(trigger);
+
+    const collectionHandles = parseCsvAttr(trigger, "data-collection-handles");
+
+    // ✅ NEW attrs from Liquid
+    const productType = trigger.getAttribute("data-product-type") || "";
+    const productVendor = trigger.getAttribute("data-product-vendor") || "";
+    const productTags = parseCsvAttr(trigger, "data-product-tags");
 
     const url = new URL(proxyBase, window.location.origin);
 
+    if (mode) url.searchParams.set("mode", mode);
+
     if (productId) url.searchParams.set("product_id", productId);
     if (productHandle) url.searchParams.set("product_handle", productHandle);
+    if (collectionHandles)
+      url.searchParams.set("collection_handles", collectionHandles);
 
-    // ✅ NEW: pass collection handles
-    if (collectionHandles) url.searchParams.set("collection_handles", collectionHandles);
+    // ✅ NEW: pass product meta for TYPE/VENDOR/TAG rules
+    if (productType) url.searchParams.set("product_type", productType);
+    if (productVendor) url.searchParams.set("product_vendor", productVendor);
+    if (productTags) url.searchParams.set("product_tags", productTags);
+
+    return url;
+  }
+
+  async function fetchChart(trigger) {
+    const url = buildProxyUrl(trigger, null);
 
     const res = await fetch(url.toString(), { credentials: "same-origin" });
-    const text = await res.text();
 
+    // for real fetch we expect JSON
+    const text = await res.text();
     let json = null;
     try {
       json = JSON.parse(text);
@@ -68,25 +87,19 @@
   }
 
   async function hasChartFor(trigger) {
-    const proxyBase =
-      trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
-    const productId = trigger.getAttribute("data-product-id") || "";
-    const productHandle = trigger.getAttribute("data-product-handle") || "";
-    const collectionHandles = getCollections(trigger);
-
-    const url = new URL(proxyBase, window.location.origin);
-    url.searchParams.set("mode", "exists");
-
-    if (productId) url.searchParams.set("product_id", productId);
-    if (productHandle) url.searchParams.set("product_handle", productHandle);
-
-    // ✅ NEW: pass collection handles
-    if (collectionHandles) url.searchParams.set("collection_handles", collectionHandles);
+    const url = buildProxyUrl(trigger, "exists");
 
     const res = await fetch(url.toString(), { credentials: "same-origin" });
 
-    // 204/200 = yes, 404 = no
-    return res.ok;
+    // ✅ IMPORTANT:
+    // 204/200 => show button
+    // 404 => no match => hide button (normal, don't throw)
+    if (res.status === 404) return false;
+
+    // other non-OK statuses are real errors (401, 500, etc.)
+    if (!res.ok) return false;
+
+    return true;
   }
 
   function render(container, data) {
@@ -129,6 +142,7 @@
 
     const roots = Array.from(document.querySelectorAll("[data-lemon-size-root]"));
 
+    // hide all until verified
     roots.forEach((root) => {
       root.hidden = true;
     });

@@ -17,8 +17,22 @@ type RuleLite = {
   chart: { title: string };
 };
 
-type ProductLite = { id: string; title: string; handle: string };
-type CollectionLite = { id: string; title: string; handle: string };
+type ProductLite = {
+  id: string;
+  title: string;
+  handle: string;
+  vendor?: string;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+};
+
+type CollectionLite = {
+  id: string;
+  title: string;
+  handle: string;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+};
 
 async function requireShopFromDb() {
   const online = await prisma.session.findFirst({
@@ -68,23 +82,50 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     include: { chart: { select: { title: true } } },
   });
 
-  // Products + collections for pickers (limit 50)
+  // Products + collections for pickers
   const resp = await admin.graphql(
     `#graphql
       query LemonSizeAssignmentsPickers {
-        products(first: 50, sortKey: UPDATED_AT, reverse: true) {
-          nodes { id title handle }
+        products(first: 100, sortKey: UPDATED_AT, reverse: true) {
+          nodes {
+            id
+            title
+            handle
+            vendor
+            featuredImage { url altText }
+          }
         }
-        collections(first: 50, sortKey: UPDATED_AT, reverse: true) {
-          nodes { id title handle }
+        collections(first: 100, sortKey: UPDATED_AT, reverse: true) {
+          nodes {
+            id
+            title
+            handle
+            image { url altText }
+          }
         }
       }
     `,
   );
 
   const json = await resp.json();
-  const products: ProductLite[] = json?.data?.products?.nodes ?? [];
-  const collections: CollectionLite[] = json?.data?.collections?.nodes ?? [];
+  const products: ProductLite[] =
+    (json?.data?.products?.nodes ?? []).map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      vendor: p.vendor,
+      imageUrl: p.featuredImage?.url ?? null,
+      imageAlt: p.featuredImage?.altText ?? null,
+    }));
+
+  const collections: CollectionLite[] =
+    (json?.data?.collections?.nodes ?? []).map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      handle: c.handle,
+      imageUrl: c.image?.url ?? null,
+      imageAlt: c.image?.altText ?? null,
+    }));
 
   return { shopDomain, charts, rules, products, collections };
 };
@@ -106,14 +147,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const scopeValue = scope === "ALL" ? null : scopeValueRaw;
 
     const chartIdRaw = String(form.get("chartId") || "").trim();
-    const demoKey = String(form.get("demoKey") || "").trim(); // for UI test only
+    const demoKey = String(form.get("demoKey") || "").trim();
 
     if (scope !== "ALL" && !scopeValue) {
       throw new Response("Missing scopeValue", { status: 400 });
     }
 
-    // If charts exist -> require chartId
-    // If charts do not exist -> allow demoKey (UI test)
     if (chartIdRaw) {
       await prisma.sizeChartAssignment.create({
         data: {
@@ -128,7 +167,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { ok: true };
     }
 
-    // UI TEST MODE: if no chartId, still create a placeholder assignment using DEFAULT chart
     const fallback = await prisma.sizeChart.findFirst({
       where: { shopId: shopRow.id },
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
@@ -156,7 +194,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true };
   }
 
-  // ✅ SAFE TOGGLE (won't throw if record missing)
+  // SAFE TOGGLE
   if (intent === "toggle") {
     const id = String(form.get("id") || "");
     const enabled = String(form.get("enabled") || "false") === "true";
@@ -170,7 +208,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true, updated: result.count };
   }
 
-  // ✅ SAFE DELETE (prevents P2025)
+  // SAFE DELETE
   if (intent === "delete") {
     const id = String(form.get("id") || "");
     if (!id) throw new Response("Missing id", { status: 400 });
@@ -197,87 +235,122 @@ function ruleLabel(scope: string, scopeValue: string | null) {
 
 /** Demo tables shown when DB has no charts (UI test mode). */
 const DEMO_TABLES = [
-  {
-    key: "shoe",
-    title: "Shoes (US/EU/Foot length)",
-    unit: "in",
-    columns: ["SIZE US", "SIZE EUR", "FOOT LENGTH"],
-    rows: [
-      { label: "", values: { "SIZE US": "7", "SIZE EUR": "40", "FOOT LENGTH": "9.84" } },
-      { label: "", values: { "SIZE US": "7.5", "SIZE EUR": "41", "FOOT LENGTH": "10" } },
-      { label: "", values: { "SIZE US": "8", "SIZE EUR": "41", "FOOT LENGTH": "10.2" } },
-      { label: "", values: { "SIZE US": "8.5", "SIZE EUR": "42", "FOOT LENGTH": "10.4" } },
-      { label: "", values: { "SIZE US": "9", "SIZE EUR": "43", "FOOT LENGTH": "10.6" } },
-    ],
-  },
-  {
-    key: "suit",
-    title: "Suits & Blazers (Chest/Waist)",
-    unit: "cm",
-    columns: ["CHEST", "WAIST"],
-    rows: [
-      { label: "46", values: { CHEST: "92", WAIST: "80" } },
-      { label: "48", values: { CHEST: "96", WAIST: "84" } },
-      { label: "50", values: { CHEST: "100", WAIST: "88" } },
-    ],
-  },
-  {
-    key: "default",
-    title: "Default table",
-    unit: "cm",
-    columns: ["A", "B", "C"],
-    rows: [
-      { label: "S", values: { A: "10", B: "20", C: "30" } },
-      { label: "M", values: { A: "12", B: "22", C: "32" } },
-      { label: "L", values: { A: "14", B: "24", C: "34" } },
-    ],
-  },
+  { key: "shoe", title: "Shoes (US/EU/Foot length)" },
+  { key: "suit", title: "Suits & Blazers (Chest/Waist)" },
+  { key: "default", title: "Default table" },
 ];
 
-function PreviewTable({
-  title,
-  unit,
-  columns,
-  rows,
-}: {
-  title: string;
-  unit: string;
-  columns: string[];
-  rows: { label?: string; values: Record<string, string> }[];
-}) {
+function Thumb({ url, alt }: { url?: string | null; alt?: string | null }) {
   return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ fontWeight: 650 }}>{title}</div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Unit: {unit}</div>
+    <div
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        border: "1px solid #e7e7e7",
+        background: "#fafafa",
+        overflow: "hidden",
+        flex: "0 0 auto",
+      }}
+    >
+      {url ? (
+        // eslint-disable-next-line jsx-a11y/img-redundant-alt
+        <img
+          src={url}
+          alt={alt || "image"}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : null}
+    </div>
+  );
+}
 
-      <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 12 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>
-                Size
-              </th>
-              {columns.map((c) => (
-                <th
-                  key={c}
-                  style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}
-                >
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, 6).map((r, idx) => (
-              <tr key={idx} style={{ borderTop: "1px solid #f3f3f3" }}>
-                <td style={{ padding: 10, fontWeight: 600 }}>{r.label || "-"}</td>
-                {columns.map((c) => (
-                  <td key={c} style={{ padding: 10 }}>{r.values?.[c] ?? ""}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+function ModalShell({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: any;
+  footer?: any;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        background: "rgba(0,0,0,.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        style={{
+          width: "min(900px, 96vw)",
+          maxHeight: "86vh",
+          background: "white",
+          borderRadius: 16,
+          boxShadow: "0 12px 30px rgba(0,0,0,.20)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            padding: "16px 18px",
+            borderBottom: "1px solid #eee",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{title}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "transparent",
+              fontSize: 24,
+              lineHeight: 1,
+              cursor: "pointer",
+              padding: 6,
+            }}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: 16, overflow: "auto" }}>{children}</div>
+
+        <div
+          style={{
+            padding: 16,
+            borderTop: "1px solid #eee",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+          }}
+        >
+          {footer}
+        </div>
       </div>
     </div>
   );
@@ -285,14 +358,31 @@ function PreviewTable({
 
 export default function Assignments() {
   const { shopDomain, charts, rules, products, collections } = useLoaderData<typeof loader>();
-
   const chartsEmpty = charts.length === 0;
 
   // UI state
   const [scope, setScope] = useState<Scope>("PRODUCT");
+
+  // Selected values
   const [productId, setProductId] = useState<string>(products?.[0]?.id || "");
   const [collectionHandle, setCollectionHandle] = useState<string>(collections?.[0]?.handle || "");
   const [textValue, setTextValue] = useState<string>("");
+
+  // Pickers
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
+  const [collectionPickerOpen, setCollectionPickerOpen] = useState(false);
+  const [productQuery, setProductQuery] = useState("");
+  const [collectionQuery, setCollectionQuery] = useState("");
+
+  const selectedProduct = useMemo(
+    () => products.find((p) => p.id === productId) || null,
+    [products, productId],
+  );
+
+  const selectedCollection = useMemo(
+    () => collections.find((c) => c.handle === collectionHandle) || null,
+    [collections, collectionHandle],
+  );
 
   const defaultChartId = useMemo(() => {
     const d = charts.find((c: ChartLite) => c.isDefault);
@@ -306,14 +396,30 @@ export default function Assignments() {
   // scopeValue to save
   const scopeValue = useMemo(() => {
     if (scope === "ALL") return "";
-    if (scope === "PRODUCT") return productId;
-    if (scope === "COLLECTION") return collectionHandle;
+    if (scope === "PRODUCT") return productId; // GID from GraphQL
+    if (scope === "COLLECTION") return collectionHandle; // handle
     return textValue.trim();
   }, [scope, productId, collectionHandle, textValue]);
 
-  const demo = useMemo(() => {
-    return DEMO_TABLES.find((d) => d.key === demoKey) || DEMO_TABLES[0];
-  }, [demoKey]);
+  const filteredProducts = useMemo(() => {
+    const q = productQuery.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => {
+      return (
+        p.title.toLowerCase().includes(q) ||
+        (p.vendor || "").toLowerCase().includes(q) ||
+        p.handle.toLowerCase().includes(q)
+      );
+    });
+  }, [products, productQuery]);
+
+  const filteredCollections = useMemo(() => {
+    const q = collectionQuery.trim().toLowerCase();
+    if (!q) return collections;
+    return collections.filter((c) => {
+      return c.title.toLowerCase().includes(q) || c.handle.toLowerCase().includes(q);
+    });
+  }, [collections, collectionQuery]);
 
   return (
     <s-page heading="Size chart assignments">
@@ -322,6 +428,201 @@ export default function Assignments() {
           <strong>Shop:</strong> {shopDomain}
         </s-paragraph>
       </s-section>
+
+      {/* Product picker modal */}
+      <ModalShell
+        open={productPickerOpen}
+        title="Select Products"
+        onClose={() => setProductPickerOpen(false)}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setProductPickerOpen(false)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #cfd3d8",
+                background: "white",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductPickerOpen(false)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #2e7d32",
+                background: "#3aa655",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              Select
+            </button>
+          </>
+        }
+      >
+        <div style={{ marginBottom: 12 }}>
+          <input
+            value={productQuery}
+            onChange={(e) => setProductQuery(e.target.value)}
+            placeholder="Filter products by full name"
+            style={{
+              width: "100%",
+              padding: "12px 12px",
+              borderRadius: 12,
+              border: "1px solid #dfe3e8",
+              background: "white",
+            }}
+          />
+        </div>
+
+        <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderBottom: "1px solid #eee",
+              background: "#fafafa",
+              fontSize: 13,
+              color: "#444",
+            }}
+          >
+            <div>Showing {Math.min(filteredProducts.length, 100)} products</div>
+            <div style={{ opacity: 0.7 }}>Pick 1 product</div>
+          </div>
+
+          {filteredProducts.slice(0, 100).map((p) => {
+            const checked = p.id === productId;
+            return (
+              <label
+                key={p.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 12,
+                  borderTop: "1px solid #f1f1f1",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="productPick"
+                  checked={checked}
+                  onChange={() => setProductId(p.id)}
+                  style={{ width: 18, height: 18 }}
+                />
+
+                <Thumb url={p.imageUrl} alt={p.imageAlt} />
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.title}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>
+                    {p.vendor ? `${p.vendor} • ` : ""}{p.handle}
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </ModalShell>
+
+      {/* Collection picker modal */}
+      <ModalShell
+        open={collectionPickerOpen}
+        title="Select Collection"
+        onClose={() => setCollectionPickerOpen(false)}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setCollectionPickerOpen(false)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #cfd3d8",
+                background: "white",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCollectionPickerOpen(false)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #2e7d32",
+                background: "#3aa655",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              Select
+            </button>
+          </>
+        }
+      >
+        <div style={{ marginBottom: 12 }}>
+          <input
+            value={collectionQuery}
+            onChange={(e) => setCollectionQuery(e.target.value)}
+            placeholder="Filter collections by name or handle"
+            style={{
+              width: "100%",
+              padding: "12px 12px",
+              borderRadius: 12,
+              border: "1px solid #dfe3e8",
+              background: "white",
+            }}
+          />
+        </div>
+
+        <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden" }}>
+          {filteredCollections.slice(0, 100).map((c) => {
+            const checked = c.handle === collectionHandle;
+            return (
+              <label
+                key={c.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 12,
+                  borderTop: "1px solid #f1f1f1",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="collectionPick"
+                  checked={checked}
+                  onChange={() => setCollectionHandle(c.handle)}
+                  style={{ width: 18, height: 18 }}
+                />
+
+                <Thumb url={c.imageUrl} alt={c.imageAlt} />
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 750, fontSize: 14 }}>{c.title}</div>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>{c.handle}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </ModalShell>
 
       <s-section heading="Create rule">
         <Form method="post">
@@ -371,46 +672,71 @@ export default function Assignments() {
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
                       Select product
                     </label>
-                    <select
-                      value={productId}
-                      onChange={(e) => setProductId(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        border: "1px solid #dfe3e8",
-                        background: "white",
-                      }}
-                    >
-                      {products.map((p: ProductLite) => (
-                        <option key={p.id} value={p.id}>
-                          {p.title} ({p.handle})
-                        </option>
-                      ))}
-                    </select>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => setProductPickerOpen(true)}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: "1px solid #dfe3e8",
+                          background: "white",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {selectedProduct ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Thumb url={selectedProduct.imageUrl} alt={selectedProduct.imageAlt} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {selectedProduct.title}
+                              </div>
+                              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                {selectedProduct.vendor ? `${selectedProduct.vendor} • ` : ""}
+                                {selectedProduct.handle}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          "Choose a product…"
+                        )}
+                      </button>
+                    </div>
                   </>
                 ) : scope === "COLLECTION" ? (
                   <>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
                       Select collection
                     </label>
-                    <select
-                      value={collectionHandle}
-                      onChange={(e) => setCollectionHandle(e.target.value)}
+
+                    <button
+                      type="button"
+                      onClick={() => setCollectionPickerOpen(true)}
                       style={{
                         width: "100%",
+                        textAlign: "left",
                         padding: "10px 12px",
                         borderRadius: 10,
                         border: "1px solid #dfe3e8",
                         background: "white",
+                        cursor: "pointer",
                       }}
                     >
-                      {collections.map((c: CollectionLite) => (
-                        <option key={c.id} value={c.handle}>
-                          {c.title} ({c.handle})
-                        </option>
-                      ))}
-                    </select>
+                      {selectedCollection ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <Thumb url={selectedCollection.imageUrl} alt={selectedCollection.imageAlt} />
+                          <div>
+                            <div style={{ fontWeight: 750, fontSize: 14 }}>{selectedCollection.title}</div>
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>{selectedCollection.handle}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        "Choose a collection…"
+                      )}
+                    </button>
 
                     <s-paragraph style={{ marginTop: 8 }}>
                       Applies to all products in this collection.
@@ -429,7 +755,7 @@ export default function Assignments() {
                           ? "e.g. Shoes, Suits, Jeans"
                           : scope === "VENDOR"
                             ? "e.g. Nike, Adidas"
-                            : "e.g. Suits & Blazers"
+                            : "e.g. oversized"
                       }
                       style={{
                         width: "100%",
@@ -504,16 +830,8 @@ export default function Assignments() {
                   </div>
 
                   <s-paragraph style={{ marginTop: 8 }}>
-                    No DB charts found yet — showing demo tables for UI testing.
-                    Next: we seed real charts so rules can save correctly.
+                    No DB charts found yet — add charts to enable real selection.
                   </s-paragraph>
-
-                  <PreviewTable
-                    title={demo.title}
-                    unit={demo.unit}
-                    columns={demo.columns}
-                    rows={demo.rows as any}
-                  />
                 </>
               )}
 

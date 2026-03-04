@@ -1,15 +1,18 @@
 <div data-lemon-size-root>
-  <button
-    type="button"
-    class="lemon-size__btn"
-    data-lemon-size-trigger
-    data-proxy-base="/apps/lemon-size/size-chart"
-    data-product-id="{{ product.id }}"
-    data-product-handle="{{ product.handle | escape }}"
-    data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
-  >
-    {{ section.settings.button_label | default: 'Size guide' }}
-  </button>
+<button
+  type="button"
+  class="lemon-size__btn"
+  data-lemon-size-trigger
+  data-proxy-base="/apps/lemon-size/size-chart"
+  data-product-id="{{ product.id }}"
+  data-product-handle="{{ product.handle | escape }}"
+  data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
+  data-product-type="{{ product.type | escape }}"
+  data-product-vendor="{{ product.vendor | escape }}"
+  data-product-tags="{{ product.tags | join: ',' | escape }}"
+>
+  Size guide
+</button>
 
   <div class="lemon-size__modal" hidden data-lemon-size-modal>
     <div class="lemon-size__overlay" data-lemon-size-close></div>
