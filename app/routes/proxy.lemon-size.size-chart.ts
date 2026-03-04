@@ -1,52 +1,72 @@
-import { json } from "../untils/http";
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
+import { json } from "../untils/http";
 
 async function resolveChart(args: {
   shopId: string;
-  productId?: string;
+  productId?: string;        // numeric id from storefront
   productHandle?: string;
   collectionHandle?: string;
 }) {
   const { shopId, productId, productHandle, collectionHandle } = args;
 
-  // A) productId rule (highest specificity)
+  // A) Product ID rule (DB stores product as GID)
   if (productId) {
+    const productGid = `gid://shopify/Product/${productId}`;
+
     const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: { shopId, enabled: true, productId },
+      where: {
+        shopId,
+        enabled: true,
+        scope: "product",
+        scopeValue: productGid,
+      },
       include: {
         chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
       },
-      orderBy: { priority: "asc" },
+      orderBy: { priority: "asc" }, // lower wins
     });
+
     if (assignment?.chart) return assignment.chart;
   }
 
-  // B) productHandle rule
+  // B) Product handle rule (only if you actually store this scope)
   if (productHandle) {
     const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: { shopId, enabled: true, productHandle },
+      where: {
+        shopId,
+        enabled: true,
+        scope: "product_handle",
+        scopeValue: productHandle,
+      },
       include: {
         chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
       },
       orderBy: { priority: "asc" },
     });
+
     if (assignment?.chart) return assignment.chart;
   }
 
-  // C) collectionHandle rule
+  // C) Collection handle rule
   if (collectionHandle) {
     const assignment = await prisma.sizeChartAssignment.findFirst({
-      where: { shopId, enabled: true, collectionHandle },
+      where: {
+        shopId,
+        enabled: true,
+        scope: "collection",
+        scopeValue: collectionHandle,
+      },
       include: {
         chart: { include: { rows: { orderBy: { sortOrder: "asc" } } } },
       },
       orderBy: { priority: "asc" },
     });
+
     if (assignment?.chart) return assignment.chart;
   }
 
-  // D) default fallback
+  // D) Default fallback
   return prisma.sizeChart.findFirst({
     where: { shopId, isDefault: true },
     include: { rows: { orderBy: { sortOrder: "asc" } } },
