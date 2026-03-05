@@ -35,6 +35,14 @@ function nowMs() {
   return Date.now();
 }
 
+function safeArray(value: any): any[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function safeString(value: any): string {
+  return typeof value === "string" ? value : "";
+}
+
 /** ---------------------------
  *  Types
  * --------------------------*/
@@ -47,13 +55,12 @@ type AssignmentLite = {
 };
 
 type RulesIndex = {
-  // each key maps to chartId (first hit wins due to priority sort)
-  byProduct: Map<string, string>;     // gid
-  byCollection: Map<string, string>;  // handle lower
-  byType: Map<string, string>;        // lower
-  byVendor: Map<string, string>;      // lower
-  byTag: Map<string, string>;         // lower
-  defaultChartId: string | null;      // optional default
+  byProduct: Map<string, string>; // gid
+  byCollection: Map<string, string>; // handle lower
+  byType: Map<string, string>; // lower
+  byVendor: Map<string, string>; // lower
+  byTag: Map<string, string>; // lower
+  defaultChartId: string | null;
 };
 
 type ChartWithRows = {
@@ -61,6 +68,11 @@ type ChartWithRows = {
   title: string;
   unit: string;
   columns: any;
+  guideTitle?: string | null;
+  guideText?: string | null;
+  guideImage?: string | null;
+  tips?: string | null;
+  disclaimer?: string | null;
   rows: Array<{ label: string; values: any; sortOrder: number }>;
 };
 
@@ -68,15 +80,12 @@ type ChartWithRows = {
  *  Caches (warm-lambda friendly)
  * --------------------------*/
 
-// Rules cache per shop
-const RULES_TTL_MS = 60_000; // 60s; safe. You can bump to 5 min if you want.
+const RULES_TTL_MS = 60_000;
 const rulesCache = new Map<string, { exp: number; value: RulesIndex }>();
 
-// Chart cache per chartId
-const CHART_TTL_MS = 60_000; // 60s
+const CHART_TTL_MS = 60_000;
 const chartCache = new Map<string, { exp: number; value: ChartWithRows | null }>();
 
-// Prevent stampede: in-flight promises
 const rulesInflight = new Map<string, Promise<RulesIndex>>();
 const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
 
@@ -85,14 +94,12 @@ const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
  * --------------------------*/
 
 async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
-  // Only fetch what we need (NO chart include)
   const assignments: AssignmentLite[] = await prisma.sizeChartAssignment.findMany({
     where: { shopId, enabled: true },
-    orderBy: { priority: "asc" }, // lower wins
+    orderBy: { priority: "asc" },
     select: { scope: true, scopeValue: true, chartId: true, priority: true },
   });
 
-  // Default chart id (optional)
   const def = await prisma.sizeChart.findFirst({
     where: { shopId, isDefault: true },
     select: { id: true },
@@ -108,32 +115,27 @@ async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
     const scope = String(a.scope || "").toUpperCase();
     const v = (a.scopeValue || "").trim();
 
-    // For ALL we don't store a map key; default handles fallback.
     if (scope !== "ALL" && !v) continue;
 
     if (scope === "PRODUCT") {
       if (!byProduct.has(v)) byProduct.set(v, a.chartId);
       continue;
     }
-
     if (scope === "COLLECTION") {
       const key = v.toLowerCase();
       if (!byCollection.has(key)) byCollection.set(key, a.chartId);
       continue;
     }
-
     if (scope === "TYPE") {
       const key = v.toLowerCase();
       if (!byType.has(key)) byType.set(key, a.chartId);
       continue;
     }
-
     if (scope === "VENDOR") {
       const key = v.toLowerCase();
       if (!byVendor.has(key)) byVendor.set(key, a.chartId);
       continue;
     }
-
     if (scope === "TAG") {
       const key = v.toLowerCase();
       if (!byTag.has(key)) byTag.set(key, a.chartId);
@@ -208,7 +210,7 @@ async function getChartCached(chartId: string): Promise<ChartWithRows | null> {
 
 function resolveChartIdFromIndex(args: {
   idx: RulesIndex;
-  productId?: string; // numeric
+  productId?: string; // numeric id from theme
   collectionHandles?: string[];
   productType?: string;
   productVendor?: string;
@@ -282,7 +284,10 @@ export async function loader({ request }: { request: Request }) {
 
     const verification = verifyShopifyAppProxy(url, secret);
     if (!verification.ok) {
-      return json({ ok: false, error: "Unauthorized", reason: verification.reason }, { status: 401 });
+      return json(
+        { ok: false, error: "Unauthorized", reason: verification.reason },
+        { status: 401 },
+      );
     }
 
     // Identify shop
@@ -309,7 +314,7 @@ export async function loader({ request }: { request: Request }) {
     // 1) Get cached rules index
     const idx = await getRulesIndexCached(dbShop.id);
 
-    // 2) Resolve to chartId (no DB work here)
+    // 2) Resolve chartId
     const chartId = resolveChartIdFromIndex({
       idx,
       productId,
@@ -317,7 +322,7 @@ export async function loader({ request }: { request: Request }) {
       productType,
       productVendor,
       productTags,
-      includeDefault: mode !== "exists", // ✅ no default for exists
+      includeDefault: mode !== "exists", // ✅ no default in exists mode
     });
 
     // exists mode: show/hide button (NO chart query)
@@ -334,18 +339,24 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    // 3) Fetch only the selected chart (+ cache)
+    // 3) Fetch selected chart (+ rows)
     const chart = await getChartCached(chartId);
 
     if (!chart) {
-      // chartId exists but chart deleted; treat as none
       return json(
         { ok: true, chart: null, message: "Size chart not found" },
         { headers: { "Cache-Control": "public, max-age=30, s-maxage=120" } },
       );
     }
 
-    const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
+    const columns = safeArray(chart.columns).map((c) => String(c));
+
+    // tips can be a multiline string -> array for UI
+    const tipsRaw = safeString(chart.tips || "");
+    const tipsList = tipsRaw
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean);
 
     return json(
       {
@@ -355,16 +366,32 @@ export async function loader({ request }: { request: Request }) {
           title: chart.title,
           unit: chart.unit,
           columns,
-          rows: chart.rows.map((r: any) => ({
+          rows: (chart.rows || []).map((r: any) => ({
             label: r.label,
             values: r.values,
           })),
+
+          // ✅ GUIDE FIELDS (from your Prisma schema)
+          guideTitle: chart.guideTitle ?? null,
+          guideText: chart.guideText ?? null,
+          guideImage: chart.guideImage ?? null,
+          tips: tipsList, // array for easy rendering
+          disclaimer: chart.disclaimer ?? null,
         },
       },
       { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("[proxy size-chart] crash:", err);
-    return new Response("Internal error", { status: 500 });
+
+    // ✅ IMPORTANT: return JSON error so DevTools Response shows the real issue
+    return json(
+      {
+        ok: false,
+        error: "Internal error",
+        message: err?.message || String(err),
+      },
+      { status: 500 },
+    );
   }
 }
