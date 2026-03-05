@@ -1,7 +1,7 @@
 /* Prevent background scroll when modal open */
 .lemon-size__lock { overflow: hidden !important; }
 
-/* --- Force hidden attribute to always win --- */
+/* Force hidden attribute to always win */
 .lemon-size__modal[hidden] { display: none !important; }
 
 /* Button */
@@ -22,23 +22,27 @@
   position: fixed;
   inset: 0;
   z-index: 999999;
+  display: grid;
   place-items: center;
 }
 .lemon-size__modal:not([hidden]){ display:grid; }
 
+/* ✅ Overlay behind dialog (fixes "can't click X") */
 .lemon-size__overlay{
   position:absolute;
   inset:0;
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(6px);
+  z-index: 0;
 }
 
 /* Dialog */
 .lemon-size__dialog{
   position: relative;
-  width: min(1240px, calc(100vw - 24px)); /* a bit wider */
+  z-index: 1; /* ✅ above overlay so buttons clickable */
+  width: min(1240px, calc(100vw - 24px));
   max-height: min(88vh, 980px);
-  overflow: hidden; /* header stays, body scroll handled below */
+  overflow: hidden; /* header sticky, body scroll handled below */
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 24px 70px rgba(0,0,0,.28);
@@ -47,7 +51,7 @@
   flex-direction: column;
 }
 
-/* Header */
+/* Header (sticky) */
 .lemon-size__header{
   display:flex;
   justify-content: space-between;
@@ -104,23 +108,28 @@
   color: #0b63ff;
 }
 
+/* Close */
 .lemon-size__close{
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Layout: left product image + right content */
 .lemon-size__layout{
   display:grid;
-  grid-template-columns: 1.25fr 1fr; /* ✅ bigger image on desktop */
-  min-height: 0;      /* important for scroll */
-  flex: 1;            /* fill remaining height below header */
+  grid-template-columns: 1.25fr 1fr; /* bigger image on desktop */
+  min-height: 0;
+  flex: 1; /* fill height under header */
 }
 
 /* Left image */
@@ -137,17 +146,17 @@
   transform: scale(1.01);
 }
 
-/* Right column scrolls (desktop/tablet) */
+/* ✅ Desktop/tablet: right side scrolls if needed */
 .lemon-size__right{
   padding: 18px;
-  overflow: auto;              /* ✅ scroll if content tall */
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   display:flex;
   flex-direction: column;
   gap: 14px;
   background: #fff;
-  min-height: 0;               /* allows scrolling */
+  min-height: 0;
 }
 
 /* Cards */
@@ -159,12 +168,14 @@
   overflow: hidden;
 }
 
-/* Table (horizontal scroll only) */
+/* ✅ Table: horizontal scroll on ALL devices */
 .lemon-size__tableWrap{
   width: 100%;
-  overflow-x: auto;            /* ✅ horizontal only */
+  overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
 }
 .lemon-size__table{
   width: 100%;
@@ -239,14 +250,16 @@
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,.08);
-  background: #fafafa;
+  background: #fff;
 }
+
+/* ✅ Bigger guide image */
 .lemon-size__measureImg{
   width: 100%;
-  max-height: 260px;
+  max-height: 520px;
   object-fit: contain;
   display:block;
-  padding: 10px;
+  padding: 14px;
 }
 
 .lemon-size__mutedRow{
@@ -272,16 +285,16 @@
 }
 
 /* ----------------------------- */
-/* Mobile: scroll whole modal     */
+/* ✅ Mobile: scroll the whole modal */
 /* ----------------------------- */
 @media (max-width: 960px){
   .lemon-size__dialog{
     width: min(980px, calc(100vw - 18px));
     max-height: 92vh;
-    overflow: hidden; /* header sticky; body scroll below */
+    overflow: hidden;
   }
 
-  /* ✅ Single scroll area: image + table + guide */
+  /* ✅ single scroll container: image + table + guide */
   .lemon-size__layout{
     grid-template-columns: 1fr;
     overflow: auto;
@@ -291,18 +304,18 @@
     min-height: 0;
   }
 
-  /* Bigger top image like your screenshot */
   .lemon-size__left{
-    height: 320px;
+    height: 320px; /* big hero image */
   }
 
-  /* Remove nested scroll on mobile */
+  /* remove nested scroll on mobile */
   .lemon-size__right{
     overflow: visible;
     padding: 14px;
+    min-height: auto;
   }
 
-  /* Table stays horizontal scroll only (no vertical trap) */
+  /* table always horizontally scrollable */
   .lemon-size__table{
     min-width: 520px;
   }
@@ -311,10 +324,9 @@
 @media (max-width: 520px){
   .lemon-size__header{ padding: 14px 14px; }
   .lemon-size__left{ height: 280px; }
-  .lemon-size__right{ padding: 14px; }
 
   .lemon-size__table{
-    min-width: 480px;
+    min-width: 520px; /* keep clear horizontal scroll on small screens */
   }
 
   .lemon-size__table thead th,
@@ -322,9 +334,14 @@
     padding: 12px 12px;
     font-size: 13px;
   }
+
+  .lemon-size__measureImg{
+    max-height: 420px;
+    padding: 12px;
+  }
 }
 
-/* Optional: subtle horizontal scroll hint on touch devices */
+/* Optional: subtle horizontal scroll hint */
 .lemon-size__tableWrap{
   position: relative;
 }
