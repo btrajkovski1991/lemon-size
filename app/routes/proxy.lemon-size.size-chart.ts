@@ -3,7 +3,7 @@ import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
 
 /** ---------------------------
- *  Helpers
+ * Helpers
  * --------------------------*/
 
 function parseCsv(value?: string | null) {
@@ -35,16 +35,8 @@ function nowMs() {
   return Date.now();
 }
 
-function safeArray(value: any): any[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function safeString(value: any): string {
-  return typeof value === "string" ? value : "";
-}
-
 /** ---------------------------
- *  Types
+ * Types
  * --------------------------*/
 
 type AssignmentLite = {
@@ -55,11 +47,11 @@ type AssignmentLite = {
 };
 
 type RulesIndex = {
-  byProduct: Map<string, string>; // gid
-  byCollection: Map<string, string>; // handle lower
-  byType: Map<string, string>; // lower
-  byVendor: Map<string, string>; // lower
-  byTag: Map<string, string>; // lower
+  byProduct: Map<string, string>;
+  byCollection: Map<string, string>;
+  byType: Map<string, string>;
+  byVendor: Map<string, string>;
+  byTag: Map<string, string>;
   defaultChartId: string | null;
 };
 
@@ -68,29 +60,28 @@ type ChartWithRows = {
   title: string;
   unit: string;
   columns: any;
-  guideTitle?: string | null;
-  guideText?: string | null;
-  guideImage?: string | null;
-  tips?: string | null;
-  disclaimer?: string | null;
+  guideTitle: string | null;
+  guideText: string | null;
+  guideImage: string | null;
+  tips: string | null;
+  disclaimer: string | null;
   rows: Array<{ label: string; values: any; sortOrder: number }>;
 };
 
 /** ---------------------------
- *  Caches (warm-lambda friendly)
+ * Caches
  * --------------------------*/
 
 const RULES_TTL_MS = 60_000;
 const rulesCache = new Map<string, { exp: number; value: RulesIndex }>();
+const rulesInflight = new Map<string, Promise<RulesIndex>>();
 
 const CHART_TTL_MS = 60_000;
 const chartCache = new Map<string, { exp: number; value: ChartWithRows | null }>();
-
-const rulesInflight = new Map<string, Promise<RulesIndex>>();
 const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
 
 /** ---------------------------
- *  DB fetchers
+ * DB fetchers
  * --------------------------*/
 
 async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
@@ -205,12 +196,12 @@ async function getChartCached(chartId: string): Promise<ChartWithRows | null> {
 }
 
 /** ---------------------------
- *  Resolver
+ * Resolver
  * --------------------------*/
 
 function resolveChartIdFromIndex(args: {
   idx: RulesIndex;
-  productId?: string; // numeric id from theme
+  productId?: string;
   collectionHandles?: string[];
   productType?: string;
   productVendor?: string;
@@ -229,16 +220,16 @@ function resolveChartIdFromIndex(args: {
 
   const productGid = productId ? `gid://shopify/Product/${productId}` : "";
 
-  // ignore Shopify "all" collection
   const collections = unique(
-    collectionHandles.map((h) => h.trim()).filter((h) => h && h.toLowerCase() !== "all"),
+    collectionHandles
+      .map((h) => h.trim())
+      .filter((h) => h && h.toLowerCase() !== "all"),
   );
 
   const typeNorm = normalizeLower(productType);
   const vendorNorm = normalizeLower(productVendor);
   const tagsNorm = unique(productTags.map(normalizeTag).filter(Boolean));
 
-  // Precedence: PRODUCT → COLLECTION → TYPE → VENDOR → TAG
   if (productGid) {
     const hit = idx.byProduct.get(productGid);
     if (hit) return hit;
@@ -269,7 +260,7 @@ function resolveChartIdFromIndex(args: {
 }
 
 /** ---------------------------
- *  Loader
+ * Loader
  * --------------------------*/
 
 export async function loader({ request }: { request: Request }) {
@@ -290,31 +281,31 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    // Identify shop
     const shop = url.searchParams.get("shop");
     if (!shop) return json({ ok: false, error: "Missing shop" }, { status: 400 });
 
-    // Params from theme/JS
     const mode = url.searchParams.get("mode") || undefined;
 
     const productId = normalize(url.searchParams.get("product_id")) || undefined;
-    const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
+
+    // accept both names just in case
+    const collectionHandles = parseCsv(
+      url.searchParams.get("collection_handles") ||
+        url.searchParams.get("collectionHandles"),
+    );
 
     const productType = normalize(url.searchParams.get("product_type")) || "";
     const productVendor = normalize(url.searchParams.get("product_vendor")) || "";
     const productTags = parseCsv(url.searchParams.get("product_tags"));
 
-    // Ensure DB shop row exists
     const dbShop = await prisma.shop.upsert({
       where: { shop },
       update: {},
       create: { shop },
     });
 
-    // 1) Get cached rules index
     const idx = await getRulesIndexCached(dbShop.id);
 
-    // 2) Resolve chartId
     const chartId = resolveChartIdFromIndex({
       idx,
       productId,
@@ -322,16 +313,14 @@ export async function loader({ request }: { request: Request }) {
       productType,
       productVendor,
       productTags,
-      includeDefault: mode !== "exists", // ✅ no default in exists mode
+      includeDefault: mode !== "exists",
     });
 
-    // exists mode: show/hide button (NO chart query)
     if (mode === "exists") {
       if (!chartId) return new Response(null, { status: 404 });
       return new Response(null, { status: 204 });
     }
 
-    // No chart at all
     if (!chartId) {
       return json(
         { ok: true, chart: null, message: "No size chart configured" },
@@ -339,7 +328,6 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    // 3) Fetch selected chart (+ rows)
     const chart = await getChartCached(chartId);
 
     if (!chart) {
@@ -349,14 +337,7 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    const columns = safeArray(chart.columns).map((c) => String(c));
-
-    // tips can be a multiline string -> array for UI
-    const tipsRaw = safeString(chart.tips || "");
-    const tipsList = tipsRaw
-      .split("\n")
-      .map((x) => x.trim())
-      .filter(Boolean);
+    const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
 
     return json(
       {
@@ -366,32 +347,23 @@ export async function loader({ request }: { request: Request }) {
           title: chart.title,
           unit: chart.unit,
           columns,
-          rows: (chart.rows || []).map((r: any) => ({
+          rows: chart.rows.map((r: any) => ({
             label: r.label,
             values: r.values,
           })),
 
-          // ✅ GUIDE FIELDS (from your Prisma schema)
-          guideTitle: chart.guideTitle ?? null,
-          guideText: chart.guideText ?? null,
-          guideImage: chart.guideImage ?? null,
-          tips: tipsList, // array for easy rendering
-          disclaimer: chart.disclaimer ?? null,
+          // ✅ NEW GUIDE FIELDS
+          guideTitle: chart.guideTitle,
+          guideText: chart.guideText,
+          guideImage: chart.guideImage,
+          tips: chart.tips,
+          disclaimer: chart.disclaimer,
         },
       },
       { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
     );
-  } catch (err: any) {
+  } catch (err) {
     console.error("[proxy size-chart] crash:", err);
-
-    // ✅ IMPORTANT: return JSON error so DevTools Response shows the real issue
-    return json(
-      {
-        ok: false,
-        error: "Internal error",
-        message: err?.message || String(err),
-      },
-      { status: 500 },
-    );
+    return json({ ok: false, error: "Internal error" }, { status: 500 });
   }
 }
