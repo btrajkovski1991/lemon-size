@@ -1,0 +1,3 @@
+-- Placeholder migration.
+-- This migration is already applied in the database,
+-- but the folder was missing locally.
