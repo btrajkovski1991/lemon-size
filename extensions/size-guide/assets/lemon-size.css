@@ -282,3 +282,86 @@
   .lemon-size__right{ padding: 14px; }
   .lemon-size__table{ min-width: 480px; }
 }
+
+/* ----------------------------- */
+/* Mobile table scroll upgrade   */
+/* ----------------------------- */
+
+@media (max-width: 960px){
+  /* Make the right column behave nicely (no double scroll issues) */
+  .lemon-size__right{
+    overflow: hidden; /* only inner blocks scroll */
+  }
+
+  /* Give the chart card a predictable height so table can scroll */
+  .lemon-size__chart{
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* THIS is the important part: table becomes a scroll box */
+  .lemon-size__tableWrap{
+    max-height: 46vh;              /* vertical scroll for long tables */
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;  /* prevents background scroll bounce */
+    scrollbar-gutter: stable;
+  }
+
+  /* Sticky header stays at top of the scroll container */
+  .lemon-size__table thead th{
+    top: 0;
+    background: #fff;
+  }
+}
+
+@media (max-width: 520px){
+  /* Slightly tighter + more mobile-friendly */
+  .lemon-size__tableWrap{
+    max-height: 44vh;
+    border-radius: 12px;
+  }
+
+  .lemon-size__table{
+    min-width: 520px; /* keep horizontal scroll for many columns */
+  }
+
+  .lemon-size__table thead th,
+  .lemon-size__table tbody td{
+    padding: 12px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Optional: a subtle gradient “scroll hint” on the sides */
+.lemon-size__tableWrap{
+  position: relative;
+}
+.lemon-size__tableWrap::before,
+.lemon-size__tableWrap::after{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:18px;
+  pointer-events:none;
+  opacity:0;
+  transition: opacity .2s ease;
+}
+.lemon-size__tableWrap::before{
+  left:0;
+  background: linear-gradient(to right, rgba(255,255,255,.95), rgba(255,255,255,0));
+}
+.lemon-size__tableWrap::after{
+  right:0;
+  background: linear-gradient(to left, rgba(255,255,255,.95), rgba(255,255,255,0));
+}
+
+/* Show hint only on touch devices */
+@media (hover: none) and (pointer: coarse){
+  .lemon-size__tableWrap::before,
+  .lemon-size__tableWrap::after{
+    opacity:1;
+  }
+}
