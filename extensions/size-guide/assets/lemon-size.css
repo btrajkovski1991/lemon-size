@@ -1,7 +1,5 @@
 /* --- Force hidden attribute to always win --- */
-.lemon-size__modal[hidden] {
-  display: none !important;
-}
+.lemon-size__modal[hidden] { display: none !important; }
 
 /* Button */
 .lemon-size__btn {
@@ -11,18 +9,14 @@
   cursor: pointer;
 }
 
-/* Modal container (NO display here!) */
+/* Modal container */
 .lemon-size__modal {
   position: fixed;
   inset: 0;
   z-index: 9999;
   place-items: center;
 }
-
-/* Only when NOT hidden → show it */
-.lemon-size__modal:not([hidden]) {
-  display: grid;
-}
+.lemon-size__modal:not([hidden]) { display: grid; }
 
 .lemon-size__overlay {
   position: absolute;
@@ -30,52 +24,160 @@
   background: rgba(0,0,0,.55);
 }
 
+/* Dialog */
 .lemon-size__dialog {
   position: relative;
-  width: min(720px, calc(100vw - 24px));
-  max-height: min(80vh, 720px);
-  overflow: auto;
+  width: min(1100px, calc(100vw - 24px));
+  max-height: min(86vh, 900px);
+  overflow: hidden;
   background: #fff;
   border-radius: 16px;
-  padding: 18px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.25);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
+
+/* Header */
+.lemon-size__header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #f4f9f1;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.lemon-size__title { font-size: 18px; font-weight: 750; }
+.lemon-size__sub { margin-top: 2px; font-size: 12px; opacity: .75; }
+
+.lemon-size__actions{ display:flex; align-items:center; gap: 12px; }
 
 .lemon-size__close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-size: 22px;
-  background: transparent;
-  border: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.14);
+  background: #fff;
   cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
 }
 
-.lemon-size__table {
+/* Unit toggle */
+.lemon-size__unit{
+  display: inline-flex;
+  border: 1px solid rgba(0,0,0,.14);
+  background: #fff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lemon-size__unitbtn{
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  font-weight: 750;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: .6;
+}
+.lemon-size__unitbtn.is-active{
+  opacity: 1;
+  color: #0b63ff;
+}
+
+/* Layout */
+.lemon-size__layout{
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  min-height: 520px;
+}
+
+.lemon-size__left{
+  background: #e9ecef;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.lemon-size__productimg{
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
+  height: 100%;
+  object-fit: cover;
+  display:block;
 }
 
-.lemon-size__table th,
-.lemon-size__table td {
-  border-bottom: 1px solid #eee;
-  padding: 10px;
-  text-align: left;
+.lemon-size__right{
+  padding: 18px;
+  overflow: auto;
+  display:flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.lemon-size__title {
-  font-size: 18px;
-  font-weight: 600;
+/* Table container */
+.lemon-size__chart{
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 12px;
+  overflow: auto;
 }
 
-.lemon-size__sub {
+.lemon-size__table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 520px;
+}
+
+.lemon-size__table th{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .02em;
   opacity: .75;
-  margin-top: 4px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.10);
 }
 
-.lemon-size__error {
+.lemon-size__table td{
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 14px;
+}
+
+.lemon-size__table tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+.lemon-size__table tr:hover td { background: rgba(11,99,255,.06); }
+
+.lemon-size__loading{ padding: 14px; }
+.lemon-size__error{
   padding: 12px;
   background: #fff3f3;
   border: 1px solid #ffd1d1;
   border-radius: 12px;
+  margin: 12px;
+}
+
+/* Measure block */
+.lemon-size__measure{
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 12px;
+  padding: 12px;
+  display:grid;
+  gap: 10px;
+}
+.lemon-size__measureText{ font-size: 13px; opacity: .9; }
+.lemon-size__measureImg{
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  display:block;
+}
+
+/* Responsive */
+@media (max-width: 860px){
+  .lemon-size__layout{ grid-template-columns: 1fr; }
+  .lemon-size__left{ height: 240px; }
+  .lemon-size__table{ min-width: 0; }
 }

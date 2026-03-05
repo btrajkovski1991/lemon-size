@@ -1,25 +1,63 @@
 <div data-lemon-size-root>
-<button
-  type="button"
-  class="lemon-size__btn"
-  data-lemon-size-trigger
-  data-proxy-base="/apps/lemon-size/size-chart"
-  data-product-id="{{ product.id }}"
-  data-product-handle="{{ product.handle | escape }}"
-  data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
-  data-product-type="{{ product.type | escape }}"
-  data-product-vendor="{{ product.vendor | escape }}"
-  data-product-tags="{{ product.tags | join: ',' | escape }}"
->
-  Size guide
-</button>
+  <button
+    type="button"
+    class="lemon-size__btn"
+    data-lemon-size-trigger
+    data-proxy-base="/apps/lemon-size/size-chart"
+    data-product-id="{{ product.id }}"
+    data-product-handle="{{ product.handle | escape }}"
+    data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
+    data-product-type="{{ product.type | escape }}"
+    data-product-vendor="{{ product.vendor | escape }}"
+    data-product-tags="{{ product.tags | join: ',' | escape }}"
+    data-product-image="{{ product.featured_image | image_url: width: 1200 }}"
+  >
+    {{ block.settings.button_label | default: 'Size guide' }}
+  </button>
 
   <div class="lemon-size__modal" hidden data-lemon-size-modal>
     <div class="lemon-size__overlay" data-lemon-size-close></div>
 
     <div class="lemon-size__dialog" role="dialog" aria-modal="true" aria-label="Size guide">
-      <button type="button" class="lemon-size__close" aria-label="Close" data-lemon-size-close>×</button>
-      <div data-lemon-size-chart></div>
+      <div class="lemon-size__header">
+        <div class="lemon-size__headings">
+          <div class="lemon-size__title" data-lemon-size-title>Size guide</div>
+          <div class="lemon-size__sub" data-lemon-size-subtitle></div>
+        </div>
+
+        <div class="lemon-size__actions">
+          <div class="lemon-size__unit" role="tablist" aria-label="Units">
+            <button type="button" class="lemon-size__unitbtn" data-lemon-unit="in">INCHES</button>
+            <button type="button" class="lemon-size__unitbtn" data-lemon-unit="cm">CM</button>
+          </div>
+
+          <button type="button" class="lemon-size__close" aria-label="Close" data-lemon-size-close>×</button>
+        </div>
+      </div>
+
+      <div class="lemon-size__layout">
+        <div class="lemon-size__left">
+          <img class="lemon-size__productimg" alt="" loading="lazy" data-lemon-productimg />
+        </div>
+
+        <div class="lemon-size__right">
+          <div class="lemon-size__chart" data-lemon-size-chart></div>
+
+          <div class="lemon-size__measure">
+            <div class="lemon-size__measureText">
+              <strong>How to measure</strong>
+              <div>Place your foot on paper, mark heel + longest toe, then measure the distance.</div>
+            </div>
+
+            <img
+              class="lemon-size__measureImg"
+              alt="Foot measurement guide"
+              loading="lazy"
+              src="{{ 'thumbs-up.png' | asset_url }}"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
