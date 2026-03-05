@@ -43,19 +43,30 @@
         <div class="lemon-size__right">
           <div class="lemon-size__chart" data-lemon-size-chart></div>
 
-          <div class="lemon-size__measure">
-            <div class="lemon-size__measureText">
-              <strong>How to measure</strong>
-              <div>Place your foot on paper, mark heel + longest toe, then measure the distance.</div>
-            </div>
+     <div class="lemon-size__measure">
+  <div class="lemon-size__measureText">
+    <strong data-lemon-measure-title>How to measure</strong>
+    <div data-lemon-measure-text></div>
+  </div>
 
-            <img
-              class="lemon-size__measureImg"
-              alt="Foot measurement guide"
-              loading="lazy"
-              src="{{ 'thumbs-up.png' | asset_url }}"
-            />
-          </div>
+  <img
+    class="lemon-size__measureImg"
+    alt=""
+    loading="lazy"
+    hidden
+    data-lemon-measure-img
+  />
+
+  <div class="lemon-size__note is-hidden">
+    <strong>Tips</strong>
+    <div data-lemon-tips></div>
+  </div>
+
+  <div class="lemon-size__note is-hidden">
+    <strong>Disclaimer</strong>
+    <div data-lemon-disclaimer></div>
+  </div>
+</div>
         </div>
       </div>
     </div>

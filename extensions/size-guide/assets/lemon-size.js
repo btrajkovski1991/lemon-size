@@ -5,12 +5,21 @@
   function openModal(modal, trigger) {
     modal.hidden = false;
     modal._trigger = trigger;
+
+    // lock background scroll
+    document.documentElement.classList.add("lemon-size--lock");
+    document.body.classList.add("lemon-size--lock");
+
     const closeBtn = modal.querySelector(".lemon-size__close");
     if (closeBtn) closeBtn.focus();
   }
 
   function closeModal(modal) {
     modal.hidden = true;
+
+    document.documentElement.classList.remove("lemon-size--lock");
+    document.body.classList.remove("lemon-size--lock");
+
     if (modal._trigger) modal._trigger.focus();
   }
 
@@ -62,10 +71,12 @@
   async function fetchChart(trigger) {
     const url = buildProxyUrl(trigger, null);
     const res = await fetch(url.toString(), { credentials: "same-origin" });
-
     const text = await res.text();
+
     let json = null;
-    try { json = JSON.parse(text); } catch (e) {}
+    try {
+      json = JSON.parse(text);
+    } catch (e) {}
 
     if (!res.ok) {
       const msg =
@@ -81,155 +92,190 @@
   async function hasChartFor(trigger) {
     const url = buildProxyUrl(trigger, "exists");
     const res = await fetch(url.toString(), { credentials: "same-origin" });
-
     if (res.status === 404) return false;
     if (!res.ok) return false;
     return true;
   }
+
+  /** ---------------------------
+   * Unit conversion (smart)
+   * --------------------------*/
 
   function toNumMaybe(v) {
     const n = Number(String(v).trim());
     return Number.isFinite(n) ? n : null;
   }
 
-  function convertValue(v, fromUnit, toUnit) {
-    const n = toNumMaybe(v);
-    if (n == null) return v;
-
-    // cm <-> in
-    if (fromUnit === "cm" && toUnit === "in") return (n / 2.54).toFixed(2);
-    if (fromUnit === "in" && toUnit === "cm") return (n * 2.54).toFixed(1);
-    return v;
+  function convertNumber(n, fromUnit, toUnit) {
+    if (fromUnit === "cm" && toUnit === "in") return n / 2.54;
+    if (fromUnit === "in" && toUnit === "cm") return n * 2.54;
+    return n;
   }
 
-  function shouldConvertColumn(colName) {
+  function formatConverted(n, toUnit) {
+    // inches: 2 decimals, cm: 1 decimal
+    if (toUnit === "in") return n.toFixed(2);
+    if (toUnit === "cm") return n.toFixed(1);
+    return String(n);
+  }
+
+  // Converts:
+  // "92" -> "36.22"
+  // "90-95" -> "35.43-37.40"
+  // "90 – 95" -> same
+  function convertValueSmart(v, fromUnit, toUnit) {
+    const s = String(v ?? "").trim();
+    if (!s) return s;
+
+    // handle ranges like "90-95" or "90 – 95"
+    const range = s.split(/[-–—]/).map((x) => x.trim()).filter(Boolean);
+    if (range.length === 2) {
+      const a = toNumMaybe(range[0]);
+      const b = toNumMaybe(range[1]);
+      if (a == null || b == null) return s;
+
+      const ca = convertNumber(a, fromUnit, toUnit);
+      const cb = convertNumber(b, fromUnit, toUnit);
+      return `${formatConverted(ca, toUnit)}-${formatConverted(cb, toUnit)}`;
+    }
+
+    const n = toNumMaybe(s);
+    if (n == null) return s;
+
+    const cn = convertNumber(n, fromUnit, toUnit);
+    return formatConverted(cn, toUnit);
+  }
+
+  // Detect columns that are “measurements” vs “labels”
+  function isMeasurementColumn(colName) {
     const c = String(colName || "").toUpperCase();
-    // Only convert length-ish columns
-    return c.includes("FOOT") || c.includes("LENGTH") || c.includes("SLEEVE") || c.includes("SHOULDER");
+
+    // do NOT convert obvious size labels
+    if (c.includes("SIZE")) return false;
+    if (c.includes("US")) return false;
+    if (c.includes("EUR")) return false;
+    if (c.includes("EU")) return false;
+
+    // convert typical measurement columns
+    const good =
+      c.includes("CHEST") ||
+      c.includes("BUST") ||
+      c.includes("UNDERBUST") ||
+      c.includes("WAIST") ||
+      c.includes("HIP") ||
+      c.includes("INSEAM") ||
+      c.includes("LENGTH") ||
+      c.includes("SLEEVE") ||
+      c.includes("SHOULDER") ||
+      c.includes("NECK") ||
+      c.includes("BACK") ||
+      c.includes("HEAD") ||
+      c.includes("WRIST") ||
+      c.includes("FOOT") ||
+      c.includes("DIAMETER") ||
+      c.includes("CIRCUMFERENCE");
+
+    return good;
+  }
+
+  // We only show conversion toggle when base unit is convertible.
+  function isConvertibleUnit(unit) {
+    const u = String(unit || "").toLowerCase();
+    return u === "cm" || u === "in";
   }
 
   function setUnitButtons(modal, activeUnit) {
     modal.querySelectorAll("[data-lemon-unit]").forEach((btn) => {
-      const u = (btn.getAttribute("data-lemon-unit") || "").toLowerCase();
+      const u = btn.getAttribute("data-lemon-unit");
       btn.classList.toggle("is-active", u === activeUnit);
+      btn.setAttribute("aria-selected", u === activeUnit ? "true" : "false");
     });
   }
 
-  function getGuideImage(chartTitle) {
-    const map = {
-      "tops": "/size-guides/tops.png",
-      "jacket": "/size-guides/tops.png",
-      "blazer": "/size-guides/tops.png",
-
-      "bottoms": "/size-guides/bottoms.png",
-
-      "dress": "/size-guides/dress.png",
-      "bikini": "/size-guides/dress.png",
-
-      "bra": "/size-guides/bra.png",
-
-      "shoes": "/size-guides/shoes.png",
-
-      "ring": "/size-guides/ring.png",
-      "bracelet": "/size-guides/bracelet.png",
-      "necklace": "/size-guides/necklace.png",
-
-      "headwear": "/size-guides/headwear.png",
-
-      "pet clothing": "/size-guides/pet-clothing.png",
-      "pet collar": "/size-guides/pet-collar.png",
-    };
-
-    const key = String(chartTitle || "").toLowerCase();
-    for (const k in map) {
-      if (key.includes(k)) return map[k];
-    }
-    return "/size-guides/default.png";
-  }
-
-  function normalizeColumns(columns) {
-    const cols = Array.isArray(columns) ? columns.map(String) : [];
-    // If the chart columns include "SIZE", we remove it because row.label already represents size
-    return cols.filter((c) => c.trim().toUpperCase() !== "SIZE");
-  }
-
   function renderTable(chart, displayUnit) {
-    const baseUnit = String(chart.unit || "cm").toLowerCase();
-    const cols = normalizeColumns(chart.columns);
+    const { unit, columns, rows } = chart;
+    const baseUnit = String(unit || "").toLowerCase();
+    const cols = Array.isArray(columns) ? columns : [];
 
-    const head = cols.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
+    // Table head (do not hardcode "Size" here; your column list already includes it)
+    const head = cols.map((c) => `<th>${escapeHtml(String(c))}</th>`).join("");
 
-    const body = (chart.rows || [])
+    const body = (rows || [])
       .map((r) => {
-        const label = escapeHtml(String(r.label ?? ""));
         const cells = cols
           .map((c) => {
             const raw = r.values && r.values[c] != null ? r.values[c] : "";
+
             const val =
-              baseUnit && displayUnit && baseUnit !== displayUnit && shouldConvertColumn(c)
-                ? convertValue(raw, baseUnit, displayUnit)
+              isConvertibleUnit(baseUnit) &&
+              isConvertibleUnit(displayUnit) &&
+              baseUnit !== displayUnit &&
+              isMeasurementColumn(c)
+                ? convertValueSmart(raw, baseUnit, displayUnit)
                 : raw;
 
             return `<td>${escapeHtml(String(val))}</td>`;
           })
           .join("");
 
-        return `<tr><td class="lemon-size__sizecell"><strong>${label}</strong></td>${cells}</tr>`;
+        return `<tr>${cells}</tr>`;
       })
       .join("");
 
     return `
-      <div class="lemon-size__tablewrap">
-        <table class="lemon-size__table">
-          <thead><tr><th>Size</th>${head}</tr></thead>
-          <tbody>${body}</tbody>
-        </table>
-      </div>
+      <table class="lemon-size__table">
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
     `;
   }
 
-  function renderGuide(chart) {
-    const img = chart.guideImage || getGuideImage(chart.title);
+  function setMeasureBlock(root, chart) {
+    const measureTitle = root.querySelector("[data-lemon-measure-title]");
+    const measureText = root.querySelector("[data-lemon-measure-text]");
+    const measureImg = root.querySelector("[data-lemon-measure-img]");
+    const tipsEl = root.querySelector("[data-lemon-tips]");
+    const discEl = root.querySelector("[data-lemon-disclaimer]");
+
     const title = chart.guideTitle || "How to measure";
     const text = chart.guideText || "";
-    const tips = chart.tips || "";
-    const disclaimer = chart.disclaimer || "";
+    const img = chart.guideImage || "";
 
-    // split guideText into paragraphs (nice on storefront)
-    const paragraphs = String(text)
-      .trim()
-      .split("\n\n")
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .map((p) => `<p>${escapeHtml(p)}</p>`)
-      .join("");
+    if (measureTitle) measureTitle.textContent = title;
+    if (measureText) measureText.innerHTML = escapeHtml(text).replaceAll("\n", "<br>");
 
-    return `
-      <div class="lemon-size__section lemon-size__measure">
-        <div class="lemon-size__measure-head">
-          <h3 class="lemon-size__h3">${escapeHtml(title)}</h3>
-        </div>
+    if (measureImg) {
+      if (img) {
+        measureImg.src = img;
+        measureImg.hidden = false;
+      } else {
+        measureImg.hidden = true;
+      }
+    }
 
-        <div class="lemon-size__measure-grid">
-          <div class="lemon-size__measure-media">
-            <img class="lemon-size__measure-img" src="${escapeHtml(img)}" alt="${escapeHtml(title)}" loading="lazy">
-          </div>
+    if (tipsEl) {
+      if (chart.tips) {
+        tipsEl.innerHTML = escapeHtml(chart.tips).replaceAll("\n", "<br>");
+        tipsEl.closest(".lemon-size__note")?.classList.remove("is-hidden");
+      } else {
+        tipsEl.closest(".lemon-size__note")?.classList.add("is-hidden");
+      }
+    }
 
-          <div class="lemon-size__measure-copy">
-            ${paragraphs || `<p>Follow the instructions to choose the right size.</p>`}
-
-            ${tips ? `<div class="lemon-size__tips"><strong>Tip:</strong> ${escapeHtml(tips)}</div>` : ""}
-
-            ${disclaimer ? `<div class="lemon-size__disclaimer">${escapeHtml(disclaimer)}</div>` : ""}
-          </div>
-        </div>
-      </div>
-    `;
+    if (discEl) {
+      if (chart.disclaimer) {
+        discEl.innerHTML = escapeHtml(chart.disclaimer).replaceAll("\n", "<br>");
+        discEl.closest(".lemon-size__note")?.classList.remove("is-hidden");
+      } else {
+        discEl.closest(".lemon-size__note")?.classList.add("is-hidden");
+      }
+    }
   }
 
-  function render(modal, contentEl, data) {
+  function render(modal, root, contentEl, data) {
     if (!data || !data.chart) {
-      contentEl.innerHTML = `<div class="lemon-size__error">No size chart configured.</div>`;
+      contentEl.innerHTML =
+        `<div class="lemon-size__error">No size chart configured.</div>`;
       return;
     }
 
@@ -242,32 +288,38 @@
 
     const baseUnit = String(chart.unit || "cm").toLowerCase();
     modal._lemonBaseUnit = baseUnit;
-    modal._lemonDisplayUnit = modal._lemonDisplayUnit || baseUnit;
 
-    if (subEl) subEl.textContent = `Units: ${modal._lemonDisplayUnit.toUpperCase()}`;
+    // if base unit is not convertible (mm, etc.) lock displayUnit to base
+    if (!isConvertibleUnit(baseUnit)) {
+      modal._lemonDisplayUnit = baseUnit;
+      modal.querySelectorAll("[data-lemon-unit]").forEach((b) => (b.disabled = true));
+    } else {
+      modal.querySelectorAll("[data-lemon-unit]").forEach((b) => (b.disabled = false));
+      modal._lemonDisplayUnit = modal._lemonDisplayUnit || baseUnit;
+      // if user set something invalid, fallback
+      if (!isConvertibleUnit(modal._lemonDisplayUnit)) modal._lemonDisplayUnit = baseUnit;
+    }
+
+    if (subEl) {
+      const u = modal._lemonDisplayUnit;
+      subEl.textContent = `Units: ${String(u).toUpperCase()}`;
+    }
+
     setUnitButtons(modal, modal._lemonDisplayUnit);
 
-    // Nike-style layout: table + measure section
-    const tableHtml = renderTable(chart, modal._lemonDisplayUnit);
-    const guideHtml = renderGuide(chart);
+    contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
 
-    contentEl.innerHTML = `
-      <div class="lemon-size__content">
-        <div class="lemon-size__section lemon-size__chart">
-          ${tableHtml}
-        </div>
-        ${guideHtml}
-      </div>
-    `;
+    // guide fields + image + tips
+    setMeasureBlock(root, chart);
   }
 
   function init() {
-    document
-      .querySelectorAll("[data-lemon-size-modal]")
-      .forEach((m) => (m.hidden = true));
+    document.querySelectorAll("[data-lemon-size-modal]").forEach((m) => (m.hidden = true));
 
     const roots = Array.from(document.querySelectorAll("[data-lemon-size-root]"));
-    roots.forEach((root) => { root.hidden = true; });
+    roots.forEach((root) => {
+      root.hidden = true;
+    });
 
     roots.forEach(async (root) => {
       if (root.__lemonBound) return;
@@ -276,6 +328,7 @@
       const btn = root.querySelector("[data-lemon-size-trigger]");
       const modal = root.querySelector("[data-lemon-size-modal]");
       const content = root.querySelector("[data-lemon-size-chart]");
+      const img = root.querySelector("[data-lemon-productimg]");
 
       if (!btn || !modal || !content) {
         root.remove();
@@ -284,16 +337,28 @@
 
       try {
         const ok = await hasChartFor(btn);
-        if (!ok) { root.remove(); return; }
+        if (!ok) {
+          root.remove();
+          return;
+        }
         root.hidden = false;
       } catch (e) {
         root.remove();
         return;
       }
 
-      // unit toggle buttons (if your modal has them)
+      // product image from Liquid
+      const productImg = btn.getAttribute("data-product-image") || "";
+      if (img) {
+        if (productImg) img.src = productImg;
+        img.alt = btn.getAttribute("data-product-handle") || "";
+      }
+
+      // Unit toggle
       modal.querySelectorAll("[data-lemon-unit]").forEach((unitBtn) => {
         unitBtn.addEventListener("click", () => {
+          if (unitBtn.disabled) return;
+
           const u = (unitBtn.getAttribute("data-lemon-unit") || "").toLowerCase();
           if (!u) return;
 
@@ -304,7 +369,7 @@
 
           setUnitButtons(modal, u);
 
-          if (modal._lemonData) render(modal, content, modal._lemonData);
+          if (modal._lemonData) render(modal, root, content, modal._lemonData);
         });
       });
 
@@ -315,10 +380,11 @@
         try {
           const data = await fetchChart(btn);
           modal._lemonData = data;
-          render(modal, content, data);
+          render(modal, root, content, data);
         } catch (err) {
           console.error("[LemonSize] Fetch/render error:", err);
-          content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
+          content.innerHTML =
+            `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
         }
       });
 
@@ -326,6 +392,13 @@
         const close = e.target.closest("[data-lemon-size-close]");
         if (!close) return;
         closeModal(modal);
+      });
+
+      modal.addEventListener("click", (e) => {
+        // click outside dialog closes
+        if (e.target && e.target.matches && e.target.matches(".lemon-size__overlay")) {
+          closeModal(modal);
+        }
       });
 
       root.__lemonModal = modal;

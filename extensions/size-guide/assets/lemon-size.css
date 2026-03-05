@@ -1,34 +1,19 @@
-/* -------------------------------------------------------
-   Lemon Size Guide — Premium responsive modal + table scroll
-   Works with the updated lemon-size.js structure:
-   - .lemon-size__dialog
-   - header elements (optional): .lemon-size__header, title/sub, unit toggle
-   - content: .lemon-size__content -> sections .lemon-size__chart + .lemon-size__measure
-   - table wrap: .lemon-size__tablewrap -> .lemon-size__table
-   - guide: .lemon-size__measure-grid, .lemon-size__measure-img, .lemon-size__tips, .lemon-size__disclaimer
--------------------------------------------------------- */
+/* =========================================
+   Lemon Size – Nike/Apple modal layout
+   FULL FILE (copy/paste replace)
+   ========================================= */
 
-/* --- Force hidden attribute to always win --- */
+/* --- Ensure hidden always wins --- */
 .lemon-size__modal[hidden] { display: none !important; }
 
-/* Theme tokens */
-:root{
-  --lemon-bg: #ffffff;
-  --lemon-ink: #0f172a;
-  --lemon-muted: rgba(15, 23, 42, .72);
-  --lemon-border: rgba(0,0,0,.10);
-  --lemon-border-2: rgba(0,0,0,.14);
-  --lemon-overlay: rgba(0,0,0,.55);
-  --lemon-accent: #0b63ff;
-  --lemon-accent-2: rgba(11,99,255,.10);
-  --lemon-surface: #f6f7f9;
-  --lemon-surface-2: #f4f9f1;
-  --lemon-radius-lg: 16px;
-  --lemon-radius-md: 12px;
-  --lemon-shadow: 0 24px 70px rgba(0,0,0,.25);
+/* --- Scroll lock when modal open (set by JS) --- */
+html.lemon-size--lock,
+body.lemon-size--lock {
+  overflow: hidden !important;
+  height: 100%;
 }
 
-/* Button */
+/* --- Trigger button (keep simple / theme can override) --- */
 .lemon-size__btn {
   padding: 10px 14px;
   border: 1px solid currentColor;
@@ -37,73 +22,81 @@
   border-radius: 10px;
   font: inherit;
 }
-.lemon-size__btn:hover { opacity: .9; }
 
-/* Modal container */
-.lemon-size__modal {
+/* =========================================
+   Modal shell
+   ========================================= */
+.lemon-size__modal{
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 999999;
+  display: none;
   place-items: center;
+  padding: 14px;
 }
-.lemon-size__modal:not([hidden]) { display: grid; }
+.lemon-size__modal:not([hidden]){ display: grid; }
 
-.lemon-size__overlay {
+.lemon-size__overlay{
   position: absolute;
   inset: 0;
-  background: var(--lemon-overlay);
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(2px);
 }
 
-/* Dialog */
-.lemon-size__dialog {
+/* =========================================
+   Dialog
+   ========================================= */
+.lemon-size__dialog{
   position: relative;
-  width: min(1100px, calc(100vw - 24px));
-  max-height: min(86vh, 900px);
+  width: min(1100px, 100%);
+  max-height: min(88vh, 920px);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(0,0,0,.28);
   overflow: hidden;
-  background: var(--lemon-bg);
-  border-radius: var(--lemon-radius-lg);
-  box-shadow: var(--lemon-shadow);
+
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  color: var(--lemon-ink);
-  display: flex;
-  flex-direction: column; /* header + scrollable body */
+  color: #0b0f14;
 }
 
-/* Header (if you render it in Liquid/JS) */
+/* =========================================
+   Header (sticky)
+   ========================================= */
 .lemon-size__header{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  background: var(--lemon-surface-2);
+  gap: 12px;
+
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #f6fbf3 0%, #f2f8ee 100%);
   border-bottom: 1px solid rgba(0,0,0,.08);
-  flex: 0 0 auto;
 }
 
-.lemon-size__title { font-size: 18px; font-weight: 750; line-height: 1.2; }
-.lemon-size__sub { margin-top: 2px; font-size: 12px; opacity: .75; }
-
-.lemon-size__actions{ display:flex; align-items:center; gap: 12px; }
-
-.lemon-size__close {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid var(--lemon-border-2);
-  background: #fff;
-  cursor: pointer;
-  font-size: 22px;
-  line-height: 1;
-  display:grid;
-  place-items:center;
+.lemon-size__headings{ min-width: 0; }
+.lemon-size__title{
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
-.lemon-size__close:hover { background: rgba(255,255,255,.9); }
+.lemon-size__sub{
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: .75;
+}
 
-/* Unit toggle (optional buttons in header) */
+/* Actions */
+.lemon-size__actions{ display:flex; align-items:center; gap: 10px; }
+
+/* Unit toggle */
 .lemon-size__unit{
   display: inline-flex;
-  border: 1px solid var(--lemon-border-2);
+  border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   border-radius: 999px;
   overflow: hidden;
@@ -112,310 +105,272 @@
   padding: 8px 12px;
   border: 0;
   background: transparent;
-  font-weight: 750;
+  font-weight: 800;
   font-size: 12px;
   cursor: pointer;
-  opacity: .6;
+  opacity: .65;
+  color: #0b0f14;
 }
-.lemon-size__unitbtn:hover{ opacity: .85; }
+.lemon-size__unitbtn:hover{ opacity: 1; }
 .lemon-size__unitbtn.is-active{
   opacity: 1;
-  color: var(--lemon-accent);
+  color: #0b63ff;
+}
+.lemon-size__unitbtn:disabled{
+  opacity: .35;
+  cursor: not-allowed;
 }
 
-/* -------------------------------------------------------
-   CONTENT AREA
-   New JS renders:
-   <div class="lemon-size__content">
-     <div class="lemon-size__section lemon-size__chart">...</div>
-     <div class="lemon-size__section lemon-size__measure">...</div>
-   </div>
--------------------------------------------------------- */
+/* Close */
+.lemon-size__close{
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.14);
+  background: #fff;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.lemon-size__close:hover{ background: rgba(0,0,0,.03); }
 
-/* Scrollable body inside dialog */
-.lemon-size__dialog [data-lemon-size-chart]{
-  flex: 1 1 auto;
+/* =========================================
+   Layout (left image / right content)
+   ========================================= */
+.lemon-size__layout{
+  display: grid;
+  grid-template-columns: 0.95fr 1.25fr;
+  min-height: 520px;
+}
+
+/* LEFT – product image panel */
+.lemon-size__left{
+  position: relative;
+  background: #0b0f14; /* ensures image always visible */
+  overflow: hidden;
+}
+.lemon-size__productimg{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display:block;
+  opacity: .98;
+}
+
+/* Subtle gradient so image looks premium */
+.lemon-size__left::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.10) 0%,
+    rgba(0,0,0,.00) 35%,
+    rgba(0,0,0,.28) 100%
+  );
+  pointer-events:none;
+}
+
+/* RIGHT – scrollable content area */
+.lemon-size__right{
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  /* IMPORTANT: allow proper scrolling inside modal */
+  max-height: calc(min(88vh, 920px) - 58px);
   overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* General content padding */
-.lemon-size__content{
-  padding: 18px;
-  display: grid;
-  gap: 14px;
-}
-
-/* Sections */
-.lemon-size__section{
+/* =========================================
+   Table card
+   ========================================= */
+.lemon-size__chart{
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  overflow: hidden;
   background: #fff;
 }
 
-/* Loading / Error */
-.lemon-size__loading{ padding: 14px; }
-.lemon-size__error{
-  padding: 12px;
-  background: #fff3f3;
-  border: 1px solid #ffd1d1;
-  border-radius: var(--lemon-radius-md);
-  margin: 12px;
-  color: #7f1d1d;
-}
-
-/* -------------------------------------------------------
-   TABLE (scroll on mobile + desktop if wide)
--------------------------------------------------------- */
-
-.lemon-size__tablewrap{
-  border: 1px solid var(--lemon-border);
-  border-radius: var(--lemon-radius-md);
-  overflow: auto; /* horizontal + vertical scroll when needed */
-  max-height: 52vh; /* keep table from taking full modal */
+/* Horizontal scroll only for wide tables */
+.lemon-size__chart{
+  overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  background: #fff;
 }
 
-/* Nice scrollbars (supported browsers) */
-.lemon-size__tablewrap{
-  scrollbar-width: thin;
-  scrollbar-color: rgba(15,23,42,.25) transparent;
-}
-.lemon-size__tablewrap::-webkit-scrollbar{ height: 10px; width: 10px; }
-.lemon-size__tablewrap::-webkit-scrollbar-thumb{
-  background: rgba(15,23,42,.18);
-  border-radius: 999px;
-}
-.lemon-size__tablewrap::-webkit-scrollbar-track{ background: transparent; }
-
+/* Table */
 .lemon-size__table{
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 620px; /* desktop baseline; becomes smaller on mobile via media query */
   text-align: center;
+
+  /* If many columns, allow it to grow and scroll horizontally */
+  min-width: 620px;
 }
 
-/* Sticky header */
-.lemon-size__table th{
+.lemon-size__table thead th{
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #fff;
+  background: #ffffff;
+
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: .02em;
-  opacity: .75;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--lemon-border);
+  letter-spacing: .03em;
+  opacity: .78;
+
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(0,0,0,.10);
   white-space: nowrap;
 }
 
-/* Sticky first column (Size) */
-.lemon-size__table th:first-child,
-.lemon-size__table td:first-child{
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  background: #fff;
-  text-align: left;
-}
-.lemon-size__table th:first-child{
-  z-index: 4; /* above cells */
-}
-
-/* Cells */
+/* Table body */
 .lemon-size__table td{
-  padding: 12px 14px;
+  padding: 12px 12px;
   border-bottom: 1px solid rgba(0,0,0,.06);
   font-size: 14px;
   white-space: nowrap;
+  color: #0b0f14;
 }
 
 /* Zebra + hover */
-.lemon-size__table tbody tr:nth-child(even) td{
-  background: rgba(0,0,0,.02);
-}
-.lemon-size__table tbody tr:hover td{
-  background: var(--lemon-accent-2);
-}
-.lemon-size__sizecell strong{
-  font-weight: 800;
-}
+.lemon-size__table tbody tr:nth-child(even) td{ background: rgba(0,0,0,.02); }
+.lemon-size__table tbody tr:hover td{ background: rgba(11,99,255,.06); }
 
-/* -------------------------------------------------------
-   MEASUREMENT GUIDE BLOCK (Nike-like)
--------------------------------------------------------- */
-
-.lemon-size__measure{
-  border: 1px solid var(--lemon-border);
-  border-radius: var(--lemon-radius-md);
-  padding: 14px;
-  background: #fff;
-}
-
-.lemon-size__measure-head{
-  display:flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  margin-bottom: 12px;
-}
-
-.lemon-size__h3{
-  font-size: 14px;
-  font-weight: 850;
-  letter-spacing: .01em;
-  margin: 0;
-}
-
-.lemon-size__measure-grid{
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-.lemon-size__measure-media{
-  background: var(--lemon-surface);
-  border: 1px solid rgba(0,0,0,.06);
+/* loading / error */
+.lemon-size__loading{ padding: 14px; font-size: 14px; }
+.lemon-size__error{
+  padding: 12px;
+  background: #fff3f3;
+  border: 1px solid #ffd1d1;
   border-radius: 12px;
-  padding: 10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  margin: 12px;
+  font-size: 14px;
 }
 
-.lemon-size__measure-img{
+/* =========================================
+   Measure / guide card
+   ========================================= */
+.lemon-size__measure{
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.lemon-size__measureText{
+  padding: 14px 14px 10px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(11,15,20,.92);
+}
+.lemon-size__measureText strong{
+  display:block;
+  font-size: 13px;
+  font-weight: 850;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+/* guide image – in its own “card” area */
+.lemon-size__measureImg{
   width: 100%;
-  max-height: 260px;
+  max-height: 280px;
   object-fit: contain;
   display:block;
+  background: #fafafa;
+  border-top: 1px solid rgba(0,0,0,.08);
+  padding: 12px;
 }
 
-.lemon-size__measure-copy{
+/* notes (tips/disclaimer) */
+.lemon-size__note{
+  padding: 12px 14px;
+  border-top: 1px solid rgba(0,0,0,.08);
   font-size: 13px;
-  line-height: 1.55;
-  color: var(--lemon-ink);
+  line-height: 1.45;
+  color: rgba(11,15,20,.90);
+}
+.lemon-size__note strong{
+  display:block;
+  font-weight: 850;
+  margin-bottom: 4px;
+}
+.lemon-size__note.is-hidden{ display: none; }
+
+/* =========================================
+   Better scrollbars (optional, safe)
+   ========================================= */
+.lemon-size__right::-webkit-scrollbar{ width: 10px; }
+.lemon-size__right::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,.16);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.lemon-size__chart::-webkit-scrollbar{ height: 10px; }
+.lemon-size__chart::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,.16);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 
-.lemon-size__measure-copy p{
-  margin: 0 0 10px 0;
-  color: var(--lemon-muted);
-}
-.lemon-size__measure-copy p:last-child{ margin-bottom: 0; }
-
-.lemon-size__tips{
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(11,99,255,.08);
-  border: 1px solid rgba(11,99,255,.18);
-  color: rgba(15,23,42,.92);
-  font-size: 13px;
-}
-
-.lemon-size__disclaimer{
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(0,0,0,.12);
-  font-size: 12px;
-  color: rgba(15,23,42,.62);
-}
-
-/* -------------------------------------------------------
-   MOBILE / TABLET RESPONSIVE
--------------------------------------------------------- */
-
-@media (max-width: 960px){
-  .lemon-size__dialog{
-    width: min(960px, calc(100vw - 18px));
-    max-height: 90vh;
-  }
-  .lemon-size__content{
-    padding: 14px;
-  }
-  .lemon-size__table{
-    min-width: 560px;
-  }
-  .lemon-size__measure-grid{
-    grid-template-columns: 220px 1fr;
-  }
-}
-
-@media (max-width: 860px){
-  .lemon-size__header{
-    padding: 14px 14px;
+/* =========================================
+   Responsive
+   ========================================= */
+@media (max-width: 980px){
+  .lemon-size__layout{
+    grid-template-columns: 1fr;
   }
 
-  .lemon-size__title{ font-size: 16px; }
-  .lemon-size__sub{ font-size: 12px; }
-
-  .lemon-size__content{
-    padding: 12px;
-    gap: 12px;
+  .lemon-size__left{
+    height: 220px;
   }
 
-  /* Table: smaller min width so it scrolls nicely */
+  .lemon-size__right{
+    max-height: calc(min(88vh, 920px) - 58px - 220px);
+  }
+
   .lemon-size__table{
     min-width: 520px;
   }
-
-  .lemon-size__table th,
-  .lemon-size__table td{
-    padding: 10px 12px;
-  }
-
-  .lemon-size__tablewrap{
-    max-height: 45vh;
-  }
-
-  /* Guide stacks */
-  .lemon-size__measure-grid{
-    grid-template-columns: 1fr;
-  }
-  .lemon-size__measure-media{
-    padding: 12px;
-  }
-  .lemon-size__measure-img{
-    max-height: 220px;
-  }
 }
 
-@media (max-width: 480px){
-  .lemon-size__dialog{
-    width: calc(100vw - 14px);
-    border-radius: 14px;
+@media (max-width: 520px){
+  .lemon-size__modal{ padding: 10px; }
+  .lemon-size__dialog{ border-radius: 16px; }
+
+  .lemon-size__header{
+    padding: 12px 12px;
+    gap: 10px;
+  }
+
+  .lemon-size__actions{ gap: 8px; }
+
+  .lemon-size__unitbtn{
+    padding: 8px 10px;
+    font-size: 11px;
   }
 
   .lemon-size__close{
     width: 36px;
     height: 36px;
+    border-radius: 12px;
   }
 
-  .lemon-size__unitbtn{
-    padding: 7px 10px;
-    font-size: 12px;
+  .lemon-size__right{
+    padding: 12px;
+    gap: 12px;
   }
 
   .lemon-size__table{
-    min-width: 480px; /* still scrolls if columns are many */
-  }
-
-  .lemon-size__table th{
-    font-size: 11px;
-  }
-  .lemon-size__table td{
-    font-size: 13px;
-  }
-}
-
-/* Accessibility: reduce motion */
-@media (prefers-reduced-motion: reduce){
-  .lemon-size__modal,
-  .lemon-size__dialog,
-  .lemon-size__overlay{
-    scroll-behavior: auto !important;
+    min-width: 480px;
   }
 }
