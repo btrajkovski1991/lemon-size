@@ -436,19 +436,28 @@
         });
       });
 
-      btn.addEventListener("click", async () => {
-        content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
-        openModal(modal, btn);
+btn.addEventListener("click", async () => {
+  openModal(modal, btn);
 
-        try {
-          const data = await fetchChart(btn);
-          modal._lemonData = data;
-          render(modal, content, data);
-        } catch (err) {
-          console.error("[LemonSize] Fetch/render error:", err);
-          content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
-        }
-      });
+  // ✅ If we already fetched this chart once, reuse it (instant open)
+  if (modal._lemonData) {
+    // keep UI consistent (unit buttons etc.)
+    render(modal, content, modal._lemonData);
+    return;
+  }
+
+  // first time open -> show loader then fetch
+  content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
+
+  try {
+    const data = await fetchChart(btn);
+    modal._lemonData = data;
+    render(modal, content, data);
+  } catch (err) {
+    console.error("[LemonSize] Fetch/render error:", err);
+    content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
+  }
+});
 
       root.addEventListener("click", (e) => {
         const close = e.target.closest("[data-lemon-size-close]");
