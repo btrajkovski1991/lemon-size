@@ -264,30 +264,7 @@ function getGuideImage(trigger, chartTitle){
     };
   }
 
-  function getGuideImageByTitle(chartTitle) {
-    // Optional: keep your mapping as a fallback if DB guideImage is null
-    const map = {
-      tops: "/images/size-guides/tops.png",
-      jacket: "/images/size-guides/tops.png",
-      blazer: "/images/size-guides/tops.png",
-      bottoms: "/images/size-guides/bottoms.png",
-      dress: "/images/size-guides/dress.png",
-      bra: "/images/size-guides/bra.png",
-      shoes: "/images/size-guides/shoes.png",
-      ring: "/images/size-guides/ring.png",
-      bracelet: "/images/size-guides/bracelet.png",
-      necklace: "/images/size-guides/necklace.png",
-      headwear: "/images/size-guides/headwear.png",
-      "pet clothing": "/images/size-guides/pet-clothing.png",
-      "pet collar": "/images/size-guides/pet-collar.png",
-    };
 
-    const key = String(chartTitle || "").toLowerCase();
-    for (const k in map) {
-      if (key.includes(k)) return map[k];
-    }
-    return "/images/size-guides/default.png";
-  }
 
   // ---------- Rendering ----------
   function renderTable(chart, displayUnit) {
@@ -338,49 +315,62 @@ function getGuideImage(trigger, chartTitle){
     `;
   }
 
+  
+
   function renderGuide(modal, chart) {
-    const guide = chart || {};
-    const fallback = defaultGuideFor(guide.title);
+  const guide = chart || {};
+  const fallback = defaultGuideFor(guide.title);
 
-    const title = guide.guideTitle || fallback.guideTitle || "How to measure";
-    const text = guide.guideText || fallback.guideText || "";
-    const tips = guide.tips || "";
-    const disclaimer = guide.disclaimer || "";
+  const title = guide.guideTitle || fallback.guideTitle || "How to measure";
+  const text = guide.guideText || fallback.guideText || "";
+  const tips = guide.tips || "";
+  const disclaimer = guide.disclaimer || "";
 
-    // prefer DB guideImage, fallback to mapping
-    const imgUrl = guide.guideImage || getGuideImageByTitle(guide.title);
+  // ✅ IMPORTANT: use absolute URL fallback from Vercel base
+  const trigger = modal._lemonTrigger || null;
 
-    const titleEl = modal.querySelector("[data-lemon-guide-title]");
-    const textEl = modal.querySelector("[data-lemon-guide-text]");
-    const tipsEl = modal.querySelector("[data-lemon-guide-tips]");
-    const discEl = modal.querySelector("[data-lemon-guide-disclaimer]");
-    const imgEl = modal.querySelector("[data-lemon-guide-img]");
-    const imgWrap = modal.querySelector("[data-lemon-guide-imgwrap]");
+  const imgUrl =
+    (guide.guideImage && String(guide.guideImage).trim()) ||
+    (trigger ? getGuideImage(trigger, guide.title) : "");
 
-    if (titleEl) titleEl.textContent = title;
-    if (textEl) textEl.textContent = text;
+  const titleEl = modal.querySelector("[data-lemon-guide-title]");
+  const textEl = modal.querySelector("[data-lemon-guide-text]");
+  const tipsEl = modal.querySelector("[data-lemon-guide-tips]");
+  const discEl = modal.querySelector("[data-lemon-guide-disclaimer]");
+  const imgEl = modal.querySelector("[data-lemon-guide-img]");
+  const imgWrap = modal.querySelector("[data-lemon-guide-imgwrap]");
 
-    if (tipsEl) {
-      tipsEl.textContent = tips;
-      tipsEl.closest(".lemon-size__mutedRow")?.classList.toggle("is-hidden", !tips);
-    }
+  if (titleEl) titleEl.textContent = title;
+  if (textEl) textEl.textContent = text;
 
-    if (discEl) {
-      discEl.textContent = disclaimer;
-      discEl.closest(".lemon-size__mutedRow")?.classList.toggle("is-hidden", !disclaimer);
-    }
+  if (tipsEl) {
+    tipsEl.textContent = tips;
+    tipsEl.closest(".lemon-size__mutedRow")?.classList.toggle("is-hidden", !tips);
+  }
 
-    if (imgEl) {
-      if (imgUrl) {
-        imgEl.src = imgUrl;
-        imgEl.hidden = false;
-        if (imgWrap) imgWrap.hidden = false;
-      } else {
-        imgEl.hidden = true;
-        if (imgWrap) imgWrap.hidden = true;
-      }
+  if (discEl) {
+    discEl.textContent = disclaimer;
+    discEl.closest(".lemon-size__mutedRow")?.classList.toggle("is-hidden", !disclaimer);
+  }
+
+  if (imgEl) {
+    if (imgUrl) {
+      imgEl.src = imgUrl;
+      imgEl.hidden = false;
+      if (imgWrap) imgWrap.hidden = false;
+
+      // ✅ avoid “20px tall” issue
+      imgEl.style.width = "100%";
+      imgEl.style.height = "auto";
+      imgEl.style.display = "block";
+      imgEl.style.objectFit = "contain";
+    } else {
+      imgEl.hidden = true;
+      if (imgWrap) imgWrap.hidden = true;
     }
   }
+}
+
 
   function render(modal, contentEl, data) {
     // accept both {chart: ...} and full payload
@@ -431,10 +421,11 @@ function getGuideImage(trigger, chartTitle){
       const img = root.querySelector("[data-lemon-productimg]");
 
       if (!btn || !modal || !content) {
+       
         root.remove();
         return;
       }
-
+ modal._lemonTrigger = btn;
       // show button only if chart exists (204)
       try {
         const ok = await hasChartFor(btn);

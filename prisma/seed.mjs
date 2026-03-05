@@ -16,7 +16,7 @@ const TEMPLATES = [
     unit: "cm",
     columns: ["SIZE", "CHEST", "LENGTH"],
     guideTitle: "How to measure (Tops)",
-    guideImage: "https://lemon-size.vercel.app/images/size-guides/tops.png",
+    guideImage: "/images/size-guides/tops.png",
     guideText:
       "CHEST: Measure straight across from armpit to armpit (flat). If you want circumference, multiply by 2.\nLENGTH: Measure from the highest point of the shoulder (near collar) down to the hem.\nOptional: SHOULDER (seam to seam), SLEEVE (shoulder seam to cuff).",
     tips: GLOBAL_TIPS,
