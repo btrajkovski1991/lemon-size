@@ -43,22 +43,31 @@
         <div class="lemon-size__right">
           <div class="lemon-size__chart" data-lemon-size-chart></div>
 
+
  <div class="lemon-size__measure">
-  <div class="lemon-size__measureText">
+  <div class="lemon-size__measureHead">
     <strong data-lemon-guide-title>How to measure</strong>
-    <div data-lemon-guide-text></div>
+    <div class="lemon-size__measureText" data-lemon-guide-text></div>
   </div>
 
-  <img
-    class="lemon-size__measureImg"
-    alt=""
-    loading="lazy"
-    data-lemon-guide-img
-    hidden
-  />
+  <div class="lemon-size__guideImgWrap" data-lemon-guide-imgwrap>
+    <img
+      class="lemon-size__measureImg"
+      alt=""
+      loading="lazy"
+      data-lemon-guide-img
+    />
+  </div>
 
-  <div class="lemon-size__note is-hidden" data-lemon-guide-tips></div>
-  <div class="lemon-size__note is-hidden" data-lemon-guide-disclaimer></div>
+  <div class="lemon-size__mutedRow is-hidden">
+    <div class="lemon-size__mutedLabel">Tips</div>
+    <div class="lemon-size__mutedText" data-lemon-guide-tips></div>
+  </div>
+
+  <div class="lemon-size__mutedRow is-hidden">
+    <div class="lemon-size__mutedLabel">Note</div>
+    <div class="lemon-size__mutedText" data-lemon-guide-disclaimer></div>
+  </div>
 </div>
 
 

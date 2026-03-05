@@ -1,105 +1,92 @@
-/* =========================================
-   Lemon Size – Nike/Apple modal layout
-   FULL FILE (copy/paste replace)
-   ========================================= */
+/* Prevent background scroll when modal open */
+.lemon-size__lock { overflow: hidden !important; }
 
-/* --- Ensure hidden always wins --- */
+/* --- Force hidden attribute to always win --- */
 .lemon-size__modal[hidden] { display: none !important; }
 
-/* --- Scroll lock when modal open (set by JS) --- */
-html.lemon-size--lock,
-body.lemon-size--lock {
-  overflow: hidden !important;
-  height: 100%;
-}
-
-/* --- Trigger button (keep simple / theme can override) --- */
-.lemon-size__btn {
+/* Button */
+.lemon-size__btn{
   padding: 10px 14px;
-  border: 1px solid currentColor;
-  background: transparent;
+  border: 1px solid rgba(0,0,0,.18);
+  background: #fff;
   cursor: pointer;
-  border-radius: 10px;
-  font: inherit;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
 }
+.lemon-size__btn:hover{ border-color: rgba(0,0,0,.28); }
 
-/* =========================================
-   Modal shell
-   ========================================= */
+/* Modal container */
 .lemon-size__modal{
   position: fixed;
   inset: 0;
   z-index: 999999;
-  display: none;
   place-items: center;
-  padding: 14px;
 }
-.lemon-size__modal:not([hidden]){ display: grid; }
+.lemon-size__modal:not([hidden]){ display:grid; }
 
 .lemon-size__overlay{
-  position: absolute;
-  inset: 0;
+  position:absolute;
+  inset:0;
   background: rgba(0,0,0,.55);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(6px);
 }
 
-/* =========================================
-   Dialog
-   ========================================= */
+/* Dialog */
 .lemon-size__dialog{
   position: relative;
-  width: min(1100px, 100%);
-  max-height: min(88vh, 920px);
+  width: min(1120px, calc(100vw - 24px));
+  max-height: min(86vh, 920px);
+  overflow: hidden;
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 28px 80px rgba(0,0,0,.28);
-  overflow: hidden;
-
+  box-shadow: 0 24px 70px rgba(0,0,0,.28);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  color: #0b0f14;
+  display: flex;
+  flex-direction: column;
 }
 
-/* =========================================
-   Header (sticky)
-   ========================================= */
+/* Header */
 .lemon-size__header{
-  position: sticky;
-  top: 0;
-  z-index: 5;
-
-  display: flex;
+  display:flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-
-  padding: 14px 16px;
-  background: linear-gradient(180deg, #f6fbf3 0%, #f2f8ee 100%);
+  gap: 14px;
+  padding: 16px 18px;
+  background: #f4f9f1;
   border-bottom: 1px solid rgba(0,0,0,.08);
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .lemon-size__headings{ min-width: 0; }
 .lemon-size__title{
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 .lemon-size__sub{
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 12px;
   opacity: .75;
 }
 
-/* Actions */
-.lemon-size__actions{ display:flex; align-items:center; gap: 10px; }
+.lemon-size__actions{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
 
 /* Unit toggle */
 .lemon-size__unit{
-  display: inline-flex;
+  display:inline-flex;
   border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   border-radius: 999px;
-  overflow: hidden;
+  overflow:hidden;
+  padding: 2px;
 }
 .lemon-size__unitbtn{
   padding: 8px 12px;
@@ -109,46 +96,36 @@ body.lemon-size--lock {
   font-size: 12px;
   cursor: pointer;
   opacity: .65;
-  color: #0b0f14;
+  border-radius: 999px;
 }
-.lemon-size__unitbtn:hover{ opacity: 1; }
 .lemon-size__unitbtn.is-active{
   opacity: 1;
+  background: rgba(11,99,255,.10);
   color: #0b63ff;
 }
-.lemon-size__unitbtn:disabled{
-  opacity: .35;
-  cursor: not-allowed;
-}
 
-/* Close */
 .lemon-size__close{
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  display: grid;
-  place-items: center;
 }
-.lemon-size__close:hover{ background: rgba(0,0,0,.03); }
 
-/* =========================================
-   Layout (left image / right content)
-   ========================================= */
+/* Layout: left product image + right content */
 .lemon-size__layout{
-  display: grid;
-  grid-template-columns: 0.95fr 1.25fr;
+  display:grid;
+  grid-template-columns: 1.05fr 1.25fr;
   min-height: 520px;
+  flex: 1;
 }
 
-/* LEFT – product image panel */
 .lemon-size__left{
+  background: #f0f0f0;
   position: relative;
-  background: #0b0f14; /* ensures image always visible */
   overflow: hidden;
 }
 .lemon-size__productimg{
@@ -156,107 +133,21 @@ body.lemon-size--lock {
   height: 100%;
   object-fit: cover;
   display:block;
-  opacity: .98;
+  transform: scale(1.01);
 }
 
-/* Subtle gradient so image looks premium */
-.lemon-size__left::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: linear-gradient(
-    180deg,
-    rgba(0,0,0,.10) 0%,
-    rgba(0,0,0,.00) 35%,
-    rgba(0,0,0,.28) 100%
-  );
-  pointer-events:none;
-}
-
-/* RIGHT – scrollable content area */
+/* Right column scrolls */
 .lemon-size__right{
-  padding: 16px;
-  display: flex;
+  padding: 18px;
+  overflow: auto;
+  display:flex;
   flex-direction: column;
   gap: 14px;
-
-  /* IMPORTANT: allow proper scrolling inside modal */
-  max-height: calc(min(88vh, 920px) - 58px);
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* =========================================
-   Table card
-   ========================================= */
-.lemon-size__chart{
-  border: 1px solid rgba(0,0,0,.10);
-  border-radius: 14px;
-  overflow: hidden;
   background: #fff;
 }
 
-/* Horizontal scroll only for wide tables */
-.lemon-size__chart{
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Table */
-.lemon-size__table{
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  text-align: center;
-
-  /* If many columns, allow it to grow and scroll horizontally */
-  min-width: 620px;
-}
-
-.lemon-size__table thead th{
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #ffffff;
-
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  opacity: .78;
-
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.10);
-  white-space: nowrap;
-}
-
-/* Table body */
-.lemon-size__table td{
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  font-size: 14px;
-  white-space: nowrap;
-  color: #0b0f14;
-}
-
-/* Zebra + hover */
-.lemon-size__table tbody tr:nth-child(even) td{ background: rgba(0,0,0,.02); }
-.lemon-size__table tbody tr:hover td{ background: rgba(11,99,255,.06); }
-
-/* loading / error */
-.lemon-size__loading{ padding: 14px; font-size: 14px; }
-.lemon-size__error{
-  padding: 12px;
-  background: #fff3f3;
-  border: 1px solid #ffd1d1;
-  border-radius: 12px;
-  margin: 12px;
-  font-size: 14px;
-}
-
-/* =========================================
-   Measure / guide card
-   ========================================= */
+/* Cards */
+.lemon-size__chart,
 .lemon-size__measure{
   border: 1px solid rgba(0,0,0,.10);
   border-radius: 14px;
@@ -264,113 +155,130 @@ body.lemon-size--lock {
   overflow: hidden;
 }
 
-.lemon-size__measureText{
-  padding: 14px 14px 10px 14px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: rgba(11,15,20,.92);
+/* Table */
+.lemon-size__tableWrap{
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
-.lemon-size__measureText strong{
-  display:block;
-  font-size: 13px;
-  font-weight: 850;
-  margin-bottom: 6px;
-  letter-spacing: -0.01em;
+.lemon-size__table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 560px;
+  text-align: center;
 }
 
-/* guide image – in its own “card” area */
+.lemon-size__table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  opacity: .78;
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.10);
+  white-space: nowrap;
+}
+
+.lemon-size__table tbody td{
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.lemon-size__table tbody tr:nth-child(even) td{ background: rgba(0,0,0,.015); }
+.lemon-size__table tbody tr:hover td{ background: rgba(11,99,255,.06); }
+
+/* Loading / empty / error */
+.lemon-size__loading{ padding: 14px; }
+.lemon-size__empty{
+  padding: 14px;
+  margin: 12px;
+  background: #fff7f7;
+  border: 1px solid #ffd1d1;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.lemon-size__error{
+  padding: 12px;
+  margin: 12px;
+  background: #fff3f3;
+  border: 1px solid #ffd1d1;
+  border-radius: 12px;
+}
+
+/* Guide */
+.lemon-size__measure{
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.lemon-size__measureHead strong{
+  display:block;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.lemon-size__measureText{
+  font-size: 13px;
+  opacity: .9;
+  line-height: 1.45;
+}
+
+.lemon-size__guideImgWrap{
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fafafa;
+}
 .lemon-size__measureImg{
   width: 100%;
-  max-height: 280px;
+  max-height: 260px;
   object-fit: contain;
   display:block;
-  background: #fafafa;
-  border-top: 1px solid rgba(0,0,0,.08);
-  padding: 12px;
+  padding: 10px;
 }
 
-/* notes (tips/disclaimer) */
-.lemon-size__note{
-  padding: 12px 14px;
-  border-top: 1px solid rgba(0,0,0,.08);
+.lemon-size__mutedRow{
+  display:grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding-top: 2px;
+}
+.lemon-size__mutedRow.is-hidden{ display:none; }
+
+.lemon-size__mutedLabel{
+  font-size: 12px;
+  font-weight: 900;
+  opacity: .65;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.lemon-size__mutedText{
   font-size: 13px;
+  opacity: .88;
   line-height: 1.45;
-  color: rgba(11,15,20,.90);
-}
-.lemon-size__note strong{
-  display:block;
-  font-weight: 850;
-  margin-bottom: 4px;
-}
-.lemon-size__note.is-hidden{ display: none; }
-
-/* =========================================
-   Better scrollbars (optional, safe)
-   ========================================= */
-.lemon-size__right::-webkit-scrollbar{ width: 10px; }
-.lemon-size__right::-webkit-scrollbar-thumb{
-  background: rgba(0,0,0,.16);
-  border-radius: 999px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-.lemon-size__chart::-webkit-scrollbar{ height: 10px; }
-.lemon-size__chart::-webkit-scrollbar-thumb{
-  background: rgba(0,0,0,.16);
-  border-radius: 999px;
-  border: 3px solid transparent;
-  background-clip: content-box;
 }
 
-/* =========================================
-   Responsive
-   ========================================= */
-@media (max-width: 980px){
-  .lemon-size__layout{
-    grid-template-columns: 1fr;
+/* Responsive */
+@media (max-width: 960px){
+  .lemon-size__dialog{
+    width: min(980px, calc(100vw - 18px));
+    max-height: 92vh;
   }
-
-  .lemon-size__left{
-    height: 220px;
-  }
-
-  .lemon-size__right{
-    max-height: calc(min(88vh, 920px) - 58px - 220px);
-  }
-
-  .lemon-size__table{
-    min-width: 520px;
-  }
+  .lemon-size__layout{ grid-template-columns: 1fr; }
+  .lemon-size__left{ height: 220px; }
+  .lemon-size__table{ min-width: 520px; }
 }
 
 @media (max-width: 520px){
-  .lemon-size__modal{ padding: 10px; }
-  .lemon-size__dialog{ border-radius: 16px; }
-
-  .lemon-size__header{
-    padding: 12px 12px;
-    gap: 10px;
-  }
-
-  .lemon-size__actions{ gap: 8px; }
-
-  .lemon-size__unitbtn{
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-
-  .lemon-size__close{
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-  }
-
-  .lemon-size__right{
-    padding: 12px;
-    gap: 12px;
-  }
-
-  .lemon-size__table{
-    min-width: 480px;
-  }
+  .lemon-size__header{ padding: 14px 14px; }
+  .lemon-size__right{ padding: 14px; }
+  .lemon-size__table{ min-width: 480px; }
 }
