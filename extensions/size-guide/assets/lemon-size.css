@@ -36,9 +36,9 @@
 /* Dialog */
 .lemon-size__dialog{
   position: relative;
-  width: min(1120px, calc(100vw - 24px));
-  max-height: min(86vh, 920px);
-  overflow: hidden;
+  width: min(1240px, calc(100vw - 24px)); /* a bit wider */
+  max-height: min(88vh, 980px);
+  overflow: hidden; /* header stays, body scroll handled below */
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 24px 70px rgba(0,0,0,.28);
@@ -118,11 +118,12 @@
 /* Layout: left product image + right content */
 .lemon-size__layout{
   display:grid;
-  grid-template-columns: 1.05fr 1.25fr;
-  min-height: 520px;
-  flex: 1;
+  grid-template-columns: 1.25fr 1fr; /* ✅ bigger image on desktop */
+  min-height: 0;      /* important for scroll */
+  flex: 1;            /* fill remaining height below header */
 }
 
+/* Left image */
 .lemon-size__left{
   background: #f0f0f0;
   position: relative;
@@ -136,14 +137,17 @@
   transform: scale(1.01);
 }
 
-/* Right column scrolls */
+/* Right column scrolls (desktop/tablet) */
 .lemon-size__right{
   padding: 18px;
-  overflow: auto;
+  overflow: auto;              /* ✅ scroll if content tall */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display:flex;
   flex-direction: column;
   gap: 14px;
   background: #fff;
+  min-height: 0;               /* allows scrolling */
 }
 
 /* Cards */
@@ -155,10 +159,11 @@
   overflow: hidden;
 }
 
-/* Table */
+/* Table (horizontal scroll only) */
 .lemon-size__tableWrap{
   width: 100%;
-  overflow: auto;
+  overflow-x: auto;            /* ✅ horizontal only */
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
 }
 .lemon-size__table{
@@ -266,65 +271,50 @@
   line-height: 1.45;
 }
 
-/* Responsive */
+/* ----------------------------- */
+/* Mobile: scroll whole modal     */
+/* ----------------------------- */
 @media (max-width: 960px){
   .lemon-size__dialog{
     width: min(980px, calc(100vw - 18px));
     max-height: 92vh;
+    overflow: hidden; /* header sticky; body scroll below */
   }
-  .lemon-size__layout{ grid-template-columns: 1fr; }
-  .lemon-size__left{ height: 220px; }
-  .lemon-size__table{ min-width: 520px; }
+
+  /* ✅ Single scroll area: image + table + guide */
+  .lemon-size__layout{
+    grid-template-columns: 1fr;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Bigger top image like your screenshot */
+  .lemon-size__left{
+    height: 320px;
+  }
+
+  /* Remove nested scroll on mobile */
+  .lemon-size__right{
+    overflow: visible;
+    padding: 14px;
+  }
+
+  /* Table stays horizontal scroll only (no vertical trap) */
+  .lemon-size__table{
+    min-width: 520px;
+  }
 }
 
 @media (max-width: 520px){
   .lemon-size__header{ padding: 14px 14px; }
+  .lemon-size__left{ height: 280px; }
   .lemon-size__right{ padding: 14px; }
-  .lemon-size__table{ min-width: 480px; }
-}
-
-/* ----------------------------- */
-/* Mobile table scroll upgrade   */
-/* ----------------------------- */
-
-@media (max-width: 960px){
-  /* Make the right column behave nicely (no double scroll issues) */
-  .lemon-size__right{
-    overflow: hidden; /* only inner blocks scroll */
-  }
-
-  /* Give the chart card a predictable height so table can scroll */
-  .lemon-size__chart{
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  /* THIS is the important part: table becomes a scroll box */
-  .lemon-size__tableWrap{
-    max-height: 46vh;              /* vertical scroll for long tables */
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;  /* prevents background scroll bounce */
-    scrollbar-gutter: stable;
-  }
-
-  /* Sticky header stays at top of the scroll container */
-  .lemon-size__table thead th{
-    top: 0;
-    background: #fff;
-  }
-}
-
-@media (max-width: 520px){
-  /* Slightly tighter + more mobile-friendly */
-  .lemon-size__tableWrap{
-    max-height: 44vh;
-    border-radius: 12px;
-  }
 
   .lemon-size__table{
-    min-width: 520px; /* keep horizontal scroll for many columns */
+    min-width: 480px;
   }
 
   .lemon-size__table thead th,
@@ -334,7 +324,7 @@
   }
 }
 
-/* Optional: a subtle gradient “scroll hint” on the sides */
+/* Optional: subtle horizontal scroll hint on touch devices */
 .lemon-size__tableWrap{
   position: relative;
 }
@@ -357,8 +347,6 @@
   right:0;
   background: linear-gradient(to left, rgba(255,255,255,.95), rgba(255,255,255,0));
 }
-
-/* Show hint only on touch devices */
 @media (hover: none) and (pointer: coarse){
   .lemon-size__tableWrap::before,
   .lemon-size__tableWrap::after{
