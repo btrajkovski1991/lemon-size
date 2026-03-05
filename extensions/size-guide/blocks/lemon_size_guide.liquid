@@ -11,6 +11,7 @@
     data-product-vendor="{{ product.vendor | escape }}"
     data-product-tags="{{ product.tags | join: ',' | escape }}"
     data-product-image="{{ product.featured_image | image_url: width: 1200 }}"
+    data-guides-base="https://lemon-size.vercel.app"
   >
     {{ block.settings.button_label | default: 'Size guide' }}
   </button>
