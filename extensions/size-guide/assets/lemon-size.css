@@ -370,3 +370,53 @@
     opacity:1;
   }
 }
+
+/* Desktop: left smaller, right bigger */
+@media (min-width: 961px){
+  .lemon-size__layout{
+    grid-template-columns: 0.85fr 1.35fr; /* ✅ left smaller, right larger */
+  }
+
+  /* Make product image feel less dominant */
+  .lemon-size__left{
+    background: #f2f2f2;
+  }
+  .lemon-size__productimg{
+    object-fit: cover;
+    transform: scale(1.0); /* reduce zoom a bit */
+  }
+
+  /* Give the right column a bit more breathing room */
+  .lemon-size__right{
+    padding: 22px;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 961px){
+  .lemon-size__table{
+    min-width: 720px;     /* ✅ larger table base width */
+  }
+
+  .lemon-size__table thead th{
+    font-size: 12px;
+    padding: 16px 16px;
+  }
+
+  .lemon-size__table tbody td{
+    font-size: 15px;      /* ✅ bigger text */
+    padding: 16px 16px;
+  }
+}
+
+@media (min-width: 961px){
+  .lemon-size__measureImg{
+    max-height: 640px;  /* ✅ bigger guide image */
+    padding: 18px;
+  }
+}
+
+@media (min-width: 961px){
+  .lemon-size__chart{ order: 1; }
+  .lemon-size__measure{ order: 2; }
+}
