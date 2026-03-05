@@ -57,9 +57,15 @@ model SizeChart {
   id        String  @id @default(cuid())
   shopId    String
   title     String
-  unit      String  @default("cm") // "cm" | "in"
-  columns   Json // e.g. ["Chest", "Waist", "Hip"]
+  unit      String  @default("cm")
+  columns   Json
   isDefault Boolean @default(false)
+
+  guideTitle String?
+  guideText  String?
+  guideImage String?
+  tips       String?
+  disclaimer String?
 
   shop    Shop                  @relation(fields: [shopId], references: [id], onDelete: Cascade)
   rows    SizeChartRow[]

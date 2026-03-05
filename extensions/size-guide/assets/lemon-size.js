@@ -104,26 +104,62 @@
 
   function shouldConvertColumn(colName) {
     const c = String(colName || "").toUpperCase();
-    return c.includes("FOOT") || c.includes("LENGTH");
+    // Only convert length-ish columns
+    return c.includes("FOOT") || c.includes("LENGTH") || c.includes("SLEEVE") || c.includes("SHOULDER");
   }
 
   function setUnitButtons(modal, activeUnit) {
     modal.querySelectorAll("[data-lemon-unit]").forEach((btn) => {
-      const u = btn.getAttribute("data-lemon-unit");
+      const u = (btn.getAttribute("data-lemon-unit") || "").toLowerCase();
       btn.classList.toggle("is-active", u === activeUnit);
     });
   }
 
+  function getGuideImage(chartTitle) {
+    const map = {
+      "tops": "/size-guides/tops.png",
+      "jacket": "/size-guides/tops.png",
+      "blazer": "/size-guides/tops.png",
+
+      "bottoms": "/size-guides/bottoms.png",
+
+      "dress": "/size-guides/dress.png",
+      "bikini": "/size-guides/dress.png",
+
+      "bra": "/size-guides/bra.png",
+
+      "shoes": "/size-guides/shoes.png",
+
+      "ring": "/size-guides/ring.png",
+      "bracelet": "/size-guides/bracelet.png",
+      "necklace": "/size-guides/necklace.png",
+
+      "headwear": "/size-guides/headwear.png",
+
+      "pet clothing": "/size-guides/pet-clothing.png",
+      "pet collar": "/size-guides/pet-collar.png",
+    };
+
+    const key = String(chartTitle || "").toLowerCase();
+    for (const k in map) {
+      if (key.includes(k)) return map[k];
+    }
+    return "/size-guides/default.png";
+  }
+
+  function normalizeColumns(columns) {
+    const cols = Array.isArray(columns) ? columns.map(String) : [];
+    // If the chart columns include "SIZE", we remove it because row.label already represents size
+    return cols.filter((c) => c.trim().toUpperCase() !== "SIZE");
+  }
+
   function renderTable(chart, displayUnit) {
-    const { title, unit, columns, rows } = chart;
-    const baseUnit = (unit || "").toLowerCase();
-    const cols = Array.isArray(columns) ? columns : [];
+    const baseUnit = String(chart.unit || "cm").toLowerCase();
+    const cols = normalizeColumns(chart.columns);
 
-    const head = cols
-      .map((c) => `<th>${escapeHtml(String(c))}</th>`)
-      .join("");
+    const head = cols.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
 
-    const body = (rows || [])
+    const body = (chart.rows || [])
       .map((r) => {
         const label = escapeHtml(String(r.label ?? ""));
         const cells = cols
@@ -138,15 +174,56 @@
           })
           .join("");
 
-        return `<tr><td><strong>${label}</strong></td>${cells}</tr>`;
+        return `<tr><td class="lemon-size__sizecell"><strong>${label}</strong></td>${cells}</tr>`;
       })
       .join("");
 
     return `
-      <table class="lemon-size__table">
-        <thead><tr><th>Size</th>${head}</tr></thead>
-        <tbody>${body}</tbody>
-      </table>
+      <div class="lemon-size__tablewrap">
+        <table class="lemon-size__table">
+          <thead><tr><th>Size</th>${head}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderGuide(chart) {
+    const img = chart.guideImage || getGuideImage(chart.title);
+    const title = chart.guideTitle || "How to measure";
+    const text = chart.guideText || "";
+    const tips = chart.tips || "";
+    const disclaimer = chart.disclaimer || "";
+
+    // split guideText into paragraphs (nice on storefront)
+    const paragraphs = String(text)
+      .trim()
+      .split("\n\n")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p>${escapeHtml(p)}</p>`)
+      .join("");
+
+    return `
+      <div class="lemon-size__section lemon-size__measure">
+        <div class="lemon-size__measure-head">
+          <h3 class="lemon-size__h3">${escapeHtml(title)}</h3>
+        </div>
+
+        <div class="lemon-size__measure-grid">
+          <div class="lemon-size__measure-media">
+            <img class="lemon-size__measure-img" src="${escapeHtml(img)}" alt="${escapeHtml(title)}" loading="lazy">
+          </div>
+
+          <div class="lemon-size__measure-copy">
+            ${paragraphs || `<p>Follow the instructions to choose the right size.</p>`}
+
+            ${tips ? `<div class="lemon-size__tips"><strong>Tip:</strong> ${escapeHtml(tips)}</div>` : ""}
+
+            ${disclaimer ? `<div class="lemon-size__disclaimer">${escapeHtml(disclaimer)}</div>` : ""}
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -157,23 +234,31 @@
     }
 
     const chart = data.chart;
+
     const titleEl = modal.querySelector("[data-lemon-size-title]");
     const subEl = modal.querySelector("[data-lemon-size-subtitle]");
 
     if (titleEl) titleEl.textContent = chart.title || "Size guide";
 
-    // default unit = chart.unit, fallback to "cm"
-    const baseUnit = (chart.unit || "cm").toLowerCase();
+    const baseUnit = String(chart.unit || "cm").toLowerCase();
     modal._lemonBaseUnit = baseUnit;
     modal._lemonDisplayUnit = modal._lemonDisplayUnit || baseUnit;
 
-    if (subEl) {
-      subEl.textContent = `Units: ${modal._lemonDisplayUnit.toUpperCase()}`;
-    }
-
+    if (subEl) subEl.textContent = `Units: ${modal._lemonDisplayUnit.toUpperCase()}`;
     setUnitButtons(modal, modal._lemonDisplayUnit);
 
-    contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
+    // Nike-style layout: table + measure section
+    const tableHtml = renderTable(chart, modal._lemonDisplayUnit);
+    const guideHtml = renderGuide(chart);
+
+    contentEl.innerHTML = `
+      <div class="lemon-size__content">
+        <div class="lemon-size__section lemon-size__chart">
+          ${tableHtml}
+        </div>
+        ${guideHtml}
+      </div>
+    `;
   }
 
   function init() {
@@ -182,7 +267,6 @@
       .forEach((m) => (m.hidden = true));
 
     const roots = Array.from(document.querySelectorAll("[data-lemon-size-root]"));
-
     roots.forEach((root) => { root.hidden = true; });
 
     roots.forEach(async (root) => {
@@ -192,7 +276,6 @@
       const btn = root.querySelector("[data-lemon-size-trigger]");
       const modal = root.querySelector("[data-lemon-size-modal]");
       const content = root.querySelector("[data-lemon-size-chart]");
-      const img = root.querySelector("[data-lemon-productimg]");
 
       if (!btn || !modal || !content) {
         root.remove();
@@ -208,22 +291,19 @@
         return;
       }
 
-      // set product image (from Liquid)
-      const productImg = btn.getAttribute("data-product-image") || "";
-      if (img && productImg) img.src = productImg;
-
-      // unit toggle
+      // unit toggle buttons (if your modal has them)
       modal.querySelectorAll("[data-lemon-unit]").forEach((unitBtn) => {
         unitBtn.addEventListener("click", () => {
           const u = (unitBtn.getAttribute("data-lemon-unit") || "").toLowerCase();
           if (!u) return;
 
           modal._lemonDisplayUnit = u;
+
           const subEl = modal.querySelector("[data-lemon-size-subtitle]");
           if (subEl) subEl.textContent = `Units: ${u.toUpperCase()}`;
+
           setUnitButtons(modal, u);
 
-          // re-render from cached data if present
           if (modal._lemonData) render(modal, content, modal._lemonData);
         });
       });
