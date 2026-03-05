@@ -272,46 +272,86 @@
     }
   }
 
-  function render(modal, root, contentEl, data) {
-    if (!data || !data.chart) {
-      contentEl.innerHTML =
-        `<div class="lemon-size__error">No size chart configured.</div>`;
-      return;
-    }
-
-    const chart = data.chart;
-
-    const titleEl = modal.querySelector("[data-lemon-size-title]");
-    const subEl = modal.querySelector("[data-lemon-size-subtitle]");
-
-    if (titleEl) titleEl.textContent = chart.title || "Size guide";
-
-    const baseUnit = String(chart.unit || "cm").toLowerCase();
-    modal._lemonBaseUnit = baseUnit;
-
-    // if base unit is not convertible (mm, etc.) lock displayUnit to base
-    if (!isConvertibleUnit(baseUnit)) {
-      modal._lemonDisplayUnit = baseUnit;
-      modal.querySelectorAll("[data-lemon-unit]").forEach((b) => (b.disabled = true));
-    } else {
-      modal.querySelectorAll("[data-lemon-unit]").forEach((b) => (b.disabled = false));
-      modal._lemonDisplayUnit = modal._lemonDisplayUnit || baseUnit;
-      // if user set something invalid, fallback
-      if (!isConvertibleUnit(modal._lemonDisplayUnit)) modal._lemonDisplayUnit = baseUnit;
-    }
-
-    if (subEl) {
-      const u = modal._lemonDisplayUnit;
-      subEl.textContent = `Units: ${String(u).toUpperCase()}`;
-    }
-
-    setUnitButtons(modal, modal._lemonDisplayUnit);
-
-    contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
-
-    // guide fields + image + tips
-    setMeasureBlock(root, chart);
+  function render(modal, contentEl, data) {
+  if (!data || !data.chart) {
+    contentEl.innerHTML = `<div class="lemon-size__error">No size chart configured.</div>`;
+    return;
   }
+
+  const chart = data.chart;
+
+  const titleEl = modal.querySelector("[data-lemon-size-title]");
+  const subEl = modal.querySelector("[data-lemon-size-subtitle]");
+
+  if (titleEl) titleEl.textContent = chart.title || "Size guide";
+
+  // base unit from DB (cm/in/mm) — display defaults to base
+  const baseUnit = (chart.unit || "cm").toLowerCase();
+  modal._lemonBaseUnit = baseUnit;
+  modal._lemonDisplayUnit = modal._lemonDisplayUnit || baseUnit;
+
+  if (subEl) subEl.textContent = `Units: ${modal._lemonDisplayUnit.toUpperCase()}`;
+  setUnitButtons(modal, modal._lemonDisplayUnit);
+
+  // --- Table ---
+  contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
+
+  // --- Guide fields (from Prisma) ---
+  const guideTitleEl = modal.querySelector("[data-lemon-guide-title]");
+  const guideTextEl = modal.querySelector("[data-lemon-guide-text]");
+  const guideImgEl = modal.querySelector("[data-lemon-guide-img]");
+  const tipsEl = modal.querySelector("[data-lemon-guide-tips]");
+  const discEl = modal.querySelector("[data-lemon-guide-disclaimer]");
+
+  const guideTitle = chart.guideTitle || "How to measure";
+  const guideText = chart.guideText || "";
+  const guideImage = chart.guideImage || "";
+  const tips = chart.tips || "";
+  const disclaimer = chart.disclaimer || "";
+
+  if (guideTitleEl) guideTitleEl.textContent = guideTitle;
+
+  if (guideTextEl) {
+    guideTextEl.textContent = guideText;
+    // if empty, keep some spacing but not blank ugliness
+    if (!guideText.trim()) guideTextEl.textContent = "—";
+  }
+
+  if (guideImgEl) {
+    if (guideImage && String(guideImage).trim()) {
+      guideImgEl.src = guideImage;
+      guideImgEl.hidden = false;
+    } else {
+      // fallback to auto image mapping if you want
+      // guideImgEl.src = getGuideImage(chart.title || "");
+      // guideImgEl.hidden = false;
+
+      guideImgEl.hidden = true;
+      guideImgEl.removeAttribute("src");
+    }
+  }
+
+  if (tipsEl) {
+    if (tips && tips.trim()) {
+      tipsEl.classList.remove("is-hidden");
+      tipsEl.innerHTML = `<strong>Tips</strong><div>${escapeHtml(tips)}</div>`;
+    } else {
+      tipsEl.classList.add("is-hidden");
+      tipsEl.innerHTML = "";
+    }
+  }
+
+  if (discEl) {
+    if (disclaimer && disclaimer.trim()) {
+      discEl.classList.remove("is-hidden");
+      discEl.innerHTML = `<strong>Note</strong><div>${escapeHtml(disclaimer)}</div>`;
+    } else {
+      discEl.classList.add("is-hidden");
+      discEl.innerHTML = "";
+    }
+  }
+}
+
 
   function init() {
     document.querySelectorAll("[data-lemon-size-modal]").forEach((m) => (m.hidden = true));
