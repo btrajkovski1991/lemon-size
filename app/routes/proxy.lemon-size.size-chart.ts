@@ -2,10 +2,6 @@ import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
 
-/** ---------------------------
- * Helpers
- * --------------------------*/
-
 function parseCsv(value?: string | null) {
   if (!value) return [];
   return value
@@ -15,16 +11,15 @@ function parseCsv(value?: string | null) {
 }
 
 function normalize(value?: string | null) {
-  const v = (value ?? "").trim();
-  return v.length ? v : "";
+  return String(value || "").trim();
 }
 
 function normalizeLower(value?: string | null) {
   return normalize(value).toLowerCase();
 }
 
-function normalizeTag(tag: string) {
-  return tag.trim().toLowerCase();
+function normalizeTag(value?: string | null) {
+  return normalize(value).toLowerCase();
 }
 
 function unique(arr: string[]) {
@@ -35,13 +30,34 @@ function nowMs() {
   return Date.now();
 }
 
-/** ---------------------------
- * Types
- * --------------------------*/
+function heightBucket(height?: number | null) {
+  if (!Number.isFinite(height as number)) return null;
+  const start = Math.floor((height as number) / 5) * 5;
+  return `${start}-${start + 4}`;
+}
+
+function weightBucket(weight?: number | null) {
+  if (!Number.isFinite(weight as number)) return null;
+  const start = Math.floor((weight as number) / 5) * 5;
+  return `${start}-${start + 4}`;
+}
+
+function confidenceLabel(sampleSize: number, winRate: number) {
+  if (sampleSize >= 20 && winRate >= 0.85) return "High";
+  if (sampleSize >= 8 && winRate >= 0.7) return "Medium";
+  return "Low";
+}
 
 type AssignmentLite = {
   scope: "PRODUCT" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG" | "ALL" | string;
   scopeValue: string | null;
+  chartId: string;
+  priority: number;
+};
+
+type KeywordRuleLite = {
+  keyword: string;
+  field: string;
   chartId: string;
   priority: number;
 };
@@ -52,6 +68,7 @@ type RulesIndex = {
   byType: Map<string, string>;
   byVendor: Map<string, string>;
   byTag: Map<string, string>;
+  keywordRules: KeywordRuleLite[];
   defaultChartId: string | null;
 };
 
@@ -68,10 +85,6 @@ type ChartWithRows = {
   rows: Array<{ label: string; values: any; sortOrder: number }>;
 };
 
-/** ---------------------------
- * Caches
- * --------------------------*/
-
 const RULES_TTL_MS = 60_000;
 const rulesCache = new Map<string, { exp: number; value: RulesIndex }>();
 const rulesInflight = new Map<string, Promise<RulesIndex>>();
@@ -80,21 +93,23 @@ const CHART_TTL_MS = 60_000;
 const chartCache = new Map<string, { exp: number; value: ChartWithRows | null }>();
 const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
 
-/** ---------------------------
- * DB fetchers
- * --------------------------*/
-
 async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
-  const assignments: AssignmentLite[] = await prisma.sizeChartAssignment.findMany({
-    where: { shopId, enabled: true },
-    orderBy: { priority: "asc" },
-    select: { scope: true, scopeValue: true, chartId: true, priority: true },
-  });
-
-  const def = await prisma.sizeChart.findFirst({
-    where: { shopId, isDefault: true },
-    select: { id: true },
-  });
+  const [assignments, keywordRules, def] = await Promise.all([
+    prisma.sizeChartAssignment.findMany({
+      where: { shopId, enabled: true },
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+      select: { scope: true, scopeValue: true, chartId: true, priority: true },
+    }) as Promise<AssignmentLite[]>,
+    prisma.sizeKeywordRule.findMany({
+      where: { shopId, enabled: true },
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+      select: { keyword: true, field: true, chartId: true, priority: true },
+    }) as Promise<KeywordRuleLite[]>,
+    prisma.sizeChart.findFirst({
+      where: { shopId, isDefault: true },
+      select: { id: true },
+    }),
+  ]);
 
   const byProduct = new Map<string, string>();
   const byCollection = new Map<string, string>();
@@ -104,7 +119,7 @@ async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
 
   for (const a of assignments) {
     const scope = String(a.scope || "").toUpperCase();
-    const v = (a.scopeValue || "").trim();
+    const v = normalize(a.scopeValue);
 
     if (scope !== "ALL" && !v) continue;
 
@@ -140,6 +155,7 @@ async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
     byType,
     byVendor,
     byTag,
+    keywordRules,
     defaultChartId: def?.id ?? null,
   };
 }
@@ -195,9 +211,37 @@ async function getChartCached(chartId: string): Promise<ChartWithRows | null> {
   return p;
 }
 
-/** ---------------------------
- * Resolver
- * --------------------------*/
+function keywordRuleMatches(args: {
+  keyword: string;
+  field: string;
+  productTitle?: string;
+  productHandle?: string;
+  productType?: string;
+  productVendor?: string;
+  productTags?: string[];
+}) {
+  const keyword = normalizeLower(args.keyword);
+  if (!keyword) return false;
+
+  const inText = (value?: string | null) => normalizeLower(value).includes(keyword);
+
+  const field = String(args.field || "ANY").toUpperCase();
+  if (field === "TITLE") return inText(args.productTitle);
+  if (field === "HANDLE") return inText(args.productHandle);
+  if (field === "TYPE") return inText(args.productType);
+  if (field === "VENDOR") return inText(args.productVendor);
+  if (field === "TAG") {
+    return (args.productTags || []).some((tag) => normalizeLower(tag).includes(keyword));
+  }
+
+  return (
+    inText(args.productTitle) ||
+    inText(args.productHandle) ||
+    inText(args.productType) ||
+    inText(args.productVendor) ||
+    (args.productTags || []).some((tag) => normalizeLower(tag).includes(keyword))
+  );
+}
 
 function resolveChartIdFromIndex(args: {
   idx: RulesIndex;
@@ -206,6 +250,8 @@ function resolveChartIdFromIndex(args: {
   productType?: string;
   productVendor?: string;
   productTags?: string[];
+  productTitle?: string;
+  productHandle?: string;
   includeDefault?: boolean;
 }): string | null {
   const {
@@ -215,17 +261,17 @@ function resolveChartIdFromIndex(args: {
     productType = "",
     productVendor = "",
     productTags = [],
+    productTitle = "",
+    productHandle = "",
     includeDefault = true,
   } = args;
 
   const productGid = productId ? `gid://shopify/Product/${productId}` : "";
-
   const collections = unique(
     collectionHandles
       .map((h) => h.trim())
       .filter((h) => h && h.toLowerCase() !== "all"),
   );
-
   const typeNorm = normalizeLower(productType);
   const vendorNorm = normalizeLower(productVendor);
   const tagsNorm = unique(productTags.map(normalizeTag).filter(Boolean));
@@ -255,19 +301,98 @@ function resolveChartIdFromIndex(args: {
     if (hit) return hit;
   }
 
+  for (const rule of idx.keywordRules) {
+    if (
+      keywordRuleMatches({
+        keyword: rule.keyword,
+        field: rule.field,
+        productTitle,
+        productHandle,
+        productType,
+        productVendor,
+        productTags,
+      })
+    ) {
+      return rule.chartId;
+    }
+  }
+
   if (!includeDefault) return null;
   return idx.defaultChartId;
 }
 
-/** ---------------------------
- * Loader
- * --------------------------*/
+async function getRecommendation(args: {
+  shopId: string;
+  chartId: string;
+  productId?: string;
+  productHandle?: string;
+  heightCm?: number | null;
+  weightKg?: number | null;
+}) {
+  const { shopId, chartId, productId, productHandle, heightCm, weightKg } = args;
+
+  const hBucket = heightBucket(heightCm);
+  const wBucket = weightBucket(weightKg);
+
+  if (!hBucket && !wBucket) return null;
+
+  const rows = await prisma.sizePurchaseSignal.findMany({
+    where: {
+      shopId,
+      kept: true,
+      returned: false,
+      refunded: false,
+      OR: [
+        productId ? { productId } : undefined,
+        productHandle ? { productHandle } : undefined,
+        { chartId },
+      ].filter(Boolean) as any,
+    },
+    select: {
+      sizeLabel: true,
+      heightCm: true,
+      weightKg: true,
+    },
+    take: 500,
+  });
+
+  const filtered = rows.filter((row) => {
+    const sameHeight = !hBucket || heightBucket(row.heightCm) === hBucket;
+    const sameWeight = !wBucket || weightBucket(row.weightKg) === wBucket;
+    return sameHeight && sameWeight;
+  });
+
+  if (!filtered.length) return null;
+
+  const counts = new Map<string, number>();
+  for (const row of filtered) {
+    const key = String(row.sizeLabel || "").trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return null;
+
+  const [size, winCount] = ranked[0];
+  const sampleSize = filtered.length;
+  const keptRate = winCount / sampleSize;
+  const confidence = confidenceLabel(sampleSize, keptRate);
+  const percent = Math.round(keptRate * 100);
+
+  return {
+    size,
+    confidence,
+    keptRate,
+    sampleSize,
+    message: `${percent}% of customers with similar height and weight kept size ${size}`,
+  };
+}
 
 export async function loader({ request }: { request: Request }) {
   try {
     const url = new URL(request.url);
 
-    // Verify proxy signature
     const secret = process.env.SHOPIFY_API_SECRET || "";
     if (!secret) {
       return json({ ok: false, error: "Missing SHOPIFY_API_SECRET" }, { status: 500 });
@@ -281,22 +406,25 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    const shop = url.searchParams.get("shop");
-    if (!shop) return json({ ok: false, error: "Missing shop" }, { status: 400 });
+    const shop = normalize(url.searchParams.get("shop"));
+    if (!shop) {
+      return json({ ok: false, error: "Missing shop" }, { status: 400 });
+    }
 
-    const mode = url.searchParams.get("mode") || undefined;
+    const mode = normalize(url.searchParams.get("mode")) || undefined;
 
     const productId = normalize(url.searchParams.get("product_id")) || undefined;
-
-    // accept both names just in case
-    const collectionHandles = parseCsv(
-      url.searchParams.get("collection_handles") ||
-        url.searchParams.get("collectionHandles"),
-    );
-
+    const productHandle = normalize(url.searchParams.get("product_handle")) || undefined;
+    const productTitle = normalize(url.searchParams.get("product_title")) || undefined;
     const productType = normalize(url.searchParams.get("product_type")) || "";
     const productVendor = normalize(url.searchParams.get("product_vendor")) || "";
     const productTags = parseCsv(url.searchParams.get("product_tags"));
+    const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
+
+    const heightCmRaw = Number(url.searchParams.get("height_cm") || "");
+    const weightKgRaw = Number(url.searchParams.get("weight_kg") || "");
+    const heightCm = Number.isFinite(heightCmRaw) ? heightCmRaw : null;
+    const weightKg = Number.isFinite(weightKgRaw) ? weightKgRaw : null;
 
     const dbShop = await prisma.shop.upsert({
       where: { shop },
@@ -309,6 +437,8 @@ export async function loader({ request }: { request: Request }) {
     const chartId = resolveChartIdFromIndex({
       idx,
       productId,
+      productHandle,
+      productTitle,
       collectionHandles,
       productType,
       productVendor,
@@ -323,19 +453,27 @@ export async function loader({ request }: { request: Request }) {
 
     if (!chartId) {
       return json(
-        { ok: true, chart: null, message: "No size chart configured" },
+        { ok: true, chart: null, recommendation: null, message: "No size chart configured" },
         { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
       );
     }
 
     const chart = await getChartCached(chartId);
-
     if (!chart) {
       return json(
-        { ok: true, chart: null, message: "Size chart not found" },
+        { ok: true, chart: null, recommendation: null, message: "Size chart not found" },
         { headers: { "Cache-Control": "public, max-age=30, s-maxage=120" } },
       );
     }
+
+    const recommendation = await getRecommendation({
+      shopId: dbShop.id,
+      chartId,
+      productId,
+      productHandle,
+      heightCm,
+      weightKg,
+    });
 
     const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
 
@@ -351,19 +489,20 @@ export async function loader({ request }: { request: Request }) {
             label: r.label,
             values: r.values,
           })),
-
-          // ✅ NEW GUIDE FIELDS
           guideTitle: chart.guideTitle,
           guideText: chart.guideText,
           guideImage: chart.guideImage,
           tips: chart.tips,
           disclaimer: chart.disclaimer,
         },
+        recommendation,
       },
-      { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
+      {
+        headers: { "Cache-Control": "public, max-age=60, s-maxage=300" },
+      },
     );
-  } catch (err) {
-    console.error("[proxy size-chart] crash:", err);
+  } catch (error) {
+    console.error("[proxy.lemon-size.size-chart] error", error);
     return json({ ok: false, error: "Internal error" }, { status: 500 });
   }
 }

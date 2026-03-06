@@ -225,8 +225,7 @@ const TEMPLATES = [
     columns: ["SIZE", "HEAD CIRCUMFERENCE"],
     guideTitle: "How to measure (Headwear)",
     guideImage: "/images/size-guides/headwear.png",
-    guideText:
-      "Wrap tape around forehead and above ears, level all around.",
+    guideText: "Wrap tape around forehead and above ears, level all around.",
     tips: "If between sizes, choose the larger size for comfort.",
     disclaimer: GLOBAL_DISCLAIMER,
     rows: [
@@ -285,6 +284,38 @@ const TEMPLATES = [
   },
 ];
 
+const KEYWORD_RULES = [
+  { keyword: "dress", field: "ANY", chartTitle: "Dress", priority: 500 },
+  { keyword: "gown", field: "ANY", chartTitle: "Dress", priority: 500 },
+  { keyword: "bikini", field: "ANY", chartTitle: "Bikini", priority: 500 },
+  { keyword: "bra", field: "ANY", chartTitle: "Bra", priority: 500 },
+  { keyword: "blazer", field: "ANY", chartTitle: "Blazer", priority: 500 },
+  { keyword: "jacket", field: "ANY", chartTitle: "Jacket", priority: 500 },
+  { keyword: "sneaker", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "shoe", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "boot", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "ring", field: "ANY", chartTitle: "Ring", priority: 500 },
+  { keyword: "bracelet", field: "ANY", chartTitle: "Bracelet", priority: 500 },
+  { keyword: "necklace", field: "ANY", chartTitle: "Necklace", priority: 500 },
+  { keyword: "cap", field: "ANY", chartTitle: "Headwear", priority: 500 },
+  { keyword: "hat", field: "ANY", chartTitle: "Headwear", priority: 500 },
+  { keyword: "pet collar", field: "ANY", chartTitle: "Pet collar", priority: 500 },
+  { keyword: "dog collar", field: "ANY", chartTitle: "Pet collar", priority: 500 },
+  { keyword: "pet clothing", field: "ANY", chartTitle: "Pet clothing", priority: 500 },
+];
+
+const PURCHASE_SIGNALS = [
+  { productHandle: "nike-air-max", productId: "123456789", chartTitle: "Shoes", sizeLabel: "8", heightCm: 178, weightKg: 75 },
+  { productHandle: "nike-air-max", productId: "123456789", chartTitle: "Shoes", sizeLabel: "9", heightCm: 181, weightKg: 82 },
+  { productHandle: "nike-air-max", productId: "123456789", chartTitle: "Shoes", sizeLabel: "8", heightCm: 175, weightKg: 74 },
+  { productHandle: "nike-air-max", productId: "123456789", chartTitle: "Shoes", sizeLabel: "8", heightCm: 179, weightKg: 77 },
+
+  { productHandle: "black-dress", productId: "987654321", chartTitle: "Dress", sizeLabel: "S", heightCm: 168, weightKg: 56 },
+  { productHandle: "black-dress", productId: "987654321", chartTitle: "Dress", sizeLabel: "M", heightCm: 172, weightKg: 61 },
+  { productHandle: "black-dress", productId: "987654321", chartTitle: "Dress", sizeLabel: "M", heightCm: 171, weightKg: 62 },
+  { productHandle: "black-dress", productId: "987654321", chartTitle: "Dress", sizeLabel: "M", heightCm: 173, weightKg: 63 },
+];
+
 async function main() {
   const shopRow = await prisma.shop.upsert({
     where: { shop: SHOP },
@@ -292,35 +323,90 @@ async function main() {
     create: { shop: SHOP },
   });
 
+  await prisma.sizePurchaseSignal.deleteMany({
+    where: { shopId: shopRow.id },
+  });
+
+  await prisma.sizeKeywordRule.deleteMany({
+    where: { shopId: shopRow.id },
+  });
+
+  await prisma.sizeChartAssignment.deleteMany({
+    where: { shopId: shopRow.id },
+  });
+
   await prisma.sizeChartRow.deleteMany({
     where: { chart: { shopId: shopRow.id } },
   });
+
   await prisma.sizeChart.deleteMany({
     where: { shopId: shopRow.id },
   });
 
+  const createdCharts = [];
+
   for (let i = 0; i < TEMPLATES.length; i++) {
     const t = TEMPLATES[i];
-    await prisma.sizeChart.create({
+
+    const chart = await prisma.sizeChart.create({
       data: {
         shopId: shopRow.id,
         title: t.title,
         unit: t.unit,
         columns: t.columns,
         isDefault: i === 0,
-
         guideTitle: t.guideTitle,
         guideText: t.guideText,
         guideImage: t.guideImage,
         tips: t.tips,
         disclaimer: t.disclaimer,
-
         rows: { create: t.rows },
+      },
+    });
+
+    createdCharts.push(chart);
+  }
+
+  const chartByTitle = new Map(createdCharts.map((chart) => [chart.title, chart]));
+
+  for (const rule of KEYWORD_RULES) {
+    const chart = chartByTitle.get(rule.chartTitle);
+    if (!chart) continue;
+
+    await prisma.sizeKeywordRule.create({
+      data: {
+        shopId: shopRow.id,
+        chartId: chart.id,
+        keyword: rule.keyword,
+        field: rule.field,
+        priority: rule.priority,
+        enabled: true,
       },
     });
   }
 
-  console.log("✅ Seeded", TEMPLATES.length, "charts for:", SHOP);
+  for (const signal of PURCHASE_SIGNALS) {
+    const chart = chartByTitle.get(signal.chartTitle);
+
+    await prisma.sizePurchaseSignal.create({
+      data: {
+        shopId: shopRow.id,
+        chartId: chart?.id || null,
+        productHandle: signal.productHandle,
+        productId: signal.productId,
+        sizeLabel: signal.sizeLabel,
+        heightCm: signal.heightCm,
+        weightKg: signal.weightKg,
+        kept: true,
+        returned: false,
+        refunded: false,
+      },
+    });
+  }
+
+  console.log(`✅ Seeded ${createdCharts.length} charts for: ${SHOP}`);
+  console.log(`✅ Seeded ${KEYWORD_RULES.length} keyword rules`);
+  console.log(`✅ Seeded ${PURCHASE_SIGNALS.length} purchase signals`);
 }
 
 main()

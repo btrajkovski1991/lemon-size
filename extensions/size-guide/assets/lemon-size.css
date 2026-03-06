@@ -1,10 +1,6 @@
-/* Prevent background scroll when modal open */
 .lemon-size__lock { overflow: hidden !important; }
-
-/* Force hidden attribute to always win */
 .lemon-size__modal[hidden] { display: none !important; }
 
-/* Button */
 .lemon-size__btn{
   padding: 10px 14px;
   border: 1px solid rgba(0,0,0,.18);
@@ -17,7 +13,6 @@
 }
 .lemon-size__btn:hover{ border-color: rgba(0,0,0,.28); }
 
-/* Modal container */
 .lemon-size__modal{
   position: fixed;
   inset: 0;
@@ -25,24 +20,22 @@
   display: grid;
   place-items: center;
 }
-.lemon-size__modal:not([hidden]){ display:grid; }
+.lemon-size__modal:not([hidden]){ display: grid; }
 
-/* ✅ Overlay behind dialog (fixes "can't click X") */
 .lemon-size__overlay{
-  position:absolute;
-  inset:0;
+  position: absolute;
+  inset: 0;
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(6px);
   z-index: 0;
 }
 
-/* Dialog */
 .lemon-size__dialog{
   position: relative;
-  z-index: 1; /* ✅ above overlay so buttons clickable */
+  z-index: 1;
   width: min(1240px, calc(100vw - 24px));
   max-height: min(88vh, 980px);
-  overflow: hidden; /* header sticky, body scroll handled below */
+  overflow: hidden;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 24px 70px rgba(0,0,0,.28);
@@ -51,9 +44,8 @@
   flex-direction: column;
 }
 
-/* Header (sticky) */
 .lemon-size__header{
-  display:flex;
+  display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
@@ -78,18 +70,17 @@
 }
 
 .lemon-size__actions{
-  display:flex;
-  align-items:center;
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-/* Unit toggle */
 .lemon-size__unit{
-  display:inline-flex;
+  display: inline-flex;
   border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   border-radius: 999px;
-  overflow:hidden;
+  overflow: hidden;
   padding: 2px;
 }
 .lemon-size__unitbtn{
@@ -108,7 +99,6 @@
   color: #0b63ff;
 }
 
-/* Close */
 .lemon-size__close{
   width: 44px;
   height: 44px;
@@ -120,46 +110,42 @@
   line-height: 1;
   display: inline-grid;
   place-items: center;
-  pointer-events: auto;
-  -webkit-tap-highlight-color: transparent;
 }
 
-/* Layout: left product image + right content */
 .lemon-size__layout{
-  display:grid;
-  grid-template-columns: 1.25fr 1fr; /* bigger image on desktop */
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
   min-height: 0;
-  flex: 1; /* fill height under header */
+  flex: 1;
 }
 
-/* Left image */
 .lemon-size__left{
   background: #f0f0f0;
   position: relative;
   overflow: hidden;
 }
+
 .lemon-size__productimg{
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display:block;
+  display: block;
   transform: scale(1.01);
 }
 
-/* ✅ Desktop/tablet: right side scrolls if needed */
 .lemon-size__right{
   padding: 18px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  display:flex;
+  display: flex;
   flex-direction: column;
   gap: 14px;
   background: #fff;
   min-height: 0;
 }
 
-/* Cards */
+.lemon-size__recommend,
 .lemon-size__chart,
 .lemon-size__measure{
   border: 1px solid rgba(0,0,0,.10);
@@ -168,7 +154,119 @@
   overflow: hidden;
 }
 
-/* ✅ Table: horizontal scroll on ALL devices */
+.lemon-size__recommend{
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  background: #fbfdf8;
+}
+
+.lemon-size__recommendHead{
+  display: grid;
+  gap: 4px;
+}
+.lemon-size__recommendHead strong{
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+.lemon-size__recommendHead span{
+  font-size: 12px;
+  opacity: .72;
+  line-height: 1.4;
+}
+
+.lemon-size__recommendForm{
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.lemon-size__field{
+  display: grid;
+  gap: 6px;
+}
+.lemon-size__field span{
+  font-size: 12px;
+  font-weight: 800;
+  opacity: .8;
+}
+.lemon-size__field input{
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.12);
+  padding: 0 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.lemon-size__recommendBtn{
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 16px;
+  cursor: pointer;
+}
+.lemon-size__recommendBtn[disabled]{
+  opacity: .65;
+  cursor: wait;
+}
+
+.lemon-size__recommendBox[hidden]{ display: none !important; }
+
+.lemon-size__recommendCard{
+  padding: 14px;
+  border-radius: 14px;
+  background: #eef7e9;
+  border: 1px solid #d6ebc8;
+}
+.lemon-size__recommendBadge{
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #dff0d2;
+  color: #294b1e;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.lemon-size__recommendSize{
+  margin-top: 10px;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 900;
+  color: #1f3520;
+}
+.lemon-size__recommendText{
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #243424;
+}
+.lemon-size__recommendMeta{
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  opacity: .8;
+}
+.lemon-size__recommendError{
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff3f3;
+  border: 1px solid #ffd1d1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .lemon-size__tableWrap{
   width: 100%;
   overflow-x: auto;
@@ -184,7 +282,6 @@
   min-width: 560px;
   text-align: center;
 }
-
 .lemon-size__table thead th{
   position: sticky;
   top: 0;
@@ -198,7 +295,6 @@
   border-bottom: 1px solid rgba(0,0,0,.10);
   white-space: nowrap;
 }
-
 .lemon-size__table tbody td{
   padding: 14px 14px;
   border-bottom: 1px solid rgba(0,0,0,.06);
@@ -208,7 +304,6 @@
 .lemon-size__table tbody tr:nth-child(even) td{ background: rgba(0,0,0,.015); }
 .lemon-size__table tbody tr:hover td{ background: rgba(11,99,255,.06); }
 
-/* Loading / empty / error */
 .lemon-size__loading{ padding: 14px; }
 .lemon-size__empty{
   padding: 14px;
@@ -226,15 +321,13 @@
   border-radius: 12px;
 }
 
-/* Guide */
 .lemon-size__measure{
   padding: 14px;
   display: grid;
   gap: 12px;
 }
-
 .lemon-size__measureHead strong{
-  display:block;
+  display: block;
   font-size: 14px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -245,32 +338,27 @@
   opacity: .9;
   line-height: 1.45;
 }
-
 .lemon-size__guideImgWrap{
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,.08);
   background: #fff;
 }
-
-/* ✅ Bigger guide image */
 .lemon-size__measureImg{
   width: 100%;
   max-height: 520px;
   object-fit: contain;
-  display:block;
+  display: block;
   padding: 14px;
 }
-
 .lemon-size__mutedRow{
-  display:grid;
+  display: grid;
   grid-template-columns: 96px 1fr;
   gap: 10px;
   align-items: start;
   padding-top: 2px;
 }
-.lemon-size__mutedRow.is-hidden{ display:none; }
-
+.lemon-size__mutedRow.is-hidden{ display: none; }
 .lemon-size__mutedLabel{
   font-size: 12px;
   font-weight: 900;
@@ -284,9 +372,6 @@
   line-height: 1.45;
 }
 
-/* ----------------------------- */
-/* ✅ Mobile: scroll the whole modal */
-/* ----------------------------- */
 @media (max-width: 960px){
   .lemon-size__dialog{
     width: min(980px, calc(100vw - 18px));
@@ -294,7 +379,6 @@
     overflow: hidden;
   }
 
-  /* ✅ single scroll container: image + table + guide */
   .lemon-size__layout{
     grid-template-columns: 1fr;
     overflow: auto;
@@ -305,118 +389,26 @@
   }
 
   .lemon-size__left{
-    height: 320px; /* big hero image */
+    height: 320px;
   }
 
-  /* remove nested scroll on mobile */
   .lemon-size__right{
     overflow: visible;
     padding: 14px;
     min-height: auto;
   }
 
-  /* table always horizontally scrollable */
+  .lemon-size__recommendForm{
+    grid-template-columns: 1fr;
+  }
+
   .lemon-size__table{
     min-width: 520px;
   }
 }
 
 @media (max-width: 520px){
-  .lemon-size__header{ padding: 14px 14px; }
+  .lemon-size__header{ padding: 14px; }
   .lemon-size__left{ height: 280px; }
-
-  .lemon-size__table{
-    min-width: 520px; /* keep clear horizontal scroll on small screens */
-  }
-
-  .lemon-size__table thead th,
-  .lemon-size__table tbody td{
-    padding: 12px 12px;
-    font-size: 13px;
-  }
-
-  .lemon-size__measureImg{
-    max-height: 420px;
-    padding: 12px;
-  }
-}
-
-/* Optional: subtle horizontal scroll hint */
-.lemon-size__tableWrap{
-  position: relative;
-}
-.lemon-size__tableWrap::before,
-.lemon-size__tableWrap::after{
-  content:"";
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:18px;
-  pointer-events:none;
-  opacity:0;
-  transition: opacity .2s ease;
-}
-.lemon-size__tableWrap::before{
-  left:0;
-  background: linear-gradient(to right, rgba(255,255,255,.95), rgba(255,255,255,0));
-}
-.lemon-size__tableWrap::after{
-  right:0;
-  background: linear-gradient(to left, rgba(255,255,255,.95), rgba(255,255,255,0));
-}
-@media (hover: none) and (pointer: coarse){
-  .lemon-size__tableWrap::before,
-  .lemon-size__tableWrap::after{
-    opacity:1;
-  }
-}
-
-/* Desktop: left smaller, right bigger */
-@media (min-width: 961px){
-  .lemon-size__layout{
-    grid-template-columns: 0.85fr 1.35fr; /* ✅ left smaller, right larger */
-  }
-
-  /* Make product image feel less dominant */
-  .lemon-size__left{
-    background: #f2f2f2;
-  }
-  .lemon-size__productimg{
-    object-fit: cover;
-    transform: scale(1.0); /* reduce zoom a bit */
-  }
-
-  /* Give the right column a bit more breathing room */
-  .lemon-size__right{
-    padding: 22px;
-    gap: 16px;
-  }
-}
-
-@media (min-width: 961px){
-  .lemon-size__table{
-    min-width: 720px;     /* ✅ larger table base width */
-  }
-
-  .lemon-size__table thead th{
-    font-size: 12px;
-    padding: 16px 16px;
-  }
-
-  .lemon-size__table tbody td{
-    font-size: 15px;      /* ✅ bigger text */
-    padding: 16px 16px;
-  }
-}
-
-@media (min-width: 961px){
-  .lemon-size__measureImg{
-    max-height: 640px;  /* ✅ bigger guide image */
-    padding: 18px;
-  }
-}
-
-@media (min-width: 961px){
-  .lemon-size__chart{ order: 1; }
-  .lemon-size__measure{ order: 2; }
+  .lemon-size__table{ min-width: 520px; }
 }
