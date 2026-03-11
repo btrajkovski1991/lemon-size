@@ -67,6 +67,22 @@
     return `${base}/images/size-guides/default.png`;
   }
 
+  function normalizeGuideImageUrl(trigger, rawUrl, chartTitle) {
+    const base = getGuideBase(trigger);
+
+    if (rawUrl && String(rawUrl).trim()) {
+      const clean = String(rawUrl).trim();
+
+      if (/^https?:\/\//i.test(clean)) return clean;
+      if (clean.startsWith("//")) return `https:${clean}`;
+      if (clean.startsWith("/")) return `${base}${clean}`;
+
+      return `${base}/${clean.replace(/^\/+/, "")}`;
+    }
+
+    return getGuideImage(trigger, chartTitle);
+  }
+
   function buildProxyUrl(trigger, mode, options) {
     const proxyBase = trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
 
@@ -362,13 +378,26 @@
 
     if (imgEl) {
       if (imgUrl) {
+        imgEl.onload = function () {
+          imgEl.hidden = false;
+          imgEl.removeAttribute("hidden");
+          if (imgWrap) {
+            imgWrap.hidden = false;
+            imgWrap.removeAttribute("hidden");
+          }
+        };
+
+        imgEl.onerror = function () {
+          imgEl.hidden = true;
+          imgEl.setAttribute("hidden", "");
+          imgEl.removeAttribute("src");
+          if (imgWrap) {
+            imgWrap.hidden = true;
+            imgWrap.setAttribute("hidden", "");
+          }
+        };
+
         imgEl.src = imgUrl;
-        imgEl.hidden = false;
-        imgEl.removeAttribute("hidden");
-        if (imgWrap) {
-          imgWrap.hidden = false;
-          imgWrap.removeAttribute("hidden");
-        }
       } else {
         imgEl.hidden = true;
         imgEl.setAttribute("hidden", "");
