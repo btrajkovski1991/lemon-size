@@ -372,6 +372,22 @@
   line-height: 1.45;
 }
 
+.lemon-size__guideImgWrap{
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+  aspect-ratio: 1 / 1;
+}
+
+.lemon-size__measureImg{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  padding: 14px;
+}
+
 @media (max-width: 960px){
   .lemon-size__dialog{
     width: min(980px, calc(100vw - 18px));

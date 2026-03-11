@@ -14,10 +14,19 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/webhooks/customers/data_request": {
+    params: {};
+  };
   "/webhooks/app/scopes_update": {
     params: {};
   };
+  "/webhooks/customers/redact": {
+    params: {};
+  };
   "/webhooks/app/uninstalled": {
+    params: {};
+  };
+  "/webhooks/shop/redact": {
     params: {};
   };
   "/proxy/lemon-size": {
@@ -40,6 +49,9 @@ type Pages = {
   "/app": {
     params: {};
   };
+  "/app/keyword-rules": {
+    params: {};
+  };
   "/app/assignments": {
     params: {};
   };
@@ -51,15 +63,27 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/app/scopes_update" | "/webhooks/app/uninstalled" | "/proxy/lemon-size" | "/proxy/lemon-size/size-chart" | "/proxy/lemon-size/rules" | "/auth/login" | "/auth/*" | "/app" | "/app/assignments" | "/app/additional";
+    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/proxy/lemon-size" | "/proxy/lemon-size/size-chart" | "/proxy/lemon-size/rules" | "/auth/login" | "/auth/*" | "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/additional";
+  };
+  "routes/webhooks.customers.data_request.tsx": {
+    id: "routes/webhooks.customers.data_request";
+    page: "/webhooks/customers/data_request";
   };
   "routes/webhooks.app.scopes_update.tsx": {
     id: "routes/webhooks.app.scopes_update";
     page: "/webhooks/app/scopes_update";
   };
+  "routes/webhooks.customers.redact.tsx": {
+    id: "routes/webhooks.customers.redact";
+    page: "/webhooks/customers/redact";
+  };
   "routes/webhooks.app.uninstalled.tsx": {
     id: "routes/webhooks.app.uninstalled";
     page: "/webhooks/app/uninstalled";
+  };
+  "routes/webhooks.shop.redact.tsx": {
+    id: "routes/webhooks.shop.redact";
+    page: "/webhooks/shop/redact";
   };
   "routes/proxy.lemon-size.ts": {
     id: "routes/proxy.lemon-size";
@@ -87,7 +111,11 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/assignments" | "/app/additional";
+    page: "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/additional";
+  };
+  "routes/app.keyword-rules.tsx": {
+    id: "routes/app.keyword-rules";
+    page: "/app/keyword-rules";
   };
   "routes/app.assignments.tsx": {
     id: "routes/app.assignments";
@@ -105,8 +133,11 @@ type RouteFiles = {
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
+  "routes/webhooks.customers.data_request": typeof import("./app/routes/webhooks.customers.data_request.tsx");
   "routes/webhooks.app.scopes_update": typeof import("./app/routes/webhooks.app.scopes_update.tsx");
+  "routes/webhooks.customers.redact": typeof import("./app/routes/webhooks.customers.redact.tsx");
   "routes/webhooks.app.uninstalled": typeof import("./app/routes/webhooks.app.uninstalled.tsx");
+  "routes/webhooks.shop.redact": typeof import("./app/routes/webhooks.shop.redact.tsx");
   "routes/proxy.lemon-size": typeof import("./app/routes/proxy.lemon-size.ts");
   "routes/proxy.lemon-size.size-chart": typeof import("./app/routes/proxy.lemon-size.size-chart.ts");
   "routes/proxy.lemon-size.rules": typeof import("./app/routes/proxy.lemon-size.rules.ts");
@@ -114,6 +145,7 @@ type RouteModules = {
   "routes/_index": typeof import("./app/routes/_index/route.tsx");
   "routes/auth.$": typeof import("./app/routes/auth.$.tsx");
   "routes/app": typeof import("./app/routes/app.tsx");
+  "routes/app.keyword-rules": typeof import("./app/routes/app.keyword-rules.tsx");
   "routes/app.assignments": typeof import("./app/routes/app.assignments.tsx");
   "routes/app.additional": typeof import("./app/routes/app.additional.tsx");
   "routes/app._index": typeof import("./app/routes/app._index.tsx");

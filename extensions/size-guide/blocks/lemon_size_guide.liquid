@@ -38,7 +38,14 @@
 
       <div class="lemon-size__layout">
         <div class="lemon-size__left">
-          <img class="lemon-size__productimg" alt="" loading="lazy" data-lemon-productimg />
+        <img
+  class="lemon-size__productimg"
+  alt="{{ product.title | escape }}"
+  loading="lazy"
+  width="1200"
+  height="1500"
+  data-lemon-productimg
+/>
         </div>
 
         <div class="lemon-size__right">
@@ -52,26 +59,24 @@
   </div>
 
   <div class="lemon-size__guideImgWrap" data-lemon-guide-imgwrap>
-    <img
-      class="lemon-size__measureImg"
-      alt=""
-      loading="lazy"
-      data-lemon-guide-img
-    />
+<img
+  class="lemon-size__measureImg"
+  alt="How to measure size guide"
+  loading="lazy"
+  width="900"
+  height="900"
+  data-lemon-guide-img
+/>
   </div>
-
   <div class="lemon-size__mutedRow is-hidden">
     <div class="lemon-size__mutedLabel">Tips</div>
     <div class="lemon-size__mutedText" data-lemon-guide-tips></div>
   </div>
-
   <div class="lemon-size__mutedRow is-hidden">
     <div class="lemon-size__mutedLabel">Note</div>
     <div class="lemon-size__mutedText" data-lemon-guide-disclaimer></div>
   </div>
 </div>
-
-
         </div>
       </div>
     </div>
@@ -79,7 +84,7 @@
 </div>
 
 {{ 'lemon-size.css' | asset_url | stylesheet_tag }}
-{{ 'lemon-size.js'  | asset_url | script_tag }}
+<script src="{{ 'lemon-size.js' | asset_url }}" defer></script>
 
 {% schema %}
 {

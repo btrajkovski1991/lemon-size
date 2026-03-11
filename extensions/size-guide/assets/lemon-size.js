@@ -336,9 +336,10 @@
     const text = guide.guideText || fallback.guideText || "";
     const tips = guide.tips || "";
     const disclaimer = guide.disclaimer || "";
-    const imgUrl =
-      (guide.guideImage && String(guide.guideImage).trim()) ||
-      (trigger ? getGuideImage(trigger, guide.title) : "");
+
+    const imgUrl = trigger
+      ? normalizeGuideImageUrl(trigger, guide.guideImage, guide.title)
+      : "";
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");
     const textEl = modal.querySelector("[data-lemon-guide-text]");
@@ -363,10 +364,19 @@
       if (imgUrl) {
         imgEl.src = imgUrl;
         imgEl.hidden = false;
-        if (imgWrap) imgWrap.hidden = false;
+        imgEl.removeAttribute("hidden");
+        if (imgWrap) {
+          imgWrap.hidden = false;
+          imgWrap.removeAttribute("hidden");
+        }
       } else {
         imgEl.hidden = true;
-        if (imgWrap) imgWrap.hidden = true;
+        imgEl.setAttribute("hidden", "");
+        imgEl.removeAttribute("src");
+        if (imgWrap) {
+          imgWrap.hidden = true;
+          imgWrap.setAttribute("hidden", "");
+        }
       }
     }
   }
