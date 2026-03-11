@@ -24,14 +24,14 @@
   z-index: 999999;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: 10px;
 }
 .lemon-size__modal:not([hidden]){ display: grid; }
 
 .lemon-size__overlay{
   position: absolute;
   inset: 0;
-  background: rgba(15, 18, 22, .55);
+  background: rgba(0,0,0,.55);
   backdrop-filter: blur(6px);
   z-index: 0;
 }
@@ -39,12 +39,12 @@
 .lemon-size__dialog{
   position: relative;
   z-index: 1;
-  width: min(1320px, calc(100vw - 24px));
-  max-height: min(90vh, 980px);
+  width: min(1380px, calc(100vw - 20px));
+  max-height: min(92vh, 980px);
   overflow: hidden;
   background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 28px 80px rgba(0,0,0,.24);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.24);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   display: flex;
   flex-direction: column;
@@ -55,8 +55,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  padding: 18px 22px;
-  background: linear-gradient(180deg, #f6faf1 0%, #f1f6ec 100%);
+  padding: 16px 20px;
+  background: #f4f9f1;
   border-bottom: 1px solid rgba(0,0,0,.08);
   position: sticky;
   top: 0;
@@ -65,19 +65,18 @@
 
 .lemon-size__headings{
   min-width: 0;
-  display: grid;
-  gap: 4px;
 }
 .lemon-size__title{
-  font-size: 30px;
+  font-size: 28px;
   line-height: 1.05;
   font-weight: 900;
   letter-spacing: -0.03em;
-  color: #151515;
+  color: #141414;
 }
 .lemon-size__sub{
+  margin-top: 4px;
   font-size: 13px;
-  opacity: .72;
+  opacity: .75;
   font-weight: 600;
 }
 
@@ -90,21 +89,20 @@
 
 .lemon-size__unit{
   display: inline-flex;
-  border: 1px solid rgba(0,0,0,.12);
+  border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   border-radius: 999px;
   overflow: hidden;
-  padding: 3px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+  padding: 2px;
 }
 .lemon-size__unitbtn{
-  padding: 9px 14px;
+  padding: 8px 12px;
   border: 0;
   background: transparent;
   font-weight: 800;
   font-size: 12px;
   cursor: pointer;
-  opacity: .62;
+  opacity: .65;
   border-radius: 999px;
   transition: background .2s ease, color .2s ease, opacity .2s ease;
 }
@@ -115,13 +113,13 @@
 }
 
 .lemon-size__close{
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
   border: 1px solid rgba(0,0,0,.14);
   background: #fff;
   cursor: pointer;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
   display: inline-grid;
   place-items: center;
@@ -135,73 +133,60 @@
 
 .lemon-size__layout{
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(440px, .95fr);
+  grid-template-columns: minmax(280px, .72fr) minmax(0, 1.45fr);
   min-height: 0;
   flex: 1;
-  background: #f7f7f5;
+  background: #f7f8f4;
 }
 
 .lemon-size__left{
+  background: linear-gradient(180deg, #eceee9 0%, #e6e9e2 100%);
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(255,255,255,.75), transparent 36%),
-    linear-gradient(180deg, #ededeb 0%, #e6e6e3 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 34px;
-}
-
-.lemon-size__left::after{
-  content: "";
-  position: absolute;
-  inset: 18px;
-  border-radius: 28px;
-  border: 1px solid rgba(255,255,255,.55);
-  pointer-events: none;
+  padding: 28px 18px;
+  border-right: 1px solid rgba(0,0,0,.06);
 }
 
 .lemon-size__productimg{
-  width: min(100%, 640px);
-  max-height: calc(90vh - 190px);
+  width: min(100%, 420px);
+  max-height: 72vh;
   height: auto;
   object-fit: contain;
   object-position: center;
   display: block;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 26px 40px rgba(0,0,0,.14));
-  transform: scale(.94);
+  margin: 0 auto;
+  filter: drop-shadow(0 18px 28px rgba(0,0,0,.10));
+  transform: scale(.9);
 }
 
 .lemon-size__right{
-  padding: 20px;
+  padding: 22px 24px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  background: #fcfcfb;
+  gap: 18px;
+  background: #fbfbf8;
   min-height: 0;
 }
 
 .lemon-size__recommend,
 .lemon-size__chart,
 .lemon-size__measure{
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 18px;
-  background: #fff;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,.03);
+  background: transparent;
 }
 
 .lemon-size__recommend{
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfdf8 0%, #f7fbf2 100%);
   padding: 16px;
   display: grid;
   gap: 12px;
-  background: linear-gradient(180deg, #fbfdf8 0%, #f8fcf4 100%);
 }
 
 .lemon-size__recommendHead{
@@ -258,7 +243,7 @@
   color: #fff;
   font-size: 13px;
   font-weight: 800;
-  padding: 0 18px;
+  padding: 0 16px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -288,7 +273,7 @@
 }
 .lemon-size__recommendSize{
   margin-top: 10px;
-  font-size: 32px;
+  font-size: 30px;
   line-height: 1;
   font-weight: 900;
   color: #1f3520;
@@ -318,6 +303,11 @@
 }
 
 .lemon-size__chart{
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
   padding: 0;
 }
 
@@ -328,46 +318,49 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-gutter: stable;
+  padding-top: 2px;
 }
 
 .lemon-size__table{
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 560px;
+  border-collapse: collapse;
+  min-width: 620px;
   text-align: center;
+  background: transparent;
 }
 
 .lemon-size__table thead th{
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #fafaf9;
-  font-size: 12px;
+  background: #fbfbf8;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: .08em;
-  opacity: .78;
-  padding: 16px 14px;
+  color: #111;
+  padding: 12px 12px 14px;
   border-bottom: 1px solid rgba(0,0,0,.08);
   white-space: nowrap;
   font-weight: 900;
 }
 
 .lemon-size__table tbody td{
-  padding: 16px 14px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  font-size: 14px;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(0,0,0,.05);
+  font-size: 18px;
   white-space: nowrap;
+  color: #111;
 }
 
 .lemon-size__table tbody tr:nth-child(even) td{
-  background: rgba(0,0,0,.018);
+  background: transparent;
 }
 .lemon-size__table tbody tr:hover td{
-  background: rgba(11,99,255,.05);
+  background: rgba(0,0,0,.02);
 }
 
-.lemon-size__loading{ padding: 16px; }
+.lemon-size__loading{ padding: 14px; }
+
 .lemon-size__empty{
   padding: 14px;
   margin: 12px;
@@ -376,6 +369,7 @@
   border-radius: 12px;
   font-weight: 700;
 }
+
 .lemon-size__error{
   padding: 12px;
   margin: 12px;
@@ -385,106 +379,110 @@
 }
 
 .lemon-size__measure{
-  padding: 16px;
+  padding: 10px 0 0;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
 }
 
 .lemon-size__measureHead strong{
   display: block;
-  font-size: 18px;
-  line-height: 1.15;
+  font-size: 22px;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   margin-bottom: 8px;
-  color: #171717;
+  color: #111;
 }
 
 .lemon-size__measureText{
-  font-size: 14px;
-  opacity: .9;
-  line-height: 1.55;
+  font-size: 15px;
+  opacity: .92;
+  line-height: 1.6;
   color: #3a3a3a;
+  max-width: 92%;
 }
 
 .lemon-size__guideImgWrap{
-  border-radius: 16px;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,.08);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fafaf9 100%);
+  border: 0;
+  background: transparent;
   min-height: 360px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 8px 0 0;
 }
 
 .lemon-size__measureImg{
   width: 100%;
-  max-width: 520px;
-  max-height: 460px;
+  max-width: 720px;
+  max-height: 420px;
   height: auto;
   object-fit: contain;
   display: block;
   margin: 0 auto;
-  padding: 10px;
+  padding: 0;
 }
 
 .lemon-size__mutedRow{
   display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 12px;
+  grid-template-columns: 90px 1fr;
+  gap: 14px;
   align-items: start;
   padding-top: 2px;
+  max-width: 92%;
 }
-
 .lemon-size__mutedRow.is-hidden{ display: none; }
 
 .lemon-size__mutedLabel{
   font-size: 12px;
   font-weight: 900;
-  opacity: .65;
+  opacity: .55;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: .1em;
   padding-top: 2px;
 }
 
 .lemon-size__mutedText{
-  font-size: 13px;
+  font-size: 14px;
   opacity: .88;
-  line-height: 1.55;
-  color: #434343;
+  line-height: 1.65;
+  color: #404040;
 }
 
 @media (max-width: 1180px){
   .lemon-size__dialog{
-    width: min(1180px, calc(100vw - 18px));
+    width: min(1240px, calc(100vw - 18px));
   }
 
   .lemon-size__layout{
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  }
-
-  .lemon-size__left{
-    padding: 24px;
+    grid-template-columns: minmax(240px, .7fr) minmax(0, 1.3fr);
   }
 
   .lemon-size__productimg{
-    width: min(100%, 560px);
+    width: min(100%, 360px);
+  }
+
+  .lemon-size__measureImg{
+    max-width: 620px;
   }
 }
 
 @media (max-width: 960px){
   .lemon-size__dialog{
-    width: min(920px, calc(100vw - 14px));
+    width: min(940px, calc(100vw - 14px));
     max-height: 92vh;
-    border-radius: 20px;
+    overflow: hidden;
+    border-radius: 18px;
   }
 
   .lemon-size__header{
     padding: 14px 16px;
-    align-items: flex-start;
   }
 
   .lemon-size__title{
@@ -501,27 +499,24 @@
   }
 
   .lemon-size__left{
-    min-height: 280px;
-    max-height: 340px;
-    padding: 18px 18px 10px;
-  }
-
-  .lemon-size__left::after{
-    inset: 12px;
-    border-radius: 20px;
+    min-height: 250px;
+    max-height: 320px;
+    padding: 18px 16px 10px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(0,0,0,.06);
   }
 
   .lemon-size__productimg{
-    width: min(100%, 360px);
-    max-height: 290px;
-    transform: scale(.98);
+    width: min(100%, 300px);
+    max-height: 260px;
+    transform: scale(.96);
   }
 
   .lemon-size__right{
     overflow: visible;
-    padding: 14px;
+    padding: 16px;
     min-height: auto;
-    gap: 14px;
+    gap: 16px;
   }
 
   .lemon-size__recommendForm{
@@ -536,13 +531,18 @@
     min-width: 520px;
   }
 
+  .lemon-size__measureText,
+  .lemon-size__mutedRow{
+    max-width: 100%;
+  }
+
   .lemon-size__guideImgWrap{
-    min-height: 280px;
+    min-height: 240px;
   }
 
   .lemon-size__measureImg{
     max-width: 100%;
-    max-height: 340px;
+    max-height: 320px;
   }
 }
 
@@ -554,23 +554,19 @@
   .lemon-size__dialog{
     width: calc(100vw - 10px);
     max-height: 94vh;
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
   .lemon-size__header{
+    padding: 14px;
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
-    padding: 14px;
   }
 
   .lemon-size__actions{
     width: 100%;
     justify-content: space-between;
-  }
-
-  .lemon-size__unit{
-    max-width: 100%;
   }
 
   .lemon-size__unitbtn{
@@ -581,7 +577,6 @@
   .lemon-size__close{
     width: 44px;
     height: 44px;
-    border-radius: 14px;
     font-size: 24px;
   }
 
@@ -596,40 +591,44 @@
   .lemon-size__left{
     min-height: 220px;
     max-height: 260px;
-    padding: 14px 14px 4px;
+    padding: 14px 14px 6px;
   }
 
   .lemon-size__productimg{
-    width: min(100%, 280px);
-    max-height: 220px;
+    width: min(100%, 240px);
+    max-height: 210px;
   }
 
   .lemon-size__right{
     padding: 12px;
-    gap: 12px;
+    gap: 14px;
   }
 
-  .lemon-size__recommend,
-  .lemon-size__measure{
+  .lemon-size__recommend{
     padding: 14px;
   }
 
+  .lemon-size__table{
+    min-width: 460px;
+  }
+
+  .lemon-size__table thead th{
+    font-size: 11px;
+    padding: 10px 10px 12px;
+  }
+
+  .lemon-size__table tbody td{
+    font-size: 15px;
+    padding: 12px 10px;
+  }
+
   .lemon-size__measureHead strong{
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .lemon-size__measureText{
     font-size: 13px;
-  }
-
-  .lemon-size__guideImgWrap{
-    min-height: 220px;
-    padding: 6px;
-  }
-
-  .lemon-size__measureImg{
-    max-height: 260px;
-    padding: 6px;
+    max-width: 100%;
   }
 
   .lemon-size__mutedRow{
@@ -637,18 +636,16 @@
     gap: 4px;
   }
 
-  .lemon-size__mutedLabel{
-    font-size: 11px;
-  }
-
-  .lemon-size__table{
-    min-width: 480px;
-  }
-
-  .lemon-size__table thead th,
-  .lemon-size__table tbody td{
-    padding: 13px 12px;
+  .lemon-size__mutedText{
     font-size: 13px;
+  }
+
+  .lemon-size__guideImgWrap{
+    min-height: 200px;
+  }
+
+  .lemon-size__measureImg{
+    max-height: 260px;
   }
 }
 
@@ -663,11 +660,11 @@
   }
 
   .lemon-size__productimg{
-    width: min(100%, 240px);
+    width: min(100%, 220px);
     max-height: 190px;
   }
 
   .lemon-size__table{
-    min-width: 440px;
+    min-width: 420px;
   }
 }
