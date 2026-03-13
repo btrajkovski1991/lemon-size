@@ -19,7 +19,9 @@ export default function App() {
         <s-link href="/app">Home</s-link>
         <s-link href="/app/assignments">Assignments</s-link>
         <s-link href="/app/keyword-rules">Keyword rules</s-link>
-        <s-link href="/app/additional">Additional page</s-link>
+         <s-link href="/app/keyword-rules">Keyword rules</s-link>
+        <s-link href="/app/additional">Custom size chart </s-link> 
+        <s-link href="/app/size-charts">Additional page</s-link> 
       </s-app-nav>
       <Outlet />
     </AppProvider>
