@@ -23,6 +23,7 @@ type ChartLite = {
   guideTitle?: string | null;
   guideText?: string | null;
   guideImage?: string | null;
+  showGuideImage?: boolean | null;
   tips?: string | null;
   disclaimer?: string | null;
   rows?: ChartRowLite[];
@@ -41,6 +42,7 @@ type EditorChart = {
   guideTitle: string;
   guideText: string;
   guideImage: string;
+  showGuideImage: boolean;
   tips: string;
   disclaimer: string;
   columns: string[];
@@ -56,6 +58,7 @@ function emptyEditor(): EditorChart {
     guideTitle: "",
     guideText: "",
     guideImage: "",
+    showGuideImage: true,
     tips: "",
     disclaimer: "",
     columns: ["SIZE", "VALUE"],
@@ -111,6 +114,7 @@ function buildEditorFromChart(chart?: ChartLite | null): EditorChart {
     guideTitle: chart.guideTitle || "",
     guideText: chart.guideText || "",
     guideImage: chart.guideImage || "",
+    showGuideImage: chart.showGuideImage ?? true,
     tips: chart.tips || "",
     disclaimer: chart.disclaimer || "",
     columns: cols.length ? cols : ["SIZE", "VALUE"],
@@ -132,6 +136,7 @@ async function requireShopFromDb() {
     orderBy: [{ expires: "desc" }],
     select: { shop: true },
   });
+
   if (online?.shop) return online.shop;
 
   const any = await prisma.session.findFirst({
@@ -174,6 +179,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       guideTitle: true,
       guideText: true,
       guideImage: true,
+      showGuideImage: true,
       tips: true,
       disclaimer: true,
       columns: true,
@@ -208,6 +214,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const guideTitle = String(form.get("guideTitle") || "").trim();
     const guideText = String(form.get("guideText") || "").trim();
     const guideImage = String(form.get("guideImage") || "").trim();
+    const showGuideImage = String(form.get("showGuideImage") || "false") === "true";
     const tips = String(form.get("tips") || "").trim();
     const disclaimer = String(form.get("disclaimer") || "").trim();
     const isDefault = String(form.get("isDefault") || "false") === "true";
@@ -271,6 +278,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           guideTitle: guideTitle || null,
           guideText: guideText || null,
           guideImage: guideImage || null,
+          showGuideImage,
           tips: tips || null,
           disclaimer: disclaimer || null,
           columns,
@@ -304,6 +312,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         guideTitle: guideTitle || null,
         guideText: guideText || null,
         guideImage: guideImage || null,
+        showGuideImage,
         tips: tips || null,
         disclaimer: disclaimer || null,
         columns,
@@ -378,6 +387,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         guideTitle: source.guideTitle,
         guideText: source.guideText,
         guideImage: source.guideImage,
+        showGuideImage: source.showGuideImage ?? true,
         tips: source.tips,
         disclaimer: source.disclaimer,
         columns: Array.isArray(source.columns) ? source.columns : [],
@@ -729,6 +739,12 @@ function ChartCard({
             {Array.isArray(chart.columns) ? chart.columns.length : 0} cols •{" "}
             {Array.isArray(chart.rows) ? chart.rows.length : 0} rows
           </div>
+
+          {chart.guideImage ? (
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+              Image: {chart.showGuideImage ? "shown" : "hidden"}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -802,7 +818,6 @@ export default function SizeChartsPage() {
   const [editor, setEditor] = useState<EditorChart>(emptyEditor());
 
   const isSubmitting = navigation.state === "submitting";
-
   const sortedCharts = useMemo(() => charts ?? [], [charts]);
 
   useEffect(() => {
@@ -847,6 +862,7 @@ export default function SizeChartsPage() {
       const newNameBase = "COLUMN";
       let counter = prev.columns.length + 1;
       let candidate = `${newNameBase} ${counter}`;
+
       while (prev.columns.includes(candidate)) {
         counter += 1;
         candidate = `${newNameBase} ${counter}`;
@@ -896,6 +912,7 @@ export default function SizeChartsPage() {
     setEditor((prev) => {
       const rowNumber = prev.rows.length + 1;
       const values = Object.fromEntries(prev.columns.map((col) => [col, ""]));
+
       return {
         ...prev,
         rows: [
@@ -913,9 +930,11 @@ export default function SizeChartsPage() {
   function removeRow(index: number) {
     setEditor((prev) => {
       if (prev.rows.length <= 1) return prev;
+
       const nextRows = prev.rows
         .filter((_, i) => i !== index)
         .map((row, idx) => ({ ...row, sortOrder: idx + 1 }));
+
       return { ...prev, rows: nextRows };
     });
   }
@@ -932,6 +951,7 @@ export default function SizeChartsPage() {
     setEditor((prev) => {
       const nextRows = [...prev.rows];
       const row = nextRows[rowIndex];
+
       nextRows[rowIndex] = {
         ...row,
         values: {
@@ -939,6 +959,7 @@ export default function SizeChartsPage() {
           [columnName]: value,
         },
       };
+
       return { ...prev, rows: nextRows };
     });
   }
@@ -1060,6 +1081,7 @@ export default function SizeChartsPage() {
               <input type="hidden" name="guideTitle" value={editor.guideTitle} />
               <input type="hidden" name="guideText" value={editor.guideText} />
               <input type="hidden" name="guideImage" value={editor.guideImage} />
+              <input type="hidden" name="showGuideImage" value={String(editor.showGuideImage)} />
               <input type="hidden" name="tips" value={editor.tips} />
               <input type="hidden" name="disclaimer" value={editor.disclaimer} />
               <input type="hidden" name="isDefault" value={String(editor.isDefault)} />
@@ -1144,14 +1166,55 @@ export default function SizeChartsPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Guide image</label>
+                <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Guide image URL</label>
                 <input
                   value={editor.guideImage}
                   onChange={(e) => setEditor((prev) => ({ ...prev, guideImage: e.target.value }))}
-                  placeholder="/images/size-guides/shoes.png"
+                  placeholder="https://cdn.shopify.com/... or /images/size-guides/shoes.png"
                   style={inputStyle}
                 />
               </div>
+
+              <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={editor.showGuideImage}
+                  onChange={(e) => setEditor((prev) => ({ ...prev, showGuideImage: e.target.checked }))}
+                />
+                <span style={{ fontSize: 13 }}>Display guide image on storefront</span>
+              </label>
+
+              {editor.guideImage ? (
+                <div
+                  style={{
+                    border: "1px solid #e7e7e7",
+                    borderRadius: 12,
+                    padding: 10,
+                    background: "#fafafa",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                    Image preview
+                  </div>
+
+                  <img
+                    src={editor.guideImage}
+                    alt={editor.guideTitle || editor.title || "Guide image"}
+                    style={{
+                      width: "100%",
+                      maxHeight: 220,
+                      objectFit: "contain",
+                      borderRadius: 10,
+                      display: "block",
+                      background: "white",
+                    }}
+                  />
+
+                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
+                    {editor.showGuideImage ? "This image will be shown." : "This image is saved but hidden."}
+                  </div>
+                </div>
+              ) : null}
 
               <div>
                 <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Guide text</label>
@@ -1305,33 +1368,33 @@ export default function SizeChartsPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 10,
   border: "1px solid #dfe3e8",
   background: "white",
-};
+} as const;
 
-const textareaStyle: React.CSSProperties = {
+const textareaStyle = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 10,
   border: "1px solid #dfe3e8",
   background: "white",
   resize: "vertical",
-};
+} as const;
 
-const secondaryBtnStyle: React.CSSProperties = {
+const secondaryBtnStyle = {
   padding: "10px 12px",
   borderRadius: 10,
   border: "1px solid #dfe3e8",
   background: "white",
   cursor: "pointer",
   fontWeight: 700,
-};
+} as const;
 
-const dangerGhostBtnStyle: React.CSSProperties = {
+const dangerGhostBtnStyle = {
   padding: "10px 12px",
   borderRadius: 10,
   border: "1px solid #ef9a9a",
@@ -1339,30 +1402,30 @@ const dangerGhostBtnStyle: React.CSSProperties = {
   color: "#c62828",
   cursor: "pointer",
   fontWeight: 700,
-};
+} as const;
 
-const thStyle: React.CSSProperties = {
+const thStyle = {
   textAlign: "left",
   fontSize: 12,
   padding: "10px 10px",
   borderBottom: "1px solid #eee",
   background: "#fafafa",
   whiteSpace: "nowrap",
-};
+} as const;
 
-const tdStyle: React.CSSProperties = {
+const tdStyle = {
   padding: "10px 10px",
   borderBottom: "1px solid #f2f2f2",
   verticalAlign: "top",
-};
+} as const;
 
-const tableInputStyle: React.CSSProperties = {
+const tableInputStyle = {
   width: "100%",
   minWidth: 120,
   padding: "8px 10px",
   borderRadius: 8,
   border: "1px solid #dfe3e8",
   background: "white",
-};
+} as const;
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);

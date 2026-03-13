@@ -37,10 +37,10 @@ model Shop {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sizeCharts        SizeChart[]
-  sizeAssignments   SizeChartAssignment[]
-  keywordRules      SizeKeywordRule[]
-  purchaseSignals   SizePurchaseSignal[]
+  sizeCharts      SizeChart[]
+  sizeAssignments SizeChartAssignment[]
+  keywordRules    SizeKeywordRule[]
+  purchaseSignals SizePurchaseSignal[]
 
   @@index([shop])
 }
@@ -53,15 +53,16 @@ model SizeChart {
   columns    Json
   isDefault  Boolean @default(false)
 
-  guideTitle String?
-  guideText  String?
-  guideImage String?
-  tips       String?
-  disclaimer String?
+  guideTitle     String?
+  guideText      String?
+  guideImage     String?
+  showGuideImage Boolean @default(true)
+  tips           String?
+  disclaimer     String?
 
-  shop    Shop                  @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  rows    SizeChartRow[]
-  assigns SizeChartAssignment[]
+  shop               Shop                    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  rows               SizeChartRow[]
+  assigns            SizeChartAssignment[]
   keywordAssignments SizeKeywordRule[]
   purchaseSignals    SizePurchaseSignal[]
 
@@ -115,16 +116,16 @@ model SizeChartAssignment {
 }
 
 model SizeKeywordRule {
-  id        String  @id @default(cuid())
-  shopId     String
-  chartId    String
-  keyword    String
-  field      String  @default("ANY") // ANY | TITLE | HANDLE | TYPE | VENDOR | TAG
-  priority   Int     @default(500)
-  enabled    Boolean @default(true)
+  id       String  @id @default(cuid())
+  shopId   String
+  chartId  String
+  keyword  String
+  field    String  @default("ANY") // ANY | TITLE | HANDLE | TYPE | VENDOR | TAG
+  priority Int     @default(500)
+  enabled  Boolean @default(true)
 
-  shop   Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  chart  SizeChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+  shop  Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  chart SizeChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,25 +136,25 @@ model SizeKeywordRule {
 
 model SizePurchaseSignal {
   id            String   @id @default(cuid())
-  shopId         String
-  chartId        String?
-  productId      String?
-  productHandle  String?
-  orderId        String?
-  lineItemId     String?
+  shopId        String
+  chartId       String?
+  productId     String?
+  productHandle String?
+  orderId       String?
+  lineItemId    String?
 
-  sizeLabel      String
-  heightCm       Float?
-  weightKg       Float?
+  sizeLabel String
+  heightCm  Float?
+  weightKg  Float?
 
-  kept           Boolean @default(true)
-  returned       Boolean @default(false)
-  refunded       Boolean @default(false)
+  kept     Boolean @default(true)
+  returned Boolean @default(false)
+  refunded Boolean @default(false)
 
-  purchasedAt    DateTime @default(now())
+  purchasedAt DateTime @default(now())
 
-  shop   Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  chart  SizeChart? @relation(fields: [chartId], references: [id], onDelete: SetNull)
+  shop  Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  chart SizeChart? @relation(fields: [chartId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
