@@ -491,7 +491,7 @@ export async function loader({ request }: { request: Request }) {
       productType,
       productVendor,
       productTags,
-      includeDefault: mode !== "exists",
+      includeDefault: true,
     });
 
     if (mode === "exists") {
