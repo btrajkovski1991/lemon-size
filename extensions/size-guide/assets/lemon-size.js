@@ -93,6 +93,7 @@
     const productType = trigger.getAttribute("data-product-type") || "";
     const productVendor = trigger.getAttribute("data-product-vendor") || "";
     const productTags = parseCsvAttr(trigger, "data-product-tags");
+    const availableSizes = parseCsvAttr(trigger, "data-available-sizes");
 
     const url = new URL(proxyBase, window.location.origin);
 
@@ -104,6 +105,7 @@
     if (productType) url.searchParams.set("product_type", productType);
     if (productVendor) url.searchParams.set("product_vendor", productVendor);
     if (productTags) url.searchParams.set("product_tags", productTags);
+    if (availableSizes) url.searchParams.set("available_sizes", availableSizes);
 
     if (options && options.heightCm) url.searchParams.set("height_cm", String(options.heightCm));
     if (options && options.weightKg) url.searchParams.set("weight_kg", String(options.weightKg));

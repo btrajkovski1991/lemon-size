@@ -22,6 +22,51 @@ function normalizeTag(value?: string | null) {
   return normalize(value).toLowerCase();
 }
 
+function normalizeSizeValue(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .replace(/\.0$/, "");
+}
+
+function splitRangeParts(value?: string | null) {
+  const raw = normalizeSizeValue(value);
+  if (!raw) return [];
+
+  return raw
+    .split(/[-/]|TO/gi)
+    .map((part) => normalizeSizeValue(part))
+    .filter(Boolean);
+}
+
+function rowMatchesAvailableSizes(
+  row: { label?: string | null; values?: Record<string, any> | null },
+  availableSet: Set<string>
+) {
+  const candidates = new Set<string>();
+
+  const addCandidate = (value: any) => {
+    const normalized = normalizeSizeValue(value);
+    if (normalized) candidates.add(normalized);
+
+    for (const part of splitRangeParts(value)) {
+      candidates.add(part);
+    }
+  };
+
+  addCandidate(row.label);
+
+  const values = row.values && typeof row.values === "object" ? Object.values(row.values) : [];
+  for (const value of values) addCandidate(value);
+
+  for (const candidate of candidates) {
+    if (availableSet.has(candidate)) return true;
+  }
+
+  return false;
+}
+
 function unique(arr: string[]) {
   return Array.from(new Set(arr));
 }
@@ -420,6 +465,9 @@ export async function loader({ request }: { request: Request }) {
     const productVendor = normalize(url.searchParams.get("product_vendor")) || "";
     const productTags = parseCsv(url.searchParams.get("product_tags"));
     const collectionHandles = parseCsv(url.searchParams.get("collection_handles"));
+    const availableSizes = parseCsv(url.searchParams.get("available_sizes"))
+      .map((v) => normalizeSizeValue(v))
+      .filter(Boolean);
 
     const heightCmRaw = Number(url.searchParams.get("height_cm") || "");
     const weightKgRaw = Number(url.searchParams.get("weight_kg") || "");
@@ -477,6 +525,23 @@ export async function loader({ request }: { request: Request }) {
 
     const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
 
+    let filteredRows = chart.rows.map((r: any) => ({
+      label: r.label,
+      values: r.values,
+    }));
+
+    if (availableSizes.length > 0) {
+      const availableSet = new Set(availableSizes);
+
+      const matchedRows = filteredRows.filter((row) =>
+        rowMatchesAvailableSizes(row, availableSet)
+      );
+
+      if (matchedRows.length > 0) {
+        filteredRows = matchedRows;
+      }
+    }
+
     return json(
       {
         ok: true,
@@ -485,10 +550,7 @@ export async function loader({ request }: { request: Request }) {
           title: chart.title,
           unit: chart.unit,
           columns,
-          rows: chart.rows.map((r: any) => ({
-            label: r.label,
-            values: r.values,
-          })),
+          rows: filteredRows,
           guideTitle: chart.guideTitle,
           guideText: chart.guideText,
           guideImage: chart.guideImage,
