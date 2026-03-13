@@ -202,6 +202,43 @@ const TEMPLATES = [
     ],
   },
   {
+  title: "Socks",
+  unit: "cm",
+  columns: ["SOCK SIZE", "FITS SHOE SIZE"],
+  guideTitle: "How to measure (Socks)",
+  guideImage: "/images/size-guides/shoes.png",
+  guideText:
+    "Use your usual shoe size to choose the correct sock size range. If the product uses a size range like 9.5–13, match your normal shoe size to that range.",
+  tips: "If you are between ranges, choose based on your usual shoe size preference and desired fit.",
+  disclaimer: GLOBAL_DISCLAIMER,
+  rows: [
+    {
+      label: "4-6",
+      sortOrder: 1,
+      values: {
+        "SOCK SIZE": "4-6",
+        "FITS SHOE SIZE": "US 4-6 / EU 36-38",
+      },
+    },
+    {
+      label: "6.5-9",
+      sortOrder: 2,
+      values: {
+        "SOCK SIZE": "6.5-9",
+        "FITS SHOE SIZE": "US 6.5-9 / EU 39-42",
+      },
+    },
+    {
+      label: "9.5-13",
+      sortOrder: 3,
+      values: {
+        "SOCK SIZE": "9.5-13",
+        "FITS SHOE SIZE": "US 9.5-13 / EU 43-47",
+      },
+    },
+  ],
+},
+  {
     title: "Shoes",
     unit: "in",
     columns: ["SIZE US", "SIZE EUR", "FOOT LENGTH"],
@@ -357,8 +394,15 @@ const KEYWORD_RULES = [
   { keyword: "sandals", field: "ANY", chartTitle: "Shoes", priority: 500 },
   { keyword: "flip flop", field: "ANY", chartTitle: "Shoes", priority: 500 },
   { keyword: "flip flops", field: "ANY", chartTitle: "Shoes", priority: 500 },
-  { keyword: "sock", field: "ANY", chartTitle: "Shoes", priority: 500 },
-  { keyword: "socks", field: "ANY", chartTitle: "Shoes", priority: 500 },
+
+  { keyword: "sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "socks", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "no show sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "no show socks", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "crew sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "crew socks", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "ankle sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "ankle socks", field: "ANY", chartTitle: "Socks", priority: 500 },
 
   { keyword: "ring", field: "ANY", chartTitle: "Ring", priority: 500 },
   { keyword: "bracelet", field: "ANY", chartTitle: "Bracelet", priority: 500 },
