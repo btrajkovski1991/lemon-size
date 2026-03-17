@@ -18,6 +18,10 @@
   box-shadow: 0 8px 18px rgba(0,0,0,.08);
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 .lemon-size__modal{
   position: fixed;
   inset: 0;

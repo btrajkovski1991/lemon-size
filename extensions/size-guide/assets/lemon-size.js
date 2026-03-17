@@ -67,21 +67,19 @@
     return `${base}/images/size-guides/default.png`;
   }
 
-  function normalizeGuideImageUrl(trigger, rawUrl, chartTitle) {
-    const base = getGuideBase(trigger);
+function normalizeGuideImageUrl(trigger, rawUrl) {
+  const base = getGuideBase(trigger);
 
-    if (rawUrl && String(rawUrl).trim()) {
-      const clean = String(rawUrl).trim();
+  if (!rawUrl || !String(rawUrl).trim()) return "";
 
-      if (/^https?:\/\//i.test(clean)) return clean;
-      if (clean.startsWith("//")) return `https:${clean}`;
-      if (clean.startsWith("/")) return `${base}${clean}`;
+  const clean = String(rawUrl).trim();
 
-      return `${base}/${clean.replace(/^\/+/, "")}`;
-    }
+  if (/^https?:\/\//i.test(clean)) return clean;
+  if (clean.startsWith("//")) return `https:${clean}`;
+  if (clean.startsWith("/")) return `${base}${clean}`;
 
-    return getGuideImage(trigger, chartTitle);
-  }
+  return `${base}/${clean.replace(/^\/+/, "")}`;
+}
 
   function buildProxyUrl(trigger, mode, options) {
     const proxyBase = trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
@@ -355,9 +353,11 @@
     const tips = guide.tips || "";
     const disclaimer = guide.disclaimer || "";
 
-    const imgUrl = trigger
-      ? normalizeGuideImageUrl(trigger, guide.guideImage, guide.title)
-      : "";
+  const shouldShowGuideImage = Boolean(guide.showGuideImage);
+  const imgUrl =
+  shouldShowGuideImage && trigger
+    ? normalizeGuideImageUrl(trigger, guide.guideImage)
+    : "";
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");
     const textEl = modal.querySelector("[data-lemon-guide-text]");
@@ -378,38 +378,45 @@
     if (tipsRow) tipsRow.classList.toggle("is-hidden", !tips);
     if (discRow) discRow.classList.toggle("is-hidden", !disclaimer);
 
-    if (imgEl) {
-      if (imgUrl) {
-        imgEl.onload = function () {
-          imgEl.hidden = false;
-          imgEl.removeAttribute("hidden");
-          if (imgWrap) {
-            imgWrap.hidden = false;
-            imgWrap.removeAttribute("hidden");
-          }
-        };
+if (imgWrap) {
+  imgWrap.classList.add("is-hidden");
+  imgWrap.hidden = true;
+  imgWrap.setAttribute("hidden", "");
+}
 
-        imgEl.onerror = function () {
-          imgEl.hidden = true;
-          imgEl.setAttribute("hidden", "");
-          imgEl.removeAttribute("src");
-          if (imgWrap) {
-            imgWrap.hidden = true;
-            imgWrap.setAttribute("hidden", "");
-          }
-        };
+if (imgEl) {
+  imgEl.hidden = true;
+  imgEl.setAttribute("hidden", "");
+  imgEl.removeAttribute("src");
 
-        imgEl.src = imgUrl;
-      } else {
-        imgEl.hidden = true;
-        imgEl.setAttribute("hidden", "");
-        imgEl.removeAttribute("src");
-        if (imgWrap) {
-          imgWrap.hidden = true;
-          imgWrap.setAttribute("hidden", "");
-        }
+  if (imgUrl) {
+    imgEl.onload = function () {
+      imgEl.hidden = false;
+      imgEl.removeAttribute("hidden");
+
+      if (imgWrap) {
+        imgWrap.hidden = false;
+        imgWrap.removeAttribute("hidden");
+        imgWrap.classList.remove("is-hidden");
       }
-    }
+    };
+
+    imgEl.onerror = function () {
+      imgEl.hidden = true;
+      imgEl.setAttribute("hidden", "");
+      imgEl.removeAttribute("src");
+
+      if (imgWrap) {
+        imgWrap.hidden = true;
+        imgWrap.setAttribute("hidden", "");
+        imgWrap.classList.add("is-hidden");
+      }
+    };
+
+    imgEl.src = imgUrl;
+    imgEl.alt = title || guide.title || "How to measure size guide";
+  }
+}
   }
 
   function render(modal, contentEl, data) {
