@@ -984,20 +984,20 @@ export default function SizeChartsPage() {
     return values.sort();
   }, [sortedCharts]);
 
-  const filteredCharts = useMemo(() => {
-    return sortedCharts.filter((chart: ChartLite) => {
-      const title = String(chart.title || "").toLowerCase();
-      const unit = String(chart.unit || "").trim().toLowerCase();
-      const hasImage = !!String(chart.guideImage || "").trim();
+        const filteredCharts = useMemo(() => {
+          return sortedCharts.filter((chart: ChartLite) => {
+            const title = String(chart.title || "").trim().toLowerCase();
+            const unit = String(chart.unit || "").trim().toLowerCase();
+            const hasImage = !!String(chart.guideImage || "").trim();
 
-      if (search && !title.includes(search.toLowerCase())) return false;
-      if (onlyDefault && !chart.isDefault) return false;
-      if (onlyWithImage && !hasImage) return false;
-      if (unitFilter !== "all" && unit !== unitFilter) return false;
+            if (search && title !== search.trim().toLowerCase()) return false;
+            if (onlyDefault && !chart.isDefault) return false;
+            if (onlyWithImage && !hasImage) return false;
+            if (unitFilter !== "all" && unit !== unitFilter) return false;
 
-      return true;
-    });
-  }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
+            return true;
+          });
+        }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
 
   const columnsJson = JSON.stringify(editor.columns);
   const rowsJson = JSON.stringify(
@@ -1083,17 +1083,23 @@ export default function SizeChartsPage() {
               alignItems: "end",
             }}
           >
-            <div>
-              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                Search table
-              </label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by title..."
-                style={inputStyle}
-              />
-            </div>
+                      <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                    Table
+                  </label>
+                  <select
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">All tables</option>
+                    {sortedCharts.map((chart: ChartLite) => (
+                      <option key={chart.id} value={chart.title}>
+                        {chart.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
