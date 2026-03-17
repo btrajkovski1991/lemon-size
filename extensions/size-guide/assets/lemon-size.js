@@ -67,19 +67,23 @@
     return `${base}/images/size-guides/default.png`;
   }
 
-function normalizeGuideImageUrl(trigger, rawUrl) {
-  const base = getGuideBase(trigger);
+  function normalizeGuideImageUrl(trigger, rawUrl) {
+    if (!rawUrl || !String(rawUrl).trim()) return "";
 
-  if (!rawUrl || !String(rawUrl).trim()) return "";
+    const clean = String(rawUrl).trim();
 
-  const clean = String(rawUrl).trim();
+    if (/^https?:\/\//i.test(clean)) return clean;
 
-  if (/^https?:\/\//i.test(clean)) return clean;
-  if (clean.startsWith("//")) return `https:${clean}`;
-  if (clean.startsWith("/")) return `${base}${clean}`;
+    if (clean.startsWith("//")) {
+      return window.location.protocol + clean;
+    }
 
-  return `${base}/${clean.replace(/^\/+/, "")}`;
-}
+    if (clean.startsWith("/")) {
+      return `${window.location.origin}${clean}`;
+    }
+
+    return clean;
+  }
 
   function buildProxyUrl(trigger, mode, options) {
     const proxyBase = trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
@@ -353,11 +357,20 @@ function normalizeGuideImageUrl(trigger, rawUrl) {
     const tips = guide.tips || "";
     const disclaimer = guide.disclaimer || "";
 
-  const shouldShowGuideImage = Boolean(guide.showGuideImage);
-  const imgUrl =
-  shouldShowGuideImage && trigger
-    ? normalizeGuideImageUrl(trigger, guide.guideImage)
-    : "";
+    const showGuideImageFlag =
+      guide.showGuideImage === true ||
+      String(guide.showGuideImage).toLowerCase() === "true";
+
+    let imgUrl = "";
+    if (showGuideImageFlag && trigger) {
+      imgUrl = normalizeGuideImageUrl(trigger, guide.guideImage);
+    }
+
+    console.log("[LemonSize] full guide object:", guide);
+    console.log("[LemonSize] guide.showGuideImage:", guide.showGuideImage);
+    console.log("[LemonSize] guide.guideImage:", guide.guideImage);
+    console.log("[LemonSize] showGuideImageFlag:", showGuideImageFlag);
+    console.log("[LemonSize] final imgUrl:", imgUrl);
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");
     const textEl = modal.querySelector("[data-lemon-guide-text]");
@@ -378,45 +391,47 @@ function normalizeGuideImageUrl(trigger, rawUrl) {
     if (tipsRow) tipsRow.classList.toggle("is-hidden", !tips);
     if (discRow) discRow.classList.toggle("is-hidden", !disclaimer);
 
-if (imgWrap) {
-  imgWrap.classList.add("is-hidden");
-  imgWrap.hidden = true;
-  imgWrap.setAttribute("hidden", "");
-}
+    if (imgWrap) {
+      imgWrap.classList.add("is-hidden");
+      imgWrap.hidden = true;
+      imgWrap.setAttribute("hidden", "");
+    }
 
-if (imgEl) {
-  imgEl.hidden = true;
-  imgEl.setAttribute("hidden", "");
-  imgEl.removeAttribute("src");
-
-  if (imgUrl) {
-    imgEl.onload = function () {
-      imgEl.hidden = false;
-      imgEl.removeAttribute("hidden");
-
-      if (imgWrap) {
-        imgWrap.hidden = false;
-        imgWrap.removeAttribute("hidden");
-        imgWrap.classList.remove("is-hidden");
-      }
-    };
-
-    imgEl.onerror = function () {
+    if (imgEl) {
       imgEl.hidden = true;
       imgEl.setAttribute("hidden", "");
       imgEl.removeAttribute("src");
 
-      if (imgWrap) {
-        imgWrap.hidden = true;
-        imgWrap.setAttribute("hidden", "");
-        imgWrap.classList.add("is-hidden");
-      }
-    };
+      if (imgUrl) {
+        imgEl.onload = function () {
+          imgEl.hidden = false;
+          imgEl.removeAttribute("hidden");
 
-    imgEl.src = imgUrl;
-    imgEl.alt = title || guide.title || "How to measure size guide";
-  }
-}
+          if (imgWrap) {
+            imgWrap.hidden = false;
+            imgWrap.removeAttribute("hidden");
+            imgWrap.classList.remove("is-hidden");
+          }
+        };
+
+        imgEl.onerror = function () {
+          console.error("[LemonSize] image failed to load:", imgEl.src);
+
+          imgEl.hidden = true;
+          imgEl.setAttribute("hidden", "");
+          imgEl.removeAttribute("src");
+
+          if (imgWrap) {
+            imgWrap.hidden = true;
+            imgWrap.setAttribute("hidden", "");
+            imgWrap.classList.add("is-hidden");
+          }
+        };
+
+        imgEl.src = imgUrl;
+        imgEl.alt = title || guide.title || "How to measure size guide";
+      }
+    }
   }
 
   function render(modal, contentEl, data) {
@@ -470,9 +485,11 @@ if (imgEl) {
 
     try {
       const data = await fetchChart(btn, { heightCm, weightKg });
+      console.log("[LemonSize] fetched recommendation chart data:", data);
       modal._lemonData = data;
       render(modal, content, data);
     } catch (error) {
+      console.error("[LemonSize] recommendation error:", error);
       const box = modal.querySelector("[data-lemon-recommend-box]");
       if (box) {
         box.hidden = false;
@@ -521,6 +538,7 @@ if (imgEl) {
         }
         root.hidden = false;
       } catch (e) {
+        console.error("[LemonSize] hasChartFor failed:", e);
         root.remove();
         return;
       }
@@ -556,6 +574,7 @@ if (imgEl) {
 
         try {
           const data = await fetchChart(btn);
+          console.log("[LemonSize] fetched chart data:", data);
           modal._lemonData = data;
           render(modal, content, data);
         } catch (err) {
