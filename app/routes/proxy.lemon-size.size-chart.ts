@@ -125,6 +125,7 @@ type ChartWithRows = {
   guideTitle: string | null;
   guideText: string | null;
   guideImage: string | null;
+  showGuideImage: boolean | null;
   tips: string | null;
   disclaimer: string | null;
   rows: Array<{ label: string; values: any; sortOrder: number }>;
@@ -542,23 +543,24 @@ export async function loader({ request }: { request: Request }) {
       }
     }
 
-    return json(
-      {
-        ok: true,
-        chart: {
-          id: chart.id,
-          title: chart.title,
-          unit: chart.unit,
-          columns,
-          rows: filteredRows,
-          guideTitle: chart.guideTitle,
-          guideText: chart.guideText,
-          guideImage: chart.guideImage,
-          tips: chart.tips,
-          disclaimer: chart.disclaimer,
-        },
-        recommendation,
-      },
+return json(
+  {
+    ok: true,
+    chart: {
+      id: chart.id,
+      title: chart.title,
+      unit: chart.unit,
+      columns,
+      rows: filteredRows,
+      guideTitle: chart.guideTitle,
+      guideText: chart.guideText,
+      guideImage: chart.guideImage,
+      showGuideImage: chart.showGuideImage,
+      tips: chart.tips,
+      disclaimer: chart.disclaimer,
+    },
+    recommendation,
+  },
       {
         headers: { "Cache-Control": "public, max-age=60, s-maxage=300" },
       },
