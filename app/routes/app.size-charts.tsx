@@ -593,14 +593,16 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
       <div
         style={{
           marginTop: 10,
-          padding: 12,
-          borderRadius: 12,
+          padding: 14,
+          borderRadius: 14,
           border: "1px solid #eee",
           background: "#fafafa",
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700 }}>Preview</div>
-        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>Add columns to preview the table.</div>
+        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+          Add columns to preview the table.
+        </div>
       </div>
     );
   }
@@ -608,9 +610,9 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
   return (
     <div
       style={{
-        marginTop: 10,
-        padding: 12,
-        borderRadius: 12,
+        marginTop: 12,
+        padding: 14,
+        borderRadius: 14,
         border: "1px solid #eee",
         background: "white",
       }}
@@ -629,7 +631,7 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
         </div>
       </div>
 
-      <div style={{ overflowX: "auto", marginTop: 10 }}>
+      <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }}>
           <thead>
             <tr>
@@ -639,7 +641,7 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
                   style={{
                     textAlign: "left",
                     fontSize: 12,
-                    padding: "10px 10px",
+                    padding: "12px 12px",
                     borderBottom: "1px solid #eee",
                     background: "#fafafa",
                     whiteSpace: "nowrap",
@@ -657,7 +659,7 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
                 <td
                   colSpan={cols.length}
                   style={{
-                    padding: 14,
+                    padding: 16,
                     fontSize: 12,
                     opacity: 0.7,
                     borderBottom: "1px solid #f2f2f2",
@@ -668,14 +670,15 @@ function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
               </tr>
             ) : (
               rows.slice(0, 6).map((r, idx) => (
-                <tr key={`${r.label}-${idx}`}>
+                <tr key={r.id || idx}>
                   {cols.map((c) => (
                     <td
                       key={c}
                       style={{
-                        padding: "10px 10px",
+                        padding: "12px 12px",
                         borderBottom: "1px solid #f2f2f2",
                         fontSize: 12,
+                        background: idx % 2 === 0 ? "white" : "#fcfcfc",
                       }}
                     >
                       {String(r.values?.[c] ?? "")}
@@ -706,18 +709,18 @@ function ChartCard({
     <div
       style={{
         border: "1px solid #e7e7e7",
-        borderRadius: 16,
-        padding: 14,
+        borderRadius: 18,
+        padding: 18,
         background: "white",
-        boxShadow: "0 8px 18px rgba(0,0,0,.05)",
+        boxShadow: "0 10px 24px rgba(0,0,0,.05)",
       }}
     >
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div
           style={{
-            width: 58,
-            height: 58,
-            borderRadius: 14,
+            width: 62,
+            height: 62,
+            borderRadius: 16,
             border: "1px solid #eee",
             background: "#fafafa",
             display: "flex",
@@ -730,11 +733,12 @@ function ChartCard({
         </div>
 
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 850, fontSize: 15, lineHeight: 1.15 }}>
+          <div style={{ fontWeight: 850, fontSize: 16, lineHeight: 1.15 }}>
             {chart.title}
             {chart.isDefault ? " (default)" : ""}
           </div>
-          <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+
+          <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8 }}>
             {chart.unit ? String(chart.unit).toUpperCase() : "—"} •{" "}
             {Array.isArray(chart.columns) ? chart.columns.length : 0} cols •{" "}
             {Array.isArray(chart.rows) ? chart.rows.length : 0} rows
@@ -750,7 +754,7 @@ function ChartCard({
 
       <ChartPreview chart={chart} />
 
-      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
         <button
           type="button"
           onClick={() => onEdit(chart)}
@@ -816,6 +820,11 @@ export default function SizeChartsPage() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editor, setEditor] = useState<EditorChart>(emptyEditor());
+
+  const [search, setSearch] = useState("");
+  const [onlyDefault, setOnlyDefault] = useState(false);
+  const [onlyWithImage, setOnlyWithImage] = useState(false);
+  const [unitFilter, setUnitFilter] = useState("all");
 
   const isSubmitting = navigation.state === "submitting";
   const sortedCharts = useMemo(() => charts ?? [], [charts]);
@@ -964,6 +973,32 @@ export default function SizeChartsPage() {
     });
   }
 
+  const unitOptions = useMemo(() => {
+    const values = Array.from(
+      new Set(
+        (sortedCharts || [])
+          .map((chart) => String(chart.unit || "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+    return values.sort();
+  }, [sortedCharts]);
+
+  const filteredCharts = useMemo(() => {
+    return sortedCharts.filter((chart: ChartLite) => {
+      const title = String(chart.title || "").toLowerCase();
+      const unit = String(chart.unit || "").trim().toLowerCase();
+      const hasImage = !!String(chart.guideImage || "").trim();
+
+      if (search && !title.includes(search.toLowerCase())) return false;
+      if (onlyDefault && !chart.isDefault) return false;
+      if (onlyWithImage && !hasImage) return false;
+      if (unitFilter !== "all" && unit !== unitFilter) return false;
+
+      return true;
+    });
+  }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
+
   const columnsJson = JSON.stringify(editor.columns);
   const rowsJson = JSON.stringify(
     editor.rows.map((row, idx) => ({
@@ -1000,7 +1035,15 @@ export default function SizeChartsPage() {
       ) : null}
 
       <s-section heading="Manage tables">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           <s-paragraph>
             Create custom size tables, then assign them to products or collections from the Assignments page.
           </s-paragraph>
@@ -1023,28 +1066,139 @@ export default function SizeChartsPage() {
           </button>
         </div>
 
-        {sortedCharts.length === 0 ? (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 16,
+            borderRadius: 16,
+            border: "1px solid #e7e7e7",
+            background: "#fafafa",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(240px, 1.3fr) repeat(3, minmax(160px, .8fr))",
+              gap: 12,
+              alignItems: "end",
+            }}
+          >
+            <div>
+              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                Search table
+              </label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title..."
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                Unit
+              </label>
+              <select
+                value={unitFilter}
+                onChange={(e) => setUnitFilter(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="all">All units</option>
+                {unitOptions.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                minHeight: 44,
+                padding: "0 4px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={onlyDefault}
+                onChange={(e) => setOnlyDefault(e.target.checked)}
+              />
+              <span style={{ fontSize: 13 }}>Only default</span>
+            </label>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                minHeight: 44,
+                padding: "0 4px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={onlyWithImage}
+                onChange={(e) => setOnlyWithImage(e.target.checked)}
+              />
+              <span style={{ fontSize: 13 }}>Only with image</span>
+            </label>
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              Showing {filteredCharts.length} of {sortedCharts.length} table(s)
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setOnlyDefault(false);
+                setOnlyWithImage(false);
+                setUnitFilter("all");
+              }}
+              style={secondaryBtnStyle}
+            >
+              Reset filters
+            </button>
+          </div>
+        </div>
+
+        {filteredCharts.length === 0 ? (
           <div
             style={{
               marginTop: 16,
-              padding: 18,
-              borderRadius: 14,
+              padding: 20,
+              borderRadius: 16,
               border: "1px solid #eee",
               background: "#fafafa",
             }}
           >
-            No tables yet.
+            No tables match the selected filter.
           </div>
         ) : (
           <div
             style={{
-              marginTop: 16,
+              marginTop: 18,
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 14,
+              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+              gap: 18,
             }}
           >
-            {sortedCharts.map((chart: ChartLite) => (
+            {filteredCharts.map((chart: ChartLite) => (
               <ChartCard key={chart.id} chart={chart} onEdit={openEdit} />
             ))}
           </div>
@@ -1184,37 +1338,51 @@ export default function SizeChartsPage() {
                 <span style={{ fontSize: 13 }}>Display guide image on storefront</span>
               </label>
 
-              {editor.guideImage ? (
-                <div
-                  style={{
-                    border: "1px solid #e7e7e7",
-                    borderRadius: 12,
-                    padding: 10,
-                    background: "#fafafa",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                    Image preview
-                  </div>
+             {editor.guideImage && editor.showGuideImage ? (
+                    <div
+                      style={{
+                        border: "1px solid #e7e7e7",
+                        borderRadius: 12,
+                        padding: 10,
+                        background: "#fafafa",
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                        Image preview
+                      </div>
 
-                  <img
-                    src={editor.guideImage}
-                    alt={editor.guideTitle || editor.title || "Guide image"}
-                    style={{
-                      width: "100%",
-                      maxHeight: 220,
-                      objectFit: "contain",
-                      borderRadius: 10,
-                      display: "block",
-                      background: "white",
-                    }}
-                  />
+                      <img
+                        src={editor.guideImage}
+                        alt={editor.guideTitle || editor.title || "Guide image"}
+                        style={{
+                          width: "100%",
+                          maxHeight: 220,
+                          objectFit: "contain",
+                          borderRadius: 10,
+                          display: "block",
+                          background: "white",
+                        }}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  ) : null}
 
-                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-                    {editor.showGuideImage ? "This image will be shown." : "This image is saved but hidden."}
-                  </div>
-                </div>
-              ) : null}
+                  {editor.guideImage && !editor.showGuideImage ? (
+                    <div
+                      style={{
+                        border: "1px solid #e7e7e7",
+                        borderRadius: 12,
+                        padding: 10,
+                        background: "#fafafa",
+                        fontSize: 12,
+                        opacity: 0.7,
+                      }}
+                    >
+                      Guide image is saved, but hidden on storefront.
+                    </div>
+                  ) : null}
 
               <div>
                 <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Guide text</label>
@@ -1274,8 +1442,8 @@ export default function SizeChartsPage() {
 
               <div style={{ display: "grid", gap: 8 }}>
                 {editor.columns.map((col, index) => (
-                  <div
-                    key={`${col}-${index}`}
+                    <div
+                    key={index}
                     style={{
                       display: "grid",
                       gridTemplateColumns: "1fr auto",
@@ -1322,8 +1490,8 @@ export default function SizeChartsPage() {
 
                   <tbody>
                     {editor.rows.map((row, rowIndex) => (
-                      <tr key={`${row.label}-${rowIndex}`}>
-                        <td style={tdStyle}>
+                       <tr key={row.id || rowIndex}>
+                          <td style={tdStyle}>
                           <input
                             value={row.label}
                             onChange={(e) => setRowLabel(rowIndex, e.target.value)}
@@ -1407,14 +1575,14 @@ const dangerGhostBtnStyle = {
 const thStyle = {
   textAlign: "left",
   fontSize: 12,
-  padding: "10px 10px",
+  padding: "12px 12px",
   borderBottom: "1px solid #eee",
   background: "#fafafa",
   whiteSpace: "nowrap",
 } as const;
 
 const tdStyle = {
-  padding: "10px 10px",
+  padding: "12px 12px",
   borderBottom: "1px solid #f2f2f2",
   verticalAlign: "top",
 } as const;
