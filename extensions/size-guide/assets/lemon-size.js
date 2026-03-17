@@ -357,9 +357,10 @@
     const tips = guide.tips || "";
     const disclaimer = guide.disclaimer || "";
 
-    const showGuideImageFlag =
-      guide.showGuideImage === true ||
-      String(guide.showGuideImage).toLowerCase() === "true";
+   const showGuideImageFlag =
+  guide.showGuideImage === true ||
+  String(guide.showGuideImage).toLowerCase() === "true" ||
+  (guide.showGuideImage == null && !!guide.guideImage);
 
     let imgUrl = "";
     if (showGuideImageFlag && trigger) {
