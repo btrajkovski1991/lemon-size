@@ -154,6 +154,10 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function hasExplicitUnit(value) {
+    return /\b(cm|cms|centimeter|centimeters|in|inch|inches)\b/i.test(String(value || ""));
+  }
+
   function convertNumber(n, fromUnit, toUnit) {
     if (fromUnit === "cm" && toUnit === "in") return n / 2.54;
     if (fromUnit === "in" && toUnit === "cm") return n * 2.54;
@@ -164,6 +168,30 @@
     if (unit === "in") return n.toFixed(2).replace(/\.00$/, "");
     if (unit === "cm") return n.toFixed(1).replace(/\.0$/, "");
     return String(n);
+  }
+
+  function normalizeUnitLabel(text, toUnit) {
+    return String(text)
+      .replace(/\b(cm|cms|centimeter|centimeters)\b/gi, toUnit === "cm" ? "cm" : "in")
+      .replace(/\b(in|inch|inches)\b/gi, toUnit === "in" ? "in" : "cm");
+  }
+
+  function convertMeasurementText(raw, fromUnit, toUnit) {
+    const value = String(raw ?? "");
+    if (!value.trim()) return value;
+
+    let convertedAny = false;
+    const converted = value.replace(/-?\d+(?:[.,]\d+)?/g, (match) => {
+      const n = toNumMaybe(match);
+      if (n == null) return match;
+      convertedAny = true;
+      return fmt(convertNumber(n, fromUnit, toUnit), toUnit);
+    });
+
+    if (!convertedAny) return value;
+    if (!hasExplicitUnit(value)) return converted;
+
+    return normalizeUnitLabel(converted, toUnit);
   }
 
   function shouldConvertColumn(colName) {
@@ -298,8 +326,7 @@
               baseUnit !== displayUnit &&
               shouldConvertColumn(c)
             ) {
-              const n = toNumMaybe(raw);
-              if (n != null) raw = fmt(convertNumber(n, baseUnit, displayUnit), displayUnit);
+              raw = convertMeasurementText(raw, baseUnit, displayUnit);
             }
 
             return `<td>${escapeHtml(String(raw ?? ""))}</td>`;
@@ -329,15 +356,13 @@
     const text = guide.guideText || fallback.guideText || "";
     const tips = guide.tips || "";
     const disclaimer = guide.disclaimer || "";
-
-   const showGuideImageFlag =
-  guide.showGuideImage === true ||
-  String(guide.showGuideImage).toLowerCase() === "true" ||
-  (guide.showGuideImage == null && !!guide.guideImage);
+    const rawGuideImage = String(guide.guideImage || "").trim();
+    const showGuideImageFlag =
+      guide.showGuideImage === true || String(guide.showGuideImage).toLowerCase() === "true";
 
     let imgUrl = "";
-    if (showGuideImageFlag && trigger) {
-      imgUrl = normalizeGuideImageUrl(trigger, guide.guideImage);
+    if (showGuideImageFlag && rawGuideImage && trigger) {
+      imgUrl = normalizeGuideImageUrl(trigger, rawGuideImage);
     }
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");
@@ -366,38 +391,50 @@
     }
 
     if (imgEl) {
+      const hideGuideImage = function () {
+        imgEl.hidden = true;
+        imgEl.setAttribute("hidden", "");
+        imgEl.removeAttribute("src");
+
+        if (imgWrap) {
+          imgWrap.hidden = true;
+          imgWrap.setAttribute("hidden", "");
+          imgWrap.classList.add("is-hidden");
+        }
+      };
+
+      const showGuideImage = function () {
+        imgEl.hidden = false;
+        imgEl.removeAttribute("hidden");
+
+        if (imgWrap) {
+          imgWrap.hidden = false;
+          imgWrap.removeAttribute("hidden");
+          imgWrap.classList.remove("is-hidden");
+        }
+      };
+
       imgEl.hidden = true;
       imgEl.setAttribute("hidden", "");
       imgEl.removeAttribute("src");
 
       if (imgUrl) {
-        imgEl.onload = function () {
-          imgEl.hidden = false;
-          imgEl.removeAttribute("hidden");
-
-          if (imgWrap) {
-            imgWrap.hidden = false;
-            imgWrap.removeAttribute("hidden");
-            imgWrap.classList.remove("is-hidden");
-          }
-        };
+        imgEl.onload = showGuideImage;
 
         imgEl.onerror = function () {
           console.error("[LemonSize] image failed to load:", imgEl.src);
-
-          imgEl.hidden = true;
-          imgEl.setAttribute("hidden", "");
-          imgEl.removeAttribute("src");
-
-          if (imgWrap) {
-            imgWrap.hidden = true;
-            imgWrap.setAttribute("hidden", "");
-            imgWrap.classList.add("is-hidden");
-          }
+          hideGuideImage();
         };
 
         imgEl.src = imgUrl;
         imgEl.alt = title || guide.title || "How to measure size guide";
+
+        // Cached images may already be available before onload fires.
+        if (imgEl.complete && imgEl.naturalWidth > 0) {
+          showGuideImage();
+        }
+      } else {
+        hideGuideImage();
       }
     }
   }
@@ -406,7 +443,10 @@
     const chart = data && Object.prototype.hasOwnProperty.call(data, "chart") ? data.chart : null;
 
     if (!chart) {
-      contentEl.innerHTML = `<div class="lemon-size__empty">No size chart configured.</div>`;
+      const message =
+        (data && (data.message || data.error)) ||
+        "No size chart is available for this product right now.";
+      contentEl.innerHTML = `<div class="lemon-size__empty">${escapeHtml(String(message))}</div>`;
       return;
     }
 
@@ -493,7 +533,11 @@
           render(modal, content, data);
         } catch (err) {
           console.error("[LemonSize] Fetch/render error:", err);
-          content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
+          const message =
+            err && typeof err.message === "string" && err.message
+              ? err.message
+              : "Couldn’t load the size guide right now.";
+          content.innerHTML = `<div class="lemon-size__error">${escapeHtml(message)}</div>`;
         }
       });
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, useLoaderData } from "react-router";
+import { Form, useActionData, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -19,6 +19,11 @@ type KeywordRuleLite = {
   chartId: string;
   chart: { title: string };
 };
+
+type ActionData =
+  | { ok: true; message: string }
+  | { ok: false; message: string }
+  | undefined;
 
 async function getOrCreateShopRow(shopDomain: string) {
   return prisma.shop.upsert({
@@ -65,8 +70,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const chartId = String(form.get("chartId") || "").trim();
     const priority = Number(form.get("priority") || 500);
 
-    if (!keyword) throw new Response("Missing keyword", { status: 400 });
-    if (!chartId) throw new Response("Missing chartId", { status: 400 });
+    if (!keyword) {
+      return { ok: false, message: "Enter a keyword before saving the rule." } satisfies ActionData;
+    }
+    if (!chartId) {
+      return { ok: false, message: "Choose a size chart before saving the rule." } satisfies ActionData;
+    }
 
     await prisma.sizeKeywordRule.create({
       data: {
@@ -79,38 +88,43 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return { ok: true };
+    return { ok: true, message: "Keyword rule saved." } satisfies ActionData;
   }
 
   if (intent === "toggle") {
     const id = String(form.get("id") || "");
     const enabled = String(form.get("enabled") || "false") === "true";
 
-    if (!id) throw new Response("Missing id", { status: 400 });
+    if (!id) {
+      return { ok: false, message: "Missing rule id." } satisfies ActionData;
+    }
 
     await prisma.sizeKeywordRule.updateMany({
       where: { id, shopId: shopRow.id },
       data: { enabled },
     });
 
-    return { ok: true };
+    return { ok: true, message: `Keyword rule ${enabled ? "enabled" : "disabled"}.` } satisfies ActionData;
   }
 
   if (intent === "delete") {
     const id = String(form.get("id") || "");
-    if (!id) throw new Response("Missing id", { status: 400 });
+    if (!id) {
+      return { ok: false, message: "Missing rule id." } satisfies ActionData;
+    }
 
     await prisma.sizeKeywordRule.deleteMany({
       where: { id, shopId: shopRow.id },
     });
 
-    return { ok: true };
+    return { ok: true, message: "Keyword rule deleted." } satisfies ActionData;
   }
 
-  return { ok: false };
+  return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
 
 export default function KeywordRulesPage() {
+  const actionData = useActionData<ActionData>();
   const { shopDomain, charts, keywordRules } = useLoaderData<typeof loader>();
 
   const defaultChartId = useMemo(() => {
@@ -132,6 +146,24 @@ export default function KeywordRulesPage() {
           Manual rules still win first. These keyword rules are used only as fallback.
         </s-paragraph>
       </s-section>
+
+      {actionData ? (
+        <s-section>
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: actionData.ok ? "1px solid #b7e1c0" : "1px solid #ef9a9a",
+              background: actionData.ok ? "#f3fbf5" : "#fff5f5",
+              color: "#222",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {actionData.message}
+          </div>
+        </s-section>
+      ) : null}
 
       <s-section heading="Create keyword rule">
         {charts.length === 0 ? (
@@ -251,7 +283,20 @@ export default function KeywordRulesPage() {
 
       <s-section heading="Existing keyword rules">
         {keywordRules.length === 0 ? (
-          <s-paragraph>No keyword rules yet.</s-paragraph>
+          <div
+            style={{
+              padding: 16,
+              borderRadius: 14,
+              border: "1px solid #e7e7e7",
+              background: "#fafafa",
+            }}
+          >
+            <s-paragraph>No keyword rules yet.</s-paragraph>
+            <s-paragraph>
+              Create a keyword rule only if you want a fallback match when direct assignments do not
+              apply.
+            </s-paragraph>
+          </div>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
             {keywordRules.map((rule) => (

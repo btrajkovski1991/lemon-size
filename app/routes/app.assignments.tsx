@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, HeadersFunction } from "react-router";
-import { Form, useLoaderData } from "react-router";
+import { Form, useActionData, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -42,6 +42,11 @@ type CollectionLite = {
   imageUrl?: string | null;
   imageAlt?: string | null;
 };
+
+type ActionData =
+  | { ok: true; message: string }
+  | { ok: false; message: string }
+  | undefined;
 
 function normalizeColumns(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
@@ -177,13 +182,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const chartIdRaw = String(form.get("chartId") || "").trim();
 
     if (scope !== "ALL" && !scopeValue) {
-      throw new Response("Missing scopeValue", { status: 400 });
+      return { ok: false, message: "Choose a valid match value before saving the rule." } satisfies ActionData;
     }
 
     if (!chartIdRaw) {
-      throw new Response("Missing chartId. Seed/create size charts first, then select a table.", {
-        status: 400,
-      });
+      return {
+        ok: false,
+        message: "Choose a size table before saving the rule.",
+      } satisfies ActionData;
     }
 
     await prisma.sizeChartAssignment.create({
@@ -197,36 +203,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return { ok: true };
+    return { ok: true, message: "Assignment rule saved." } satisfies ActionData;
   }
 
   // SAFE TOGGLE
   if (intent === "toggle") {
     const id = String(form.get("id") || "");
     const enabled = String(form.get("enabled") || "false") === "true";
-    if (!id) throw new Response("Missing id", { status: 400 });
+    if (!id) return { ok: false, message: "Missing rule id." } satisfies ActionData;
 
     const result = await prisma.sizeChartAssignment.updateMany({
       where: { id, shopId: shopRow.id },
       data: { enabled },
     });
 
-    return { ok: true, updated: result.count };
+    return {
+      ok: true,
+      message: `Assignment rule ${enabled ? "enabled" : "disabled"}.`,
+    } satisfies ActionData;
   }
 
   // SAFE DELETE
   if (intent === "delete") {
     const id = String(form.get("id") || "");
-    if (!id) throw new Response("Missing id", { status: 400 });
+    if (!id) return { ok: false, message: "Missing rule id." } satisfies ActionData;
 
     const result = await prisma.sizeChartAssignment.deleteMany({
       where: { id, shopId: shopRow.id },
     });
 
-    return { ok: true, deleted: result.count };
+    return { ok: true, message: "Assignment rule deleted." } satisfies ActionData;
   }
 
-  return { ok: false };
+  return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
 
 function ruleLabel(scope: string, scopeValue: string | null) {
@@ -617,6 +626,7 @@ function ChartPreview({ chart }: { chart: ChartLite | null }) {
 }
 
 export default function Assignments() {
+  const actionData = useActionData<ActionData>();
   const loaderData = useLoaderData<typeof loader>();
   const { shopDomain, rules, products, collections } = loaderData;
   const charts = useMemo<ChartLite[]>(
@@ -707,6 +717,24 @@ export default function Assignments() {
           <strong>Shop:</strong> {shopDomain}
         </s-paragraph>
       </s-section>
+
+      {actionData ? (
+        <s-section>
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: actionData.ok ? "1px solid #b7e1c0" : "1px solid #ef9a9a",
+              background: actionData.ok ? "#f3fbf5" : "#fff5f5",
+              color: "#222",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {actionData.message}
+          </div>
+        </s-section>
+      ) : null}
 
       {/* Product picker modal */}
       <ModalShell
@@ -1302,7 +1330,20 @@ export default function Assignments() {
 
       <s-section heading="Rules">
         {rules.length === 0 ? (
-          <s-paragraph>No rules yet.</s-paragraph>
+          <div
+            style={{
+              padding: 16,
+              borderRadius: 14,
+              border: "1px solid #e7e7e7",
+              background: "#fafafa",
+            }}
+          >
+            <s-paragraph>No assignment rules yet.</s-paragraph>
+            <s-paragraph>
+              Start with a direct product or collection assignment. Those rules are checked before
+              keyword fallbacks.
+            </s-paragraph>
+          </div>
         ) : (
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>

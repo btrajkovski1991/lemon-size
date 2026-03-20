@@ -19,6 +19,8 @@ type ChartLite = {
   title: string;
   isDefault: boolean;
   unit?: string | null;
+  assignmentCount?: number;
+  keywordRuleCount?: number;
   columns?: string[] | null;
   guideTitle?: string | null;
   guideText?: string | null;
@@ -49,6 +51,17 @@ type EditorChart = {
   rows: ChartRowLite[];
 };
 
+function normalizeUnitValue(input: unknown): "cm" | "in" | null {
+  const raw = String(input ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!raw) return null;
+  if (["cm", "cms", "centimeter", "centimeters"].includes(raw)) return "cm";
+  if (["in", "inch", "inches"].includes(raw)) return "in";
+  return null;
+}
+
 function normalizeChartLite(chart: any): ChartLite {
   const columns = normalizeColumns(chart?.columns);
 
@@ -57,6 +70,8 @@ function normalizeChartLite(chart: any): ChartLite {
     title: String(chart?.title ?? ""),
     isDefault: Boolean(chart?.isDefault),
     unit: chart?.unit ? String(chart.unit) : null,
+    assignmentCount: Number(chart?._count?.assigns ?? 0),
+    keywordRuleCount: Number(chart?._count?.keywordAssignments ?? 0),
     guideTitle: chart?.guideTitle ? String(chart.guideTitle) : null,
     guideText: chart?.guideText ? String(chart.guideText) : null,
     guideImage: chart?.guideImage ? String(chart.guideImage) : null,
@@ -172,6 +187,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       title: true,
       isDefault: true,
       unit: true,
+      _count: {
+        select: {
+          assigns: true,
+          keywordAssignments: true,
+        },
+      },
       guideTitle: true,
       guideText: true,
       guideImage: true,
@@ -206,7 +227,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "save") {
     const chartId = String(form.get("chartId") || "").trim() || null;
     const title = String(form.get("title") || "").trim();
-    const unit = String(form.get("unit") || "").trim() || "cm";
+    const unitInput = String(form.get("unit") || "").trim();
     const guideTitle = String(form.get("guideTitle") || "").trim();
     const guideText = String(form.get("guideText") || "").trim();
     const guideImage = String(form.get("guideImage") || "").trim();
@@ -227,6 +248,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (!title) {
       return { ok: false, message: "Table title is required." } satisfies ActionData;
+    }
+
+    const unit = normalizeUnitValue(unitInput);
+    if (!unit) {
+      return {
+        ok: false,
+        message: 'Unit must be "cm" or "in" so storefront conversion works correctly.',
+      } satisfies ActionData;
     }
 
     if (columns.length === 0) {
@@ -740,9 +769,13 @@ function ChartCard({
             {Array.isArray(chart.rows) ? chart.rows.length : 0} rows
           </div>
 
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+            Usage: {chart.assignmentCount || 0} assignment(s) • {chart.keywordRuleCount || 0} keyword rule(s)
+          </div>
+
           {chart.guideImage ? (
             <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-              Image: {chart.showGuideImage ? "shown" : "hidden"}
+              Storefront image: {chart.showGuideImage ? "visible" : "hidden"}
             </div>
           ) : null}
         </div>
@@ -826,6 +859,7 @@ export default function SizeChartsPage() {
   const [onlyDefault, setOnlyDefault] = useState(false);
   const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [unitFilter, setUnitFilter] = useState("all");
+  const [editorInitialJson, setEditorInitialJson] = useState(JSON.stringify(emptyEditor()));
 
   const isSubmitting = navigation.state === "submitting";
   const sortedCharts = useMemo(() => charts ?? [], [charts]);
@@ -833,16 +867,46 @@ export default function SizeChartsPage() {
   useEffect(() => {
     if (actionData?.ok) {
       setEditorOpen(false);
+      setEditorInitialJson(JSON.stringify(emptyEditor()));
     }
   }, [actionData]);
 
+  const editorDirty = useMemo(
+    () => JSON.stringify(editor) !== editorInitialJson,
+    [editor, editorInitialJson],
+  );
+
+  useEffect(() => {
+    if (!editorOpen || !editorDirty) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [editorOpen, editorDirty]);
+
+  function closeEditor() {
+    if (editorOpen && editorDirty) {
+      const confirmed = window.confirm("You have unsaved changes. Discard them?");
+      if (!confirmed) return;
+    }
+    setEditorOpen(false);
+  }
+
   function openCreate() {
-    setEditor(emptyEditor());
+    const next = emptyEditor();
+    setEditor(next);
+    setEditorInitialJson(JSON.stringify(next));
     setEditorOpen(true);
   }
 
   function openEdit(chart: ChartLite) {
-    setEditor(buildEditorFromChart(chart));
+    const next = buildEditorFromChart(chart);
+    setEditor(next);
+    setEditorInitialJson(JSON.stringify(next));
     setEditorOpen(true);
   }
 
@@ -1215,13 +1279,13 @@ export default function SizeChartsPage() {
       <ModalShell
         open={editorOpen}
         title={editor.id ? "Edit size table" : "Create size table"}
-        onClose={() => setEditorOpen(false)}
+        onClose={closeEditor}
         wide
         footer={
           <>
             <button
               type="button"
-              onClick={() => setEditorOpen(false)}
+              onClick={closeEditor}
               disabled={isSubmitting}
               style={{
                 padding: "10px 14px",
@@ -1302,9 +1366,19 @@ export default function SizeChartsPage() {
                 <input
                   value={editor.unit}
                   onChange={(e) => setEditor((prev) => ({ ...prev, unit: e.target.value }))}
-                  placeholder="cm / in / mm"
+                  placeholder="cm or in"
                   style={inputStyle}
                 />
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
+                  Use the same unit here as the unit you enter in the table values. Storefront
+                  shoppers can switch between CM and INCHES automatically.
+                </div>
+                {editor.unit.trim() && !normalizeUnitValue(editor.unit) ? (
+                  <div style={{ fontSize: 12, color: "#c62828", marginTop: 6, lineHeight: 1.4 }}>
+                    Use only <strong>cm</strong> or <strong>in</strong> here for reliable storefront
+                    conversion.
+                  </div>
+                ) : null}
               </div>
 
               <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
