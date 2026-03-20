@@ -20,6 +20,7 @@ export default function App() {
         <s-link href="/app/assignments">Assignments</s-link>
         <s-link href="/app/keyword-rules">Keyword rules</s-link>
         <s-link href="/app/rule-tester">Rule tester</s-link>
+        <s-link href="/app/analytics">Analytics</s-link>
         <s-link href="/app/size-charts">Size Charts</s-link>
         <s-link href="/app/additional">Help</s-link>
       </s-app-nav>

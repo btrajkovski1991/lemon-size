@@ -113,6 +113,39 @@
     return url;
   }
 
+  function buildAnalyticsUrl(trigger, chart) {
+    const analyticsBase = trigger.getAttribute("data-analytics-base") || "/apps/lemon-size/analytics";
+    const url = new URL(analyticsBase, window.location.origin);
+
+    const productId = trigger.getAttribute("data-product-id") || "";
+    const productHandle = trigger.getAttribute("data-product-handle") || "";
+    const productTitle = trigger.getAttribute("data-product-title") || "";
+    const chartId = chart && chart.id ? String(chart.id) : "";
+
+    url.searchParams.set("event", "open");
+    if (productId) url.searchParams.set("product_id", productId);
+    if (productHandle) url.searchParams.set("product_handle", productHandle);
+    if (productTitle) url.searchParams.set("product_title", productTitle);
+    if (chartId) url.searchParams.set("chart_id", chartId);
+
+    return url;
+  }
+
+  function trackChartView(trigger, data) {
+    const chart = data && Object.prototype.hasOwnProperty.call(data, "chart") ? data.chart : null;
+    if (!chart || !chart.id) return;
+
+    const url = buildAnalyticsUrl(trigger, chart);
+
+    fetch(url.toString(), {
+      method: "GET",
+      credentials: "same-origin",
+      keepalive: true,
+    }).catch(function (error) {
+      console.error("[LemonSize] analytics tracking failed:", error);
+    });
+  }
+
   async function requestJson(url) {
     const res = await fetch(url.toString(), { credentials: "same-origin" });
     const text = await res.text();
@@ -429,6 +462,10 @@
       imgEl.removeAttribute("src");
 
       if (imgUrl) {
+        // Show the wrapper as soon as we have a valid image URL. If the image fails,
+        // the error handler will hide it again.
+        showGuideImage();
+
         imgEl.onload = showGuideImage;
 
         imgEl.onerror = function () {
@@ -474,6 +511,7 @@
       const data = await fetchChart(trigger);
       modal._lemonData = data;
       render(modal, content, data);
+      return data;
     } catch (err) {
       console.error("[LemonSize] Fetch/render error:", err);
       const message =
@@ -489,6 +527,7 @@
           retry: true,
         },
       );
+      return null;
     }
   }
 
@@ -613,10 +652,12 @@
 
         if (modal._lemonData) {
           render(modal, content, modal._lemonData);
+          trackChartView(btn, modal._lemonData);
           return;
         }
 
-        await loadAndRenderChart(modal, content, btn);
+        const data = await loadAndRenderChart(modal, content, btn);
+        if (data) trackChartView(btn, data);
       });
 
       root.addEventListener("click", (e) => {

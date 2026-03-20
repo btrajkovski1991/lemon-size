@@ -41,6 +41,7 @@ model Shop {
   sizeAssignments SizeChartAssignment[]
   keywordRules    SizeKeywordRule[]
   purchaseSignals SizePurchaseSignal[]
+  guideViewEvents SizeGuideViewEvent[]
 
   @@index([shop])
 }
@@ -65,6 +66,7 @@ model SizeChart {
   assigns            SizeChartAssignment[]
   keywordAssignments SizeKeywordRule[]
   purchaseSignals    SizePurchaseSignal[]
+  viewEvents         SizeGuideViewEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -164,4 +166,23 @@ model SizePurchaseSignal {
   @@index([shopId, chartId])
   @@index([shopId, kept])
   @@index([shopId, sizeLabel])
+}
+
+model SizeGuideViewEvent {
+  id           String   @id @default(cuid())
+  shopId       String
+  chartId      String?
+  productId    String?
+  productHandle String?
+  productTitle String?
+  eventType    String   @default("open")
+  createdAt    DateTime @default(now())
+
+  shop  Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  chart SizeChart? @relation(fields: [chartId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, createdAt])
+  @@index([shopId, chartId, createdAt])
+  @@index([shopId, productHandle, createdAt])
+  @@index([shopId, eventType, createdAt])
 }
