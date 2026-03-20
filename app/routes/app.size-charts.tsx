@@ -62,15 +62,172 @@ const GUIDE_IMAGE_PRESETS = [
     label: "Dress",
     value: "/images/size-guides/dress.png",
   },
+  {
+    label: "Ring",
+    value: "/images/size-guides/ring.png",
+  },
+  {
+    label: "Bracelet",
+    value: "/images/size-guides/bracelet.png",
+  },
+  {
+    label: "Necklace",
+    value: "/images/size-guides/necklace.png",
+  },
 ];
 
-function normalizeUnitValue(input: unknown): "cm" | "in" | null {
+const JEWELRY_TABLE_TEMPLATES = [
+  {
+    key: "ring",
+    label: "Ring size",
+    build: (): Partial<EditorChart> => ({
+      title: "Ring Size",
+      unit: "mm",
+      guideTitle: "How to measure your ring size",
+      guideText:
+        "Measure the inside diameter of a ring that already fits, or measure the circumference of your finger with a paper strip and compare it to the chart.",
+      guideImage: "/images/size-guides/ring.png",
+      showGuideImage: true,
+      tips: "For the most precise fit, measure at the end of the day and avoid measuring when fingers are very cold.",
+      disclaimer: "If you are between sizes, choose the larger size for comfort.",
+      columns: ["RING SIZE", "DIAMETER", "CIRCUMFERENCE"],
+      rows: [
+        {
+          label: "US 5",
+          sortOrder: 1,
+          values: {
+            "RING SIZE": "US 5",
+            DIAMETER: "15.7 mm",
+            CIRCUMFERENCE: "49.3 mm",
+          },
+        },
+        {
+          label: "US 6",
+          sortOrder: 2,
+          values: {
+            "RING SIZE": "US 6",
+            DIAMETER: "16.5 mm",
+            CIRCUMFERENCE: "51.9 mm",
+          },
+        },
+        {
+          label: "US 7",
+          sortOrder: 3,
+          values: {
+            "RING SIZE": "US 7",
+            DIAMETER: "17.3 mm",
+            CIRCUMFERENCE: "54.4 mm",
+          },
+        },
+      ],
+    }),
+  },
+  {
+    key: "necklace",
+    label: "Necklace size",
+    build: (): Partial<EditorChart> => ({
+      title: "Necklace Size",
+      unit: "cm",
+      guideTitle: "How to measure necklace fit",
+      guideText:
+        "Measure around the neck where the necklace will sit, then compare that measurement to the necklace length in the chart.",
+      guideImage: "/images/size-guides/necklace.png",
+      showGuideImage: true,
+      tips: "Use chain length as the main fit field. Thickness is helpful as a product detail, but length matters most for sizing.",
+      disclaimer: "Neck thickness is usually not the main sizing field unless the style fits closely like a choker.",
+      columns: ["STYLE", "NECKLACE LENGTH", "DROP LENGTH", "THICKNESS"],
+      rows: [
+        {
+          label: "Choker",
+          sortOrder: 1,
+          values: {
+            STYLE: "Choker",
+            "NECKLACE LENGTH": "35 cm",
+            "DROP LENGTH": "0 cm",
+            THICKNESS: "2 mm",
+          },
+        },
+        {
+          label: "Princess",
+          sortOrder: 2,
+          values: {
+            STYLE: "Princess",
+            "NECKLACE LENGTH": "45 cm",
+            "DROP LENGTH": "10 cm",
+            THICKNESS: "2.5 mm",
+          },
+        },
+        {
+          label: "Matinee",
+          sortOrder: 3,
+          values: {
+            STYLE: "Matinee",
+            "NECKLACE LENGTH": "55 cm",
+            "DROP LENGTH": "20 cm",
+            THICKNESS: "3 mm",
+          },
+        },
+      ],
+    }),
+  },
+  {
+    key: "bracelet",
+    label: "Bracelet size",
+    build: (): Partial<EditorChart> => ({
+      title: "Bracelet Size",
+      unit: "cm",
+      guideTitle: "How to measure bracelet fit",
+      guideText:
+        "Measure the wrist circumference snugly, then choose the bracelet length that gives the fit you want.",
+      guideImage: "/images/size-guides/bracelet.png",
+      showGuideImage: true,
+      tips: "Wrist circumference and bracelet length are the main fit fields. Width is optional for style, and clasp thickness is usually not a sizing field.",
+      disclaimer: "Add a little extra room for looser styles or charm bracelets.",
+      columns: ["FIT", "WRIST", "BRACELET LENGTH", "WIDTH"],
+      rows: [
+        {
+          label: "Small",
+          sortOrder: 1,
+          values: {
+            FIT: "Small",
+            WRIST: "14 cm",
+            "BRACELET LENGTH": "16 cm",
+            WIDTH: "4 mm",
+          },
+        },
+        {
+          label: "Medium",
+          sortOrder: 2,
+          values: {
+            FIT: "Medium",
+            WRIST: "16 cm",
+            "BRACELET LENGTH": "18 cm",
+            WIDTH: "5 mm",
+          },
+        },
+        {
+          label: "Large",
+          sortOrder: 3,
+          values: {
+            FIT: "Large",
+            WRIST: "18 cm",
+            "BRACELET LENGTH": "20 cm",
+            WIDTH: "6 mm",
+          },
+        },
+      ],
+    }),
+  },
+];
+
+function normalizeUnitValue(input: unknown): "cm" | "in" | "mm" | null {
   const raw = String(input ?? "")
     .trim()
     .toLowerCase();
 
   if (!raw) return null;
   if (["cm", "cms", "centimeter", "centimeters"].includes(raw)) return "cm";
+  if (["mm", "millimeter", "millimeters"].includes(raw)) return "mm";
   if (["in", "inch", "inches"].includes(raw)) return "in";
   return null;
 }
@@ -356,7 +513,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!unit) {
       return {
         ok: false,
-        message: 'Unit must be "cm" or "in" so storefront conversion works correctly.',
+        message: 'Unit must be "cm", "mm", or "in" so storefront conversion works correctly.',
       } satisfies ActionData;
     }
 
@@ -1150,6 +1307,22 @@ export default function SizeChartsPage() {
     setEditorOpen(true);
   }
 
+  function applyTemplate(templateKey: string) {
+    const template = JEWELRY_TABLE_TEMPLATES.find((item) => item.key === templateKey);
+    if (!template) return;
+
+    const next = {
+      ...emptyEditor(),
+      ...template.build(),
+      id: editor.id,
+      isDefault: editor.isDefault,
+    } satisfies EditorChart;
+
+    setEditor(next);
+    setImportText("");
+    setImportMessage(`${template.label} template loaded. Adjust any values, then save the table.`);
+  }
+
   function openEdit(chart: ChartLite) {
     const next = buildEditorFromChart(chart);
     setEditor(next);
@@ -1641,6 +1814,33 @@ export default function SizeChartsPage() {
 
             <div style={{ display: "grid", gap: 12 }}>
               <div>
+                <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Quick templates</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {JEWELRY_TABLE_TEMPLATES.map((template) => (
+                    <button
+                      key={template.key}
+                      type="button"
+                      onClick={() => applyTemplate(template.key)}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 999,
+                        border: "1px solid #dfe3e8",
+                        background: "white",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {template.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
+                  Start faster with ready-made jewelry tables for rings, necklaces, and bracelets.
+                </div>
+              </div>
+
+              <div>
                 <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Title</label>
                 <input
                   value={editor.title}
@@ -1655,17 +1855,23 @@ export default function SizeChartsPage() {
                 <input
                   value={editor.unit}
                   onChange={(e) => setEditor((prev) => ({ ...prev, unit: e.target.value }))}
-                  placeholder="cm or in"
+                  placeholder="cm, mm, or in"
                   style={inputStyle}
                 />
                 <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
                   Use the same unit here as the unit you enter in the table values. Storefront
-                  shoppers can switch between CM and INCHES automatically.
+                  shoppers can switch between MM, CM, and INCHES automatically.
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
+                  For rings and jewelry, measurement columns like <strong>DIAMETER</strong>,{" "}
+                  <strong>CIRCUMFERENCE</strong>, <strong>FINGER SIZE</strong>,{" "}
+                  <strong>NECKLACE LENGTH</strong>, <strong>BRACELET LENGTH</strong>, and{" "}
+                  <strong>THICKNESS</strong> now convert automatically too.
                 </div>
                 {editor.unit.trim() && !normalizeUnitValue(editor.unit) ? (
                   <div style={{ fontSize: 12, color: "#c62828", marginTop: 6, lineHeight: 1.4 }}>
-                    Use only <strong>cm</strong> or <strong>in</strong> here for reliable storefront
-                    conversion.
+                    Use only <strong>cm</strong>, <strong>mm</strong>, or <strong>in</strong> here
+                    for reliable storefront conversion.
                   </div>
                 ) : null}
               </div>

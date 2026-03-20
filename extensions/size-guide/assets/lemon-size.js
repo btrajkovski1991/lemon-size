@@ -187,26 +187,42 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function isLengthUnit(unit) {
+    return unit === "cm" || unit === "in" || unit === "mm";
+  }
+
   function hasExplicitUnit(value) {
-    return /\b(cm|cms|centimeter|centimeters|in|inch|inches)\b/i.test(String(value || ""));
+    return /\b(mm|millimeter|millimeters|cm|cms|centimeter|centimeters|in|inch|inches)\b/i.test(
+      String(value || ""),
+    );
   }
 
   function convertNumber(n, fromUnit, toUnit) {
-    if (fromUnit === "cm" && toUnit === "in") return n / 2.54;
-    if (fromUnit === "in" && toUnit === "cm") return n * 2.54;
+    if (fromUnit === toUnit) return n;
+
+    var mmValue = n;
+    if (fromUnit === "cm") mmValue = n * 10;
+    else if (fromUnit === "in") mmValue = n * 25.4;
+    else if (fromUnit === "mm") mmValue = n;
+
+    if (toUnit === "mm") return mmValue;
+    if (toUnit === "cm") return mmValue / 10;
+    if (toUnit === "in") return mmValue / 25.4;
     return n;
   }
 
   function fmt(n, unit) {
     if (unit === "in") return n.toFixed(2).replace(/\.00$/, "");
     if (unit === "cm") return n.toFixed(1).replace(/\.0$/, "");
+    if (unit === "mm") return n.toFixed(1).replace(/\.0$/, "");
     return String(n);
   }
 
   function normalizeUnitLabel(text, toUnit) {
     return String(text)
-      .replace(/\b(cm|cms|centimeter|centimeters)\b/gi, toUnit === "cm" ? "cm" : "in")
-      .replace(/\b(in|inch|inches)\b/gi, toUnit === "in" ? "in" : "cm");
+      .replace(/\b(mm|millimeter|millimeters)\b/gi, toUnit)
+      .replace(/\b(cm|cms|centimeter|centimeters)\b/gi, toUnit)
+      .replace(/\b(in|inch|inches)\b/gi, toUnit);
   }
 
   function convertMeasurementText(raw, fromUnit, toUnit) {
@@ -229,6 +245,26 @@
 
   function shouldConvertColumn(colName) {
     const c = String(colName || "").toUpperCase();
+
+    const jewelryMeasurementKeys = [
+      "DIAMETER",
+      "CIRCUMFERENCE",
+      "INSIDE DIAMETER",
+      "INNER DIAMETER",
+      "FINGER SIZE",
+      "CHAIN LENGTH",
+      "NECKLACE LENGTH",
+      "BRACELET LENGTH",
+      "THICKNESS",
+      "WIDTH",
+      "DROP LENGTH",
+      "DROP",
+      "GIRTH",
+    ];
+
+    if (jewelryMeasurementKeys.some((key) => c.includes(key))) {
+      return true;
+    }
 
     if (
       c.includes("SIZE") ||
@@ -261,6 +297,7 @@
       "ARM",
       "LEG",
       "HEIGHT",
+      "BAND",
     ];
 
     return keys.some((k) => c.includes(k));
@@ -283,7 +320,7 @@
     }
 
     const unitWrap = modal.querySelector(".lemon-size__unit");
-    const canToggle = baseUnit === "cm" || baseUnit === "in";
+    const canToggle = isLengthUnit(baseUnit);
     if (unitWrap) unitWrap.hidden = !canToggle;
 
     setUnitButtons(modal, displayUnit);
@@ -363,8 +400,8 @@
                   : "";
 
             if (
-              (baseUnit === "cm" || baseUnit === "in") &&
-              (displayUnit === "cm" || displayUnit === "in") &&
+              isLengthUnit(baseUnit) &&
+              isLengthUnit(displayUnit) &&
               baseUnit !== displayUnit &&
               shouldConvertColumn(c)
             ) {
@@ -568,7 +605,7 @@
     modal._lemonBaseUnit = baseUnit;
     modal._lemonMatchReason = chart.matchReason || "";
 
-    const canToggle = baseUnit === "cm" || baseUnit === "in";
+    const canToggle = isLengthUnit(baseUnit);
     if (!modal._lemonDisplayUnit || !canToggle) modal._lemonDisplayUnit = baseUnit;
 
     setUnitUI(modal, baseUnit, modal._lemonDisplayUnit);
@@ -637,8 +674,8 @@
           if (!u) return;
 
           const base = modal._lemonBaseUnit || "cm";
-          if (!(base === "cm" || base === "in")) return;
-          if (!(u === "cm" || u === "in")) return;
+          if (!isLengthUnit(base)) return;
+          if (!isLengthUnit(u)) return;
 
           modal._lemonDisplayUnit = u;
           setUnitUI(modal, base, u);

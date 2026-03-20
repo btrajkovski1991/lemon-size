@@ -33,27 +33,64 @@ function splitRangeParts(value?: string | null) {
     .filter(Boolean);
 }
 
+function isSizeLikeColumn(columnName?: string | null) {
+  const raw = normalizeSizeValue(columnName);
+  if (!raw) return false;
+
+  return [
+    "SIZE",
+    "RING SIZE",
+    "FINGER SIZE",
+    "SHOE SIZE",
+    "BAND",
+    "WIDTH",
+    "LENGTH",
+    "NECKLACE LENGTH",
+    "BRACELET LENGTH",
+    "CHAIN LENGTH",
+    "CIRCUMFERENCE",
+    "DIAMETER",
+    "WRIST",
+  ].some((token) => raw.includes(token));
+}
+
 function rowMatchesAvailableSizes(
   row: { label?: string | null; values?: Record<string, any> | null },
+  columns: string[],
   availableSet: Set<string>
 ) {
-  const candidates = new Set<string>();
+  const primaryCandidates = new Set<string>();
+  const fallbackCandidates = new Set<string>();
 
-  const addCandidate = (value: any) => {
+  const addCandidate = (target: Set<string>, value: any) => {
     const normalized = normalizeSizeValue(value);
-    if (normalized) candidates.add(normalized);
+    if (normalized) target.add(normalized);
 
     for (const part of splitRangeParts(value)) {
-      candidates.add(part);
+      target.add(part);
     }
   };
 
-  addCandidate(row.label);
+  const values = row.values && typeof row.values === "object" ? row.values : {};
+  const prioritizedColumns = columns.filter((column) => isSizeLikeColumn(column));
 
-  const values = row.values && typeof row.values === "object" ? Object.values(row.values) : [];
-  for (const value of values) addCandidate(value);
+  for (const column of prioritizedColumns) {
+    addCandidate(primaryCandidates, values[column]);
+  }
 
-  for (const candidate of candidates) {
+  addCandidate(primaryCandidates, row.label);
+
+  for (const value of Object.values(values)) {
+    addCandidate(fallbackCandidates, value);
+  }
+
+  for (const candidate of primaryCandidates) {
+    if (availableSet.has(candidate)) return true;
+  }
+
+  if (primaryCandidates.size > 0) return false;
+
+  for (const candidate of fallbackCandidates) {
     if (availableSet.has(candidate)) return true;
   }
 
@@ -228,7 +265,7 @@ export async function loader({ request }: { request: Request }) {
       const availableSet = new Set(availableSizes);
 
       const matchedRows = filteredRows.filter((row) =>
-        rowMatchesAvailableSizes(row, availableSet)
+        rowMatchesAvailableSizes(row, columns, availableSet)
       );
 
       if (matchedRows.length > 0) {
