@@ -859,17 +859,17 @@ function ChartCard({
         borderRadius: 18,
         padding: 18,
         background: "white",
-        boxShadow: "0 10px 24px rgba(0,0,0,.05)",
+        boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
       }}
     >
-      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         <div
           style={{
             width: 62,
             height: 62,
             borderRadius: 16,
-            border: "1px solid #eee",
-            background: "#fafafa",
+            border: "1px solid #edf2f7",
+            background: "#f8fafc",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -880,30 +880,103 @@ function ChartCard({
         </div>
 
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 850, fontSize: 16, lineHeight: 1.15 }}>
+          <div style={{ fontWeight: 850, fontSize: 17, lineHeight: 1.2 }}>
             {chart.title}
             {chart.isDefault ? " (default)" : ""}
           </div>
 
-          <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8 }}>
-            {chart.unit ? String(chart.unit).toUpperCase() : "—"} •{" "}
-            {Array.isArray(chart.columns) ? chart.columns.length : 0} cols •{" "}
-            {Array.isArray(chart.rows) ? chart.rows.length : 0} rows
-          </div>
-
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-            Usage: {chart.assignmentCount || 0} assignment(s) • {chart.keywordRuleCount || 0} keyword rule(s)
-          </div>
-
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-            Updated: {chart.updatedAt ? new Date(chart.updatedAt).toLocaleDateString() : "—"}
-          </div>
-
-          {chart.guideImage ? (
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-              Storefront image: {chart.showGuideImage ? "visible" : "hidden"}
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: "#475467",
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "5px 10px",
+                borderRadius: 999,
+                background: "#f3f6f8",
+                border: "1px solid #e7ecef",
+              }}
+            >
+              {chart.unit ? String(chart.unit).toUpperCase() : "—"} base unit
             </div>
-          ) : null}
+            <div
+              style={{
+                fontSize: 11,
+                color: "#475467",
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "5px 10px",
+                borderRadius: 999,
+                background: "#f3f6f8",
+                border: "1px solid #e7ecef",
+              }}
+            >
+              {Array.isArray(chart.columns) ? chart.columns.length : 0} cols •{" "}
+              {Array.isArray(chart.rows) ? chart.rows.length : 0} rows
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(120px, 1fr))",
+          gap: 10,
+          marginTop: 14,
+        }}
+      >
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: "#fbfbfc",
+            border: "1px solid #eef0f3",
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+            Usage
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+            {chart.assignmentCount || 0} assignment(s) • {chart.keywordRuleCount || 0} rule(s)
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: "#fbfbfc",
+            border: "1px solid #eef0f3",
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+            Updated
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+            {chart.updatedAt ? new Date(chart.updatedAt).toLocaleDateString() : "—"}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: chart.guideImage
+              ? chart.showGuideImage
+                ? "#f3fbf5"
+                : "#fbfbfc"
+              : "#fbfbfc",
+            border: chart.guideImage && chart.showGuideImage ? "1px solid #dbeee0" : "1px solid #eef0f3",
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+            Storefront image
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+            {!chart.guideImage ? "None" : chart.showGuideImage ? "Visible" : "Hidden"}
+          </div>
         </div>
       </div>
 
@@ -1345,7 +1418,7 @@ export default function SizeChartsPage() {
               whiteSpace: "nowrap",
             }}
           >
-            Create new table
+            Create table
           </button>
         </div>
 
@@ -1473,16 +1546,8 @@ export default function SizeChartsPage() {
         </div>
 
         {filteredCharts.length === 0 ? (
-          <div
-            style={{
-              marginTop: 16,
-              padding: 20,
-              borderRadius: 16,
-              border: "1px solid #eee",
-              background: "#fafafa",
-            }}
-          >
-            No tables match the selected filter.
+          <div style={{ ...emptyStateStyle, marginTop: 16 }}>
+            No size tables match the current filters.
           </div>
         ) : (
           <div
@@ -1942,6 +2007,13 @@ const secondaryBtnStyle = {
   background: "white",
   cursor: "pointer",
   fontWeight: 700,
+} as const;
+
+const emptyStateStyle = {
+  padding: 20,
+  borderRadius: 16,
+  border: "1px solid #e7e7e7",
+  background: "#fafafa",
 } as const;
 
 const dangerGhostBtnStyle = {

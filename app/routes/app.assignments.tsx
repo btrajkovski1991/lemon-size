@@ -294,14 +294,20 @@ function getRulePresentation(
   collections: CollectionLite[],
 ) {
   const scope = String(rule.scope || "").toUpperCase();
+  const scopeValueId = extractShopifyResourceId(rule.scopeValue);
 
   if (scope === "PRODUCT") {
-    const product = products.find((item) => item.id === rule.scopeValue);
+    const product =
+      products.find((item) => item.id === rule.scopeValue) ||
+      products.find((item) => extractShopifyResourceId(item.id) === scopeValueId);
     return {
-      title: product ? product.title : `Product #${extractShopifyResourceId(rule.scopeValue)}`,
+      title: product ? product.title : `Product #${scopeValueId}`,
       subtitle: product
-        ? `${product.vendor ? `${product.vendor} • ` : ""}${product.handle}`
+        ? [product.vendor, product.handle ? `/${product.handle}` : null].filter(Boolean).join(" • ")
         : "Direct product assignment",
+      imageUrl: product?.imageUrl || null,
+      imageAlt: product?.title || "Product image",
+      summary: `Priority ${rule.priority} • ${scope}`,
     };
   }
 
@@ -310,12 +316,18 @@ function getRulePresentation(
     return {
       title: collection ? collection.title : `Collection: ${rule.scopeValue || ""}`,
       subtitle: collection?.handle || "Collection assignment",
+      imageUrl: null,
+      imageAlt: null,
+      summary: `Priority ${rule.priority} • ${scope}`,
     };
   }
 
   return {
     title: ruleLabel(rule.scope, rule.scopeValue),
     subtitle: `Priority ${rule.priority} • ${scope}`,
+    imageUrl: null,
+    imageAlt: null,
+    summary: null,
   };
 }
 
@@ -1519,14 +1531,7 @@ export default function Assignments() {
 
       <s-section heading="Rules">
         {rules.length === 0 ? (
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 14,
-              border: "1px solid #e7e7e7",
-              background: "#fafafa",
-            }}
-          >
+          <div style={emptyStateStyle}>
             <s-paragraph>No assignment rules yet.</s-paragraph>
             <s-paragraph>
               Start with a direct product or collection assignment. Those rules are checked before
@@ -1535,6 +1540,10 @@ export default function Assignments() {
           </div>
         ) : (
           <>
+            <s-paragraph>
+              Review your direct matching rules here. Assignments are checked before any keyword
+              fallback rules.
+            </s-paragraph>
             <div
               style={{
                 padding: 16,
@@ -1621,92 +1630,162 @@ export default function Assignments() {
             </div>
 
             {filteredRules.length === 0 ? (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: 20,
-                  borderRadius: 16,
-                  border: "1px solid #eee",
-                  background: "#fafafa",
-                }}
-              >
-                No assignment rules match the selected filters.
+              <div style={{ ...emptyStateStyle, marginTop: 16 }}>
+                No assignment rules match the current filters.
               </div>
             ) : (
               <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                {filteredRules.map((r: RuleLite) => (
-                  <div
-                    key={r.id}
-                    style={{
-                      border: "1px solid #e7e7e7",
-                      borderRadius: 16,
-                      padding: 16,
-                      background: "white",
-                    }}
-                  >
+                {filteredRules.map((r: RuleLite) => {
+                  const presentation = getRulePresentation(r, products, collections);
+
+                  return (
                     <div
+                      key={r.id}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "minmax(260px, 1.5fr) repeat(3, minmax(120px, .6fr)) auto auto",
-                        gap: 12,
-                        alignItems: "center",
+                        border: "1px solid #e7e7e7",
+                        borderRadius: 18,
+                        padding: 18,
+                        background: "white",
+                        boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
                       }}
                     >
-                      <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "minmax(0, 1.6fr) repeat(3, minmax(120px, .6fr)) auto auto",
+                          gap: 14,
+                          alignItems: "start",
+                        }}
+                      >
                         <div
                           style={{
-                            fontSize: 16,
-                            fontWeight: 850,
-                            lineHeight: 1.3,
-                            wordBreak: "break-word",
+                            minWidth: 0,
+                            display: "flex",
+                            gap: 14,
+                            alignItems: "center",
+                            flexWrap: "wrap",
                           }}
                         >
-                          {getRulePresentation(r, products, collections).title}
+                          <div
+                            style={{
+                              padding: 6,
+                              borderRadius: 14,
+                              background: "#f8fafc",
+                              border: "1px solid #edf2f7",
+                              flex: "0 0 auto",
+                            }}
+                          >
+                            <Thumb url={presentation.imageUrl} alt={presentation.imageAlt} />
+                          </div>
+                          <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+                            <div
+                              style={{
+                                fontSize: 17,
+                                fontWeight: 850,
+                                lineHeight: 1.3,
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {presentation.title}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#5b6472",
+                                marginTop: 6,
+                                lineHeight: 1.45,
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {presentation.subtitle}
+                            </div>
+                            {presentation.summary ? (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "#475467",
+                                  marginTop: 8,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "5px 10px",
+                                  borderRadius: 999,
+                                  background: "#f3f6f8",
+                                  border: "1px solid #e7ecef",
+                                }}
+                              >
+                                {presentation.summary}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
+
                         <div
                           style={{
-                            fontSize: 12,
-                            opacity: 0.7,
-                            marginTop: 6,
-                            lineHeight: 1.45,
-                            wordBreak: "break-word",
+                            minWidth: 0,
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            background: "#fbfbfc",
+                            border: "1px solid #eef0f3",
                           }}
                         >
-                          {getRulePresentation(r, products, collections).subtitle}
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                            Table
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, wordBreak: "break-word" }}>
+                            {r.chart.title}
+                          </div>
                         </div>
+
+                        <div
+                          style={{
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            background: r.enabled ? "#f3fbf5" : "#fbf4f4",
+                            border: r.enabled ? "1px solid #dbeee0" : "1px solid #f0dede",
+                          }}
+                        >
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                            Status
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+                            {r.enabled ? "Enabled" : "Disabled"}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            background: "#fbfbfc",
+                            border: "1px solid #eef0f3",
+                          }}
+                        >
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                            Priority
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{r.priority}</div>
+                        </div>
+
+                        <Form method="post" style={{ alignSelf: "stretch", display: "flex", alignItems: "center" }}>
+                          <input type="hidden" name="intent" value="toggle" />
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="hidden" name="enabled" value={(!r.enabled).toString()} />
+                          <s-button type="submit" variant="tertiary">
+                            {r.enabled ? "Disable" : "Enable"}
+                          </s-button>
+                        </Form>
+
+                        <Form method="post" style={{ alignSelf: "stretch", display: "flex", alignItems: "center" }}>
+                          <input type="hidden" name="intent" value="delete" />
+                          <input type="hidden" name="id" value={r.id} />
+                          <s-button type="submit" variant="tertiary" tone="critical">
+                            Delete
+                          </s-button>
+                        </Form>
                       </div>
-
-                      <div style={{ fontSize: 13 }}>
-                        <strong>Table:</strong> {r.chart.title}
-                      </div>
-
-                      <div style={{ fontSize: 13 }}>
-                        <strong>Status:</strong> {r.enabled ? "Enabled" : "Disabled"}
-                      </div>
-
-                      <div style={{ fontSize: 13 }}>
-                        <strong>Priority:</strong> {r.priority}
-                      </div>
-
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="toggle" />
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="enabled" value={(!r.enabled).toString()} />
-                        <s-button type="submit" variant="tertiary">
-                          {r.enabled ? "Disable" : "Enable"}
-                        </s-button>
-                      </Form>
-
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="delete" />
-                        <input type="hidden" name="id" value={r.id} />
-                        <s-button type="submit" variant="tertiary" tone="critical">
-                          Delete
-                        </s-button>
-                      </Form>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -1747,6 +1826,13 @@ const secondaryBtnStyle = {
   background: "white",
   cursor: "pointer",
   fontWeight: 700,
+} as const;
+
+const emptyStateStyle = {
+  padding: 20,
+  borderRadius: 16,
+  border: "1px solid #e7e7e7",
+  background: "#fafafa",
 } as const;
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);

@@ -217,6 +217,10 @@ export default function KeywordRulesPage() {
       ) : null}
 
       <s-section heading="Create keyword rule">
+        <s-paragraph>
+          Add a fallback rule when you want broad matching by title, handle, vendor, type, or tags
+          after direct assignments have already been checked.
+        </s-paragraph>
         {charts.length === 0 ? (
           <s-banner tone="critical">
             No size charts found. Create or seed a size chart first.
@@ -334,14 +338,7 @@ export default function KeywordRulesPage() {
 
       <s-section heading="Existing keyword rules">
         {keywordRules.length === 0 ? (
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 14,
-              border: "1px solid #e7e7e7",
-              background: "#fafafa",
-            }}
-          >
+          <div style={emptyStateStyle}>
             <s-paragraph>No keyword rules yet.</s-paragraph>
             <s-paragraph>
               Create a keyword rule only if you want a fallback match when direct assignments do not
@@ -350,6 +347,10 @@ export default function KeywordRulesPage() {
           </div>
         ) : (
           <>
+            <s-paragraph>
+              Review fallback rules here, filter by field or chart, and keep the lowest priority
+              number on the rule that should win first.
+            </s-paragraph>
             <div
               style={{
                 padding: 16,
@@ -449,98 +450,145 @@ export default function KeywordRulesPage() {
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-            {filteredKeywordRules.length === 0 ? (
-              <div
-                style={{
-                  padding: 20,
-                  borderRadius: 16,
-                  border: "1px solid #eee",
-                  background: "#fafafa",
-                }}
-              >
-                No keyword rules match the selected filters.
-              </div>
-            ) : (
-              filteredKeywordRules.map((rule) => (
-              <div
-                key={rule.id}
-                style={{
-                  border: "1px solid #e9e9e9",
-                  borderRadius: 14,
-                  padding: 14,
-                  background: "#fff",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    gridTemplateColumns: "1.1fr .8fr .9fr .6fr auto auto",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 800 }}>{rule.keyword}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Field: {rule.field}</div>
-                  </div>
-
-                  <div style={{ fontSize: 13 }}>
-                    <strong>Chart:</strong> {rule.chart.title}
-                  </div>
-
-                  <div style={{ fontSize: 13 }}>
-                    <strong>Priority:</strong> {rule.priority}
-                  </div>
-
-                  <div style={{ fontSize: 13 }}>
-                    <strong>Status:</strong> {rule.enabled ? "Enabled" : "Disabled"}
-                  </div>
-
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="toggle" />
-                    <input type="hidden" name="id" value={rule.id} />
-                    <input
-                      type="hidden"
-                      name="enabled"
-                      value={rule.enabled ? "false" : "true"}
-                    />
-                    <button
-                      type="submit"
-                      style={{
-                        height: 38,
-                        padding: "0 14px",
-                        borderRadius: 10,
-                        border: "1px solid #d0d0d0",
-                        background: "#fff",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {rule.enabled ? "Disable" : "Enable"}
-                    </button>
-                  </Form>
-
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="delete" />
-                    <input type="hidden" name="id" value={rule.id} />
-                    <button
-                      type="submit"
-                      style={{
-                        height: 38,
-                        padding: "0 14px",
-                        borderRadius: 10,
-                        border: "1px solid #e24a4a",
-                        background: "#fff5f5",
-                        color: "#b42318",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </Form>
+              {filteredKeywordRules.length === 0 ? (
+                <div style={emptyStateStyle}>
+                  No keyword rules match the current filters.
                 </div>
-              </div>
-              ))
-            )}
+              ) : (
+                filteredKeywordRules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    style={{
+                      border: "1px solid #e7e7e7",
+                      borderRadius: 18,
+                      padding: 18,
+                      background: "#fff",
+                      boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 14,
+                        gridTemplateColumns: "minmax(0, 1.35fr) minmax(130px, .7fr) minmax(130px, .7fr) minmax(130px, .7fr) auto auto",
+                        alignItems: "start",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 17, fontWeight: 850, lineHeight: 1.3, wordBreak: "break-word" }}>
+                          {rule.keyword}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#475467",
+                            marginTop: 8,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            padding: "5px 10px",
+                            borderRadius: 999,
+                            background: "#f3f6f8",
+                            border: "1px solid #e7ecef",
+                          }}
+                        >
+                          Field: {rule.field}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          minWidth: 0,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          background: "#fbfbfc",
+                          border: "1px solid #eef0f3",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                          Table
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, wordBreak: "break-word" }}>
+                          {rule.chart.title}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          background: "#fbfbfc",
+                          border: "1px solid #eef0f3",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                          Priority
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{rule.priority}</div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          background: rule.enabled ? "#f3fbf5" : "#fbf4f4",
+                          border: rule.enabled ? "1px solid #dbeee0" : "1px solid #f0dede",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                          Status
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+                          {rule.enabled ? "Enabled" : "Disabled"}
+                        </div>
+                      </div>
+
+                      <Form method="post" style={{ alignSelf: "stretch", display: "flex", alignItems: "center" }}>
+                        <input type="hidden" name="intent" value="toggle" />
+                        <input type="hidden" name="id" value={rule.id} />
+                        <input
+                          type="hidden"
+                          name="enabled"
+                          value={rule.enabled ? "false" : "true"}
+                        />
+                        <button
+                          type="submit"
+                          style={{
+                            height: 38,
+                            padding: "0 14px",
+                            borderRadius: 10,
+                            border: "1px solid #d0d0d0",
+                            background: "#fff",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {rule.enabled ? "Disable" : "Enable"}
+                        </button>
+                      </Form>
+
+                      <Form method="post" style={{ alignSelf: "stretch", display: "flex", alignItems: "center" }}>
+                        <input type="hidden" name="intent" value="delete" />
+                        <input type="hidden" name="id" value={rule.id} />
+                        <button
+                          type="submit"
+                          style={{
+                            height: 38,
+                            padding: "0 14px",
+                            borderRadius: 10,
+                            border: "1px solid #e24a4a",
+                            background: "#fff5f5",
+                            color: "#b42318",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </Form>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </>
         )}
@@ -581,4 +629,11 @@ const secondaryBtnStyle = {
   background: "#fff",
   cursor: "pointer",
   fontWeight: 700,
+} as const;
+
+const emptyStateStyle = {
+  padding: 20,
+  borderRadius: 16,
+  border: "1px solid #e7e7e7",
+  background: "#fafafa",
 } as const;

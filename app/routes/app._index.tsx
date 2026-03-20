@@ -345,12 +345,10 @@ export default function Index() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(280px, 1.3fr) auto",
-                  gap: 12,
-                  alignItems: "end",
+                  gap: 14,
                 }}
               >
-                <label style={{ display: "grid", gap: 6 }}>
+                <label style={{ display: "grid", gap: 6, minWidth: 0 }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Product</span>
                   <select
                     name="productId"
@@ -367,35 +365,64 @@ export default function Index() {
                   </select>
                 </label>
 
-                <button type="submit" style={primaryBtnStyle} disabled={isPreviewSubmitting}>
-                  {isPreviewSubmitting ? "Checking..." : "Preview match"}
-                </button>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    flexWrap: "wrap",
+                    gap: 12,
+                  }}
+                >
+                  <button
+                    type="submit"
+                    style={{ ...primaryBtnStyle, minWidth: 180 }}
+                    disabled={isPreviewSubmitting}
+                  >
+                    {isPreviewSubmitting ? "Checking..." : "Preview match"}
+                  </button>
+                </div>
               </div>
             </Form>
 
             {selectedProduct ? (
-              <div style={selectedProductCardStyle}>
-                {selectedProduct.imageUrl ? (
-                  <img
-                    src={selectedProduct.imageUrl}
-                    alt={selectedProduct.title}
-                    style={selectedProductImageStyle}
-                  />
-                ) : (
-                  <div style={selectedProductPlaceholderStyle}>Preview</div>
-                )}
-                <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  ...selectedProductCardStyle,
+                  borderRadius: 18,
+                  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: 6,
+                    borderRadius: 18,
+                    background: "#f8fafc",
+                    border: "1px solid #edf2f7",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  {selectedProduct.imageUrl ? (
+                    <img
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.title}
+                      style={selectedProductImageStyle}
+                    />
+                  ) : (
+                    <div style={selectedProductPlaceholderStyle}>Preview</div>
+                  )}
+                </div>
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div style={{ fontSize: 12, opacity: 0.64, textTransform: "uppercase", letterSpacing: ".08em" }}>
                     Selected product
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 850, marginTop: 6 }}>
+                  <div style={{ fontSize: 18, fontWeight: 850, marginTop: 6, lineHeight: 1.25 }}>
                     {selectedProduct.title}
                   </div>
-                  <div style={{ fontSize: 13, opacity: 0.72, marginTop: 4, lineHeight: 1.45 }}>
+                  <div style={{ fontSize: 13, opacity: 0.72, marginTop: 6, lineHeight: 1.45 }}>
                     {selectedProduct.vendor ? `${selectedProduct.vendor} • ` : ""}
                     {selectedProduct.productType || "No product type"}
                   </div>
-                  <div style={{ fontSize: 12, opacity: 0.62, marginTop: 4 }}>
+                  <div style={{ fontSize: 12, opacity: 0.62, marginTop: 6 }}>
                     /products/{selectedProduct.handle}
                   </div>
                 </div>
