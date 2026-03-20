@@ -20,7 +20,7 @@ Status key:
 - [x] If recommendation is removed, remove dormant recommendation UX/code and `read_orders`.
 - [x] Add a production-ready app home page with setup steps and status guidance.
 - [x] Add a merchant help/support page inside the app.
-- [~] Verify all empty/error states across charts, assignments, keyword rules, and storefront proxy.
+- [x] Verify all empty/error states across charts, assignments, keyword rules, and storefront proxy.
 - [~] Test extension UX on desktop and mobile themes.
 - [ ] Verify install, uninstall, reinstall, and app block enablement on a dev store.
 - [x] Replace template README content with Lemon Size project documentation.

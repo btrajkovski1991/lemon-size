@@ -281,6 +281,44 @@ function ruleLabel(scope: string, scopeValue: string | null) {
   return `${scope}${scopeValue ? `: ${scopeValue}` : ""}`;
 }
 
+function extractShopifyResourceId(scopeValue: string | null) {
+  const raw = String(scopeValue || "").trim();
+  if (!raw) return "";
+  if (raw.includes("/")) return raw.split("/").pop() || raw;
+  return raw;
+}
+
+function getRulePresentation(
+  rule: RuleLite,
+  products: ProductLite[],
+  collections: CollectionLite[],
+) {
+  const scope = String(rule.scope || "").toUpperCase();
+
+  if (scope === "PRODUCT") {
+    const product = products.find((item) => item.id === rule.scopeValue);
+    return {
+      title: product ? product.title : `Product #${extractShopifyResourceId(rule.scopeValue)}`,
+      subtitle: product
+        ? `${product.vendor ? `${product.vendor} • ` : ""}${product.handle}`
+        : "Direct product assignment",
+    };
+  }
+
+  if (scope === "COLLECTION") {
+    const collection = collections.find((item) => item.handle === rule.scopeValue);
+    return {
+      title: collection ? collection.title : `Collection: ${rule.scopeValue || ""}`,
+      subtitle: collection?.handle || "Collection assignment",
+    };
+  }
+
+  return {
+    title: ruleLabel(rule.scope, rule.scopeValue),
+    subtitle: `Priority ${rule.priority} • ${scope}`,
+  };
+}
+
 function Thumb({ url, alt }: { url?: string | null; alt?: string | null }) {
   return (
     <div
@@ -1609,15 +1647,32 @@ export default function Assignments() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "minmax(220px, 1.2fr) repeat(3, minmax(120px, .6fr)) auto auto",
+                        gridTemplateColumns: "minmax(260px, 1.5fr) repeat(3, minmax(120px, .6fr)) auto auto",
                         gap: 12,
                         alignItems: "center",
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 850 }}>{ruleLabel(r.scope, r.scopeValue)}</div>
-                        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                          Priority {r.priority} • {String(r.scope).toUpperCase()}
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 850,
+                            lineHeight: 1.3,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {getRulePresentation(r, products, collections).title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            marginTop: 6,
+                            lineHeight: 1.45,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {getRulePresentation(r, products, collections).subtitle}
                         </div>
                       </div>
 
