@@ -13,6 +13,7 @@ type ProductLite = {
   handle: string;
   productType: string;
   vendor: string;
+  imageUrl?: string | null;
 };
 
 type ActionData =
@@ -27,6 +28,7 @@ type ActionData =
         reason: string | null;
         productType: string;
         vendor: string;
+        imageUrl?: string | null;
         collections: string[];
         tags: string[];
         candidates: Array<{
@@ -54,6 +56,9 @@ async function fetchPickerProducts(admin: any): Promise<ProductLite[]> {
             handle
             productType
             vendor
+            featuredImage {
+              url
+            }
           }
         }
       }
@@ -67,6 +72,7 @@ async function fetchPickerProducts(admin: any): Promise<ProductLite[]> {
     handle: String(product?.handle ?? ""),
     productType: String(product?.productType ?? ""),
     vendor: String(product?.vendor ?? ""),
+    imageUrl: product?.featuredImage?.url ? String(product.featuredImage.url) : null,
   }));
 }
 
@@ -130,6 +136,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           handle
           productType
           vendor
+          featuredImage {
+            url
+          }
           tags
           collections(first: 20) {
             nodes {
@@ -186,6 +195,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       reason: explanation.resolution.reason,
       productType: String(product.productType || ""),
       vendor: String(product.vendor || ""),
+      imageUrl: product?.featuredImage?.url ? String(product.featuredImage.url) : null,
       collections: Array.isArray(product.collections?.nodes)
         ? product.collections.nodes.map((collection: any) => String(collection.handle || "")).filter(Boolean)
         : [],
@@ -222,10 +232,10 @@ export default function Index() {
       help: "Direct assignments decide which chart appears on product pages.",
     },
     {
-      label: "Enable the Lemon Size app block in your theme",
+      label: "Add the Lemon Size block to your product template",
       done: false,
       href: "/app/additional",
-      help: "Turn on the app block on your product template in the theme customizer.",
+      help: "In the theme customizer, open a product template and add the Lemon Size app block there. This is not an App embed.",
     },
     {
       label: "Add fallback keyword rules if needed",
@@ -255,6 +265,23 @@ export default function Index() {
         <s-paragraph>
           <strong>Current shop:</strong> {shopDomain}
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="How Home Works">
+        <div style={guideGridStyle}>
+          <GuideCard
+            title="1. Check setup progress"
+            text="Use the checklist to confirm your charts, assignments, theme block, and fallback rules are in place."
+          />
+          <GuideCard
+            title="2. Preview a real product"
+            text="Pick a product and run the matcher to see which chart will win before you open the storefront."
+          />
+          <GuideCard
+            title="3. Fix conflicts faster"
+            text="Review the winning chart, conflict explanation, and product details when a match is not what you expected."
+          />
+        </div>
       </s-section>
 
       <s-section heading="Setup Progress">
@@ -347,10 +374,31 @@ export default function Index() {
             </Form>
 
             {selectedProduct ? (
-              <div style={{ fontSize: 12, opacity: 0.72, marginTop: 8 }}>
-                Selected: <strong>{selectedProduct.title}</strong>
-                {selectedProduct.vendor ? ` • ${selectedProduct.vendor}` : ""}
-                {selectedProduct.productType ? ` • ${selectedProduct.productType}` : ""}
+              <div style={selectedProductCardStyle}>
+                {selectedProduct.imageUrl ? (
+                  <img
+                    src={selectedProduct.imageUrl}
+                    alt={selectedProduct.title}
+                    style={selectedProductImageStyle}
+                  />
+                ) : (
+                  <div style={selectedProductPlaceholderStyle}>Preview</div>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, opacity: 0.64, textTransform: "uppercase", letterSpacing: ".08em" }}>
+                    Selected product
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 850, marginTop: 6 }}>
+                    {selectedProduct.title}
+                  </div>
+                  <div style={{ fontSize: 13, opacity: 0.72, marginTop: 4, lineHeight: 1.45 }}>
+                    {selectedProduct.vendor ? `${selectedProduct.vendor} • ` : ""}
+                    {selectedProduct.productType || "No product type"}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.62, marginTop: 4 }}>
+                    /products/{selectedProduct.handle}
+                  </div>
+                </div>
               </div>
             ) : null}
 
@@ -360,7 +408,26 @@ export default function Index() {
 
             {actionData?.ok ? (
               <div style={resultBoxStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, 220px) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+                  <div style={previewProductCardStyle}>
+                    {actionData.preview.imageUrl ? (
+                      <img
+                        src={actionData.preview.imageUrl}
+                        alt={actionData.preview.productTitle}
+                        style={previewProductImageStyle}
+                      />
+                    ) : (
+                      <div style={previewProductPlaceholderStyle}>No image</div>
+                    )}
+                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>Previewing product</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, marginTop: 4, lineHeight: 1.35 }}>
+                      {actionData.preview.productTitle}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                      /products/{actionData.preview.productHandle}
+                    </div>
+                  </div>
+
                   <div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>Product</div>
                     <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
@@ -369,24 +436,23 @@ export default function Index() {
                     <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>
                       /products/{actionData.preview.productHandle}
                     </div>
-                  </div>
 
-                  <div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Matched table</div>
-                    <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
-                      {actionData.preview.chartTitle || "No chart matched"}
-                    </div>
-                    {actionData.preview.chartId ? (
-                      <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>
-                        <s-link href="/app/size-charts">Open size tables</s-link>
+                    <div style={{ marginTop: 16, padding: 14, border: "1px solid #e7e7e7", borderRadius: 14, background: "white" }}>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>Matched table</div>
+                      <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
+                        {actionData.preview.chartTitle || "No chart matched"}
                       </div>
-                    ) : null}
+                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+                        <strong>Why:</strong>{" "}
+                        {actionData.preview.reason || "No assignment or default chart is currently available for this product."}
+                      </div>
+                      {actionData.preview.chartId ? (
+                        <div style={{ fontSize: 12, opacity: 0.72, marginTop: 10 }}>
+                          <s-link href="/app/size-charts">Open size tables</s-link>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-
-                <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5 }}>
-                  <strong>Why:</strong>{" "}
-                  {actionData.preview.reason || "No assignment or default chart is currently available for this product."}
                 </div>
 
                 {actionData.preview.candidates.length > 1 ? (
@@ -516,6 +582,22 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function GuideCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 14,
+        border: "1px solid #e7e7e7",
+        background: "white",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
+    </div>
+  );
+}
+
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div
@@ -537,6 +619,74 @@ const panelStyle = {
   borderRadius: 16,
   border: "1px solid #e7e7e7",
   background: "white",
+} as const;
+
+const guideGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+} as const;
+
+const selectedProductCardStyle = {
+  marginTop: 12,
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid #e7e7e7",
+  background: "#fafafa",
+  display: "grid",
+  gridTemplateColumns: "84px minmax(0, 1fr)",
+  gap: 14,
+  alignItems: "center",
+} as const;
+
+const selectedProductImageStyle = {
+  width: 84,
+  height: 84,
+  borderRadius: 14,
+  objectFit: "cover",
+  background: "#fff",
+  border: "1px solid #e7e7e7",
+} as const;
+
+const selectedProductPlaceholderStyle = {
+  width: 84,
+  height: 84,
+  borderRadius: 14,
+  border: "1px dashed #d1d5db",
+  display: "grid",
+  placeItems: "center",
+  background: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#6b7280",
+} as const;
+
+const previewProductCardStyle = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid #e7e7e7",
+  background: "white",
+} as const;
+
+const previewProductImageStyle = {
+  width: "100%",
+  aspectRatio: "1 / 1",
+  objectFit: "cover",
+  borderRadius: 14,
+  background: "#f3f4f6",
+} as const;
+
+const previewProductPlaceholderStyle = {
+  width: "100%",
+  aspectRatio: "1 / 1",
+  borderRadius: 14,
+  border: "1px dashed #d1d5db",
+  display: "grid",
+  placeItems: "center",
+  background: "#fafafa",
+  fontSize: 13,
+  fontWeight: 700,
+  color: "#6b7280",
 } as const;
 
 const resultBoxStyle = {

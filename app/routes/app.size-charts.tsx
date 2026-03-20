@@ -981,6 +981,22 @@ function ChartCard({
   );
 }
 
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 14,
+        border: "1px solid #e7e7e7",
+        background: "white",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
+    </div>
+  );
+}
+
 export default function SizeChartsPage() {
   const loaderData = useLoaderData<typeof loader>();
   const { shopDomain } = loaderData;
@@ -998,6 +1014,7 @@ export default function SizeChartsPage() {
   const [onlyDefault, setOnlyDefault] = useState(false);
   const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [unitFilter, setUnitFilter] = useState("all");
+  const [usageFilter, setUsageFilter] = useState("all");
   const [editorInitialJson, setEditorInitialJson] = useState(JSON.stringify(emptyEditor()));
   const [importText, setImportText] = useState("");
   const [importMessage, setImportMessage] = useState<string | null>(null);
@@ -1229,15 +1246,18 @@ export default function SizeChartsPage() {
       const title = String(chart.title || "").trim().toLowerCase();
       const unit = String(chart.unit || "").trim().toLowerCase();
       const hasImage = !!String(chart.guideImage || "").trim();
+      const usageCount = (chart.assignmentCount || 0) + (chart.keywordRuleCount || 0);
 
-      if (search && title !== search.trim().toLowerCase()) return false;
+      if (search && !title.includes(search.trim().toLowerCase())) return false;
       if (onlyDefault && !chart.isDefault) return false;
       if (onlyWithImage && !hasImage) return false;
       if (unitFilter !== "all" && unit !== unitFilter) return false;
+      if (usageFilter === "linked" && usageCount === 0) return false;
+      if (usageFilter === "unused" && usageCount > 0) return false;
 
       return true;
     });
-  }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
+  }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter, usageFilter]);
 
   const columnsJson = JSON.stringify(editor.columns);
   const rowsJson = JSON.stringify(
@@ -1254,6 +1274,29 @@ export default function SizeChartsPage() {
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="How Size Tables Work">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <InfoCard
+            title="1. Build the table"
+            text="Add columns and rows for the exact measurements shoppers should compare against on the storefront."
+          />
+          <InfoCard
+            title="2. Add guide content"
+            text="Use the guide title, text, tips, disclaimer, and optional image to explain how shoppers should measure."
+          />
+          <InfoCard
+            title="3. Reuse and assign"
+            text="Once saved, the chart can be duplicated, assigned to multiple rules, and filtered here by unit, image, or usage."
+          />
+        </div>
       </s-section>
 
       {actionData ? (
@@ -1318,28 +1361,22 @@ export default function SizeChartsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(240px, 1.3fr) repeat(3, minmax(160px, .8fr))",
+              gridTemplateColumns: "minmax(220px, 1.2fr) repeat(4, minmax(150px, .75fr))",
               gap: 12,
               alignItems: "end",
             }}
           >
-                      <div>
-                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                    Table
-                  </label>
-                  <select
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">All tables</option>
-                    {sortedCharts.map((chart) => (
-                      <option key={chart.id} value={chart.title}>
-                        {chart.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div>
+              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                Search tables
+              </label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by table name"
+                style={inputStyle}
+              />
+            </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
@@ -1356,6 +1393,17 @@ export default function SizeChartsPage() {
                     {unit.toUpperCase()}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                Usage
+              </label>
+              <select value={usageFilter} onChange={(e) => setUsageFilter(e.target.value)} style={inputStyle}>
+                <option value="all">All tables</option>
+                <option value="linked">Used in rules</option>
+                <option value="unused">Unused tables</option>
               </select>
             </div>
 
@@ -1415,6 +1463,7 @@ export default function SizeChartsPage() {
                 setOnlyDefault(false);
                 setOnlyWithImage(false);
                 setUnitFilter("all");
+                setUsageFilter("all");
               }}
               style={secondaryBtnStyle}
             >

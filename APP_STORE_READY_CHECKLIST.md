@@ -20,10 +20,10 @@ Status key:
 - [x] If recommendation is removed, remove dormant recommendation UX/code and `read_orders`.
 - [x] Add a production-ready app home page with setup steps and status guidance.
 - [x] Add a merchant help/support page inside the app.
-- [ ] Verify all empty/error states across charts, assignments, keyword rules, and storefront proxy.
-- [ ] Test extension UX on desktop and mobile themes.
+- [~] Verify all empty/error states across charts, assignments, keyword rules, and storefront proxy.
+- [~] Test extension UX on desktop and mobile themes.
 - [ ] Verify install, uninstall, reinstall, and app block enablement on a dev store.
-- [ ] Replace template README content with Lemon Size project documentation.
+- [x] Replace template README content with Lemon Size project documentation.
 
 ## Shopify App Review Readiness
 
@@ -53,10 +53,10 @@ Target guidance:
 
 ## Immediate Next Steps
 
-1. Replace template README content with Lemon Size documentation.
-2. Verify all empty and error states across the merchant flow.
-3. Test install, uninstall, reinstall, and theme app block enablement on a dev store.
-4. Prepare Partner Dashboard assets and legal/support links.
+1. Verify install, uninstall, reinstall, and theme app block enablement on a dev store.
+2. Test the theme extension on real desktop and mobile storefront themes.
+3. Prepare Partner Dashboard assets and legal/support links.
+4. Write review instructions and record the review screencast.
 
 ## Current Status Summary
 
@@ -67,9 +67,10 @@ Ready now:
 - Compliance webhooks
 - Merchant-facing home page
 - Merchant-facing help page
+- Merchant-facing rule tester
+- Non-template Lemon Size README
 - Passing typecheck
 
 Main blockers now:
-- README is still template-based
 - Partner Dashboard listing/legal/support assets are still missing
 - Real end-to-end merchant testing still needs to be completed

@@ -135,6 +135,34 @@ export default function KeywordRulesPage() {
   const [field, setField] = useState("ANY");
   const [chartId, setChartId] = useState(defaultChartId);
   const [priority, setPriority] = useState("500");
+  const [search, setSearch] = useState("");
+  const [fieldFilter, setFieldFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [chartFilter, setChartFilter] = useState("all");
+
+  const filteredKeywordRules = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return keywordRules.filter((rule) => {
+      const keywordValue = String(rule.keyword || "").toLowerCase();
+      const chartTitle = String(rule.chart.title || "").toLowerCase();
+      const fieldValue = String(rule.field || "").toUpperCase();
+      const statusValue = rule.enabled ? "enabled" : "disabled";
+
+      if (q && !keywordValue.includes(q) && !chartTitle.includes(q)) return false;
+      if (fieldFilter !== "all" && fieldValue !== fieldFilter) return false;
+      if (statusFilter !== "all" && statusValue !== statusFilter) return false;
+      if (chartFilter !== "all" && rule.chart.title !== chartFilter) return false;
+      return true;
+    });
+  }, [keywordRules, search, fieldFilter, statusFilter, chartFilter]);
+
+  const chartOptions = useMemo(
+    () =>
+      Array.from(new Set(keywordRules.map((rule) => rule.chart.title)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [keywordRules],
+  );
 
   return (
     <s-page heading="Keyword rules">
@@ -145,6 +173,29 @@ export default function KeywordRulesPage() {
         <s-paragraph>
           Manual rules still win first. These keyword rules are used only as fallback.
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="How Keyword Rules Work">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <InfoCard
+            title="1. Use these as fallback"
+            text="Keyword rules run only after direct assignments, so they are best for broad catalog matching."
+          />
+          <InfoCard
+            title="2. Choose the right field"
+            text="Match against title, handle, product type, vendor, tags, or any field depending on how your catalog is structured."
+          />
+          <InfoCard
+            title="3. Keep keywords specific"
+            text="Specific keywords and lower priority numbers help avoid noisy matches when multiple products share similar wording."
+          />
+        </div>
       </s-section>
 
       {actionData ? (
@@ -298,8 +349,119 @@ export default function KeywordRulesPage() {
             </s-paragraph>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {keywordRules.map((rule) => (
+          <>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid #e7e7e7",
+                background: "#fafafa",
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(220px, 1.2fr) repeat(3, minmax(160px, .8fr))",
+                  gap: 12,
+                  alignItems: "end",
+                }}
+              >
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                    Search keyword rules
+                  </label>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.currentTarget.value)}
+                    placeholder="Search keyword or chart"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                    Field
+                  </label>
+                  <select value={fieldFilter} onChange={(e) => setFieldFilter(e.currentTarget.value)} style={inputStyle}>
+                    <option value="all">All fields</option>
+                    <option value="ANY">Any field</option>
+                    <option value="TITLE">Title</option>
+                    <option value="HANDLE">Handle</option>
+                    <option value="TYPE">Product type</option>
+                    <option value="VENDOR">Vendor</option>
+                    <option value="TAG">Tag</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                    Status
+                  </label>
+                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.currentTarget.value)} style={inputStyle}>
+                    <option value="all">All statuses</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                    Chart
+                  </label>
+                  <select value={chartFilter} onChange={(e) => setChartFilter(e.currentTarget.value)} style={inputStyle}>
+                    <option value="all">All charts</option>
+                    {chartOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontSize: 12, opacity: 0.72 }}>
+                  Showing {filteredKeywordRules.length} of {keywordRules.length} keyword rule(s)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setFieldFilter("all");
+                    setStatusFilter("all");
+                    setChartFilter("all");
+                  }}
+                  style={secondaryBtnStyle}
+                >
+                  Reset filters
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 12 }}>
+            {filteredKeywordRules.length === 0 ? (
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 16,
+                  border: "1px solid #eee",
+                  background: "#fafafa",
+                }}
+              >
+                No keyword rules match the selected filters.
+              </div>
+            ) : (
+              filteredKeywordRules.map((rule) => (
               <div
                 key={rule.id}
                 style={{
@@ -377,10 +539,46 @@ export default function KeywordRulesPage() {
                   </Form>
                 </div>
               </div>
-            ))}
-          </div>
+              ))
+            )}
+            </div>
+          </>
         )}
       </s-section>
     </s-page>
   );
 }
+
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 14,
+        border: "1px solid #e7e7e7",
+        background: "white",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  height: 44,
+  borderRadius: 12,
+  border: "1px solid #d9d9d9",
+  padding: "0 12px",
+  width: "100%",
+} as const;
+
+const secondaryBtnStyle = {
+  height: 42,
+  padding: "0 16px",
+  borderRadius: 12,
+  border: "1px solid #d0d0d0",
+  background: "#fff",
+  cursor: "pointer",
+  fontWeight: 700,
+} as const;

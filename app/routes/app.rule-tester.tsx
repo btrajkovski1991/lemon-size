@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
@@ -179,6 +179,12 @@ export default function RuleTesterPage() {
   const isSubmitting =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "test-rule";
 
+  useEffect(() => {
+    if (actionData?.form) {
+      setForm(actionData.form);
+    }
+  }, [actionData]);
+
   return (
     <s-page heading="Rule Tester">
       <s-section>
@@ -188,6 +194,29 @@ export default function RuleTesterPage() {
         <s-paragraph>
           <strong>Current shop:</strong> {shopDomain}
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="How Rule Tester Works">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <InfoCard
+            title="1. Simulate product data"
+            text="Enter the same kind of details Shopify products use: title, handle, product type, vendor, tags, collections, and optional product ID."
+          />
+          <InfoCard
+            title="2. Run the real matcher"
+            text="The tester uses the same assignment and keyword resolution logic as the storefront and preview tools."
+          />
+          <InfoCard
+            title="3. Review the winner"
+            text="See which chart wins, why it wins, and what other rules also matched but lost so you can fix conflicts faster."
+          />
+        </div>
       </s-section>
 
       <s-section heading="Current Rule Setup">
@@ -206,6 +235,22 @@ export default function RuleTesterPage() {
 
       <s-section heading="Test Matcher">
         <div style={panelStyle}>
+          <div
+            style={{
+              marginBottom: 16,
+              padding: 14,
+              borderRadius: 14,
+              border: "1px solid #e7e7e7",
+              background: "#fafafa",
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 800 }}>Best use case</div>
+            <div style={{ fontSize: 13, opacity: 0.76, lineHeight: 1.5, marginTop: 8 }}>
+              Use this page before creating a real product or when you want to test how a new keyword,
+              collection, vendor, or product type would resolve inside Lemon Size.
+            </div>
+          </div>
+
           <Form method="post">
             <input type="hidden" name="intent" value="test-rule" />
 
@@ -421,6 +466,22 @@ function StatCard({ label, value }: { label: string; value: number }) {
     >
       <div style={{ fontSize: 12, opacity: 0.7 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
+    </div>
+  );
+}
+
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 14,
+        border: "1px solid #e7e7e7",
+        background: "white",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
     </div>
   );
 }

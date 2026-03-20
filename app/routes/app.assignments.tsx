@@ -687,6 +687,10 @@ export default function Assignments() {
   // Chart picker modal
   const [chartPickerOpen, setChartPickerOpen] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [ruleScopeFilter, setRuleScopeFilter] = useState("ALL");
+  const [ruleStatusFilter, setRuleStatusFilter] = useState("all");
+  const [ruleChartFilter, setRuleChartFilter] = useState("all");
 
   const selectedProducts = useMemo(
     () => products.filter((p) => productIds.includes(p.id)),
@@ -744,12 +748,58 @@ export default function Assignments() {
     return charts.filter((c) => c.title.toLowerCase().includes(q));
   }, [charts, chartQuery]);
 
+  const ruleChartOptions = useMemo(
+    () =>
+      Array.from(new Set(rules.map((rule: RuleLite) => rule.chart.title)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [rules],
+  );
+
+  const filteredRules = useMemo(() => {
+    const q = ruleSearch.trim().toLowerCase();
+    return rules.filter((rule: RuleLite) => {
+      const label = ruleLabel(rule.scope, rule.scopeValue).toLowerCase();
+      const chartTitle = String(rule.chart.title || "").toLowerCase();
+      const status = rule.enabled ? "enabled" : "disabled";
+
+      if (q && !label.includes(q) && !chartTitle.includes(q)) return false;
+      if (ruleScopeFilter !== "ALL" && String(rule.scope).toUpperCase() !== ruleScopeFilter) return false;
+      if (ruleStatusFilter !== "all" && status !== ruleStatusFilter) return false;
+      if (ruleChartFilter !== "all" && rule.chart.title !== ruleChartFilter) return false;
+      return true;
+    });
+  }, [rules, ruleSearch, ruleScopeFilter, ruleStatusFilter, ruleChartFilter]);
+
   return (
     <s-page heading="Size chart assignments">
       <s-section>
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="How Assignments Work">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <InfoCard
+            title="1. Choose what should match"
+            text="Pick products, collections, product types, vendors, tags, or all products as the matching condition."
+          />
+          <InfoCard
+            title="2. Pick the size table"
+            text="Select the chart shoppers should see when that condition matches on the storefront."
+          />
+          <InfoCard
+            title="3. Use priority to break ties"
+            text="Lower priority numbers win first, so direct and important assignment rules should stay near the top."
+          />
+        </div>
       </s-section>
 
       {actionData ? (
@@ -1446,34 +1496,152 @@ export default function Assignments() {
             </s-paragraph>
           </div>
         ) : (
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "8px" }}>Priority</th>
-                  <th style={{ textAlign: "left", padding: "8px" }}>Rule</th>
-                  <th style={{ textAlign: "left", padding: "8px" }}>Table</th>
-                  <th style={{ textAlign: "left", padding: "8px" }}>Enabled</th>
-                  <th style={{ textAlign: "left", padding: "8px" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((r: RuleLite) => (
-                  <tr key={r.id} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: "8px" }}>{r.priority}</td>
-                    <td style={{ padding: "8px" }}>{ruleLabel(r.scope, r.scopeValue)}</td>
-                    <td style={{ padding: "8px" }}>{r.chart.title}</td>
-                    <td style={{ padding: "8px" }}>
+          <>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid #e7e7e7",
+                background: "#fafafa",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(220px, 1.4fr) repeat(3, minmax(160px, .8fr))",
+                  gap: 12,
+                  alignItems: "end",
+                }}
+              >
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Search rules</label>
+                  <input
+                    value={ruleSearch}
+                    onChange={(e) => setRuleSearch(e.target.value)}
+                    placeholder="Search by rule label or table"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Scope</label>
+                  <select value={ruleScopeFilter} onChange={(e) => setRuleScopeFilter(e.target.value)} style={inputStyle}>
+                    <option value="ALL">All scopes</option>
+                    <option value="PRODUCT">Products</option>
+                    <option value="COLLECTION">Collections</option>
+                    <option value="TYPE">Product types</option>
+                    <option value="VENDOR">Vendors</option>
+                    <option value="TAG">Tags</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Status</label>
+                  <select value={ruleStatusFilter} onChange={(e) => setRuleStatusFilter(e.target.value)} style={inputStyle}>
+                    <option value="all">All statuses</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Table</label>
+                  <select value={ruleChartFilter} onChange={(e) => setRuleChartFilter(e.target.value)} style={inputStyle}>
+                    <option value="all">All tables</option>
+                    {ruleChartOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontSize: 12, opacity: 0.72 }}>
+                  Showing {filteredRules.length} of {rules.length} assignment rule(s)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRuleSearch("");
+                    setRuleScopeFilter("ALL");
+                    setRuleStatusFilter("all");
+                    setRuleChartFilter("all");
+                  }}
+                  style={secondaryBtnStyle}
+                >
+                  Reset filters
+                </button>
+              </div>
+            </div>
+
+            {filteredRules.length === 0 ? (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: 20,
+                  borderRadius: 16,
+                  border: "1px solid #eee",
+                  background: "#fafafa",
+                }}
+              >
+                No assignment rules match the selected filters.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+                {filteredRules.map((r: RuleLite) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      border: "1px solid #e7e7e7",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "white",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(220px, 1.2fr) repeat(3, minmax(120px, .6fr)) auto auto",
+                        gap: 12,
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 850 }}>{ruleLabel(r.scope, r.scopeValue)}</div>
+                        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                          Priority {r.priority} • {String(r.scope).toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: 13 }}>
+                        <strong>Table:</strong> {r.chart.title}
+                      </div>
+
+                      <div style={{ fontSize: 13 }}>
+                        <strong>Status:</strong> {r.enabled ? "Enabled" : "Disabled"}
+                      </div>
+
+                      <div style={{ fontSize: 13 }}>
+                        <strong>Priority:</strong> {r.priority}
+                      </div>
+
                       <Form method="post">
                         <input type="hidden" name="intent" value="toggle" />
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="enabled" value={(!r.enabled).toString()} />
                         <s-button type="submit" variant="tertiary">
-                          {r.enabled ? "Enabled" : "Disabled"}
+                          {r.enabled ? "Disable" : "Enable"}
                         </s-button>
                       </Form>
-                    </td>
-                    <td style={{ padding: "8px" }}>
+
                       <Form method="post">
                         <input type="hidden" name="intent" value="delete" />
                         <input type="hidden" name="id" value={r.id} />
@@ -1481,16 +1649,49 @@ export default function Assignments() {
                           Delete
                         </s-button>
                       </Form>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </s-box>
+              </div>
+            )}
+          </>
         )}
       </s-section>
     </s-page>
   );
 }
+
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 14,
+        border: "1px solid #e7e7e7",
+        background: "white",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #dfe3e8",
+  background: "white",
+} as const;
+
+const secondaryBtnStyle = {
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #dfe3e8",
+  background: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+} as const;
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
