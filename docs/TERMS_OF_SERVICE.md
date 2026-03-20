@@ -79,6 +79,8 @@ Lemon Size may collect and process app usage and storefront event data as descri
 
 By using the Service, you agree to that processing in accordance with the Privacy Policy.
 
+Lemon Size is not intended to collect customer personal data as part of its normal operation. The Service is designed around merchant configuration data, product matching context, and product- or chart-level analytics.
+
 ## 8. Support
 
 We may provide support, setup guidance, troubleshooting materials, and documentation at our discretion.
@@ -181,4 +183,3 @@ If you have questions about these Terms, contact:
 ## 19. Important Note
 
 This document is a practical Terms of Service draft for Lemon Size based on the app’s current feature set. It should be reviewed by your legal advisor before public publication if you need legal review tailored to your business, location, or risk profile.
-

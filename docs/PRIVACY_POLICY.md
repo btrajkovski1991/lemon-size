@@ -18,6 +18,12 @@ If you have questions about this Privacy Policy or about our privacy practices, 
 
 Depending on how Lemon Size is used, we may collect and store the following categories of information.
 
+### Important Limitation
+
+Lemon Size is not designed to collect or store customer personal data such as customer names, email addresses, phone numbers, shipping addresses, billing addresses, or customer account profiles.
+
+The app operates using merchant configuration data, product-related matching context, and storefront guide-open analytics at the product or chart level.
+
 ### A. Merchant and Shop Information
 
 When a merchant installs or authenticates the app, we may collect:
@@ -63,6 +69,8 @@ When a shopper successfully opens a size guide on a storefront, Lemon Size may s
 
 We use this information to provide merchants with app analytics, including chart usage, product usage, recent activity, and trend reporting.
 
+This analytics data is product-level and chart-level operational data. It is not intended to identify individual customers.
+
 ### E. Technical and Diagnostic Information
 
 We may collect limited technical information needed to operate, secure, and debug the app, such as:
@@ -104,9 +112,13 @@ Retention periods may vary depending on the type of information and the merchant
 
 ## 6. Uninstalls, Deletion, and Redaction Requests
 
-If a merchant uninstalls Lemon Size, we may retain certain app data for a limited period where reasonably necessary for legal, security, operational, or support purposes, unless deletion is required sooner by applicable law or Shopify platform requirements.
+If a merchant uninstalls Lemon Size, Lemon Size is designed to delete the installed shop’s app data from our database, including shop configuration, size tables, chart rows, assignments, keyword rules, analytics events, and app session records, unless retention is required by law or a valid security or operational obligation applies.
 
 Lemon Size is configured to receive Shopify privacy and compliance webhooks, including requests relating to customer data and shop redaction.
+
+For shop-level redaction requests, Lemon Size is designed to delete the installed shop’s stored app data from our database.
+
+For customer privacy requests, Lemon Size currently does not maintain customer personal data in its normal feature set, so there is generally no customer-specific personal dataset to export or delete.
 
 If you contact us regarding deletion, redaction, or privacy-related requests, we will review and handle the request in accordance with applicable law, Shopify requirements, and our operational obligations.
 
@@ -148,4 +160,3 @@ If you have questions about this Privacy Policy or about privacy requests relati
 ## 13. Important Note
 
 This document is a practical policy draft for Lemon Size based on the app’s current feature set and data model. It should be reviewed and approved by your legal advisor before public publication if you require legal review for your business or jurisdiction.
-
