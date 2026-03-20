@@ -99,6 +99,11 @@ type RulesIndex = {
   defaultChartId: string | null;
 };
 
+type ChartResolution = {
+  chartId: string | null;
+  reason: string | null;
+};
+
 type ChartWithRows = {
   id: string;
   title: string;
@@ -281,7 +286,7 @@ function resolveChartIdFromIndex(args: {
   productTitle?: string;
   productHandle?: string;
   includeDefault?: boolean;
-}): string | null {
+}): ChartResolution {
   const {
     idx,
     productId,
@@ -306,27 +311,52 @@ function resolveChartIdFromIndex(args: {
 
   if (productGid) {
     const hit = idx.byProduct.get(productGid);
-    if (hit) return hit;
+    if (hit) {
+      return {
+        chartId: hit,
+        reason: "Matched by direct product assignment.",
+      };
+    }
   }
 
   for (const h of collections) {
     const hit = idx.byCollection.get(h.toLowerCase());
-    if (hit) return hit;
+    if (hit) {
+      return {
+        chartId: hit,
+        reason: `Matched by collection: ${h}.`,
+      };
+    }
   }
 
   if (typeNorm) {
     const hit = idx.byType.get(typeNorm);
-    if (hit) return hit;
+    if (hit) {
+      return {
+        chartId: hit,
+        reason: `Matched by product type: ${productType}.`,
+      };
+    }
   }
 
   if (vendorNorm) {
     const hit = idx.byVendor.get(vendorNorm);
-    if (hit) return hit;
+    if (hit) {
+      return {
+        chartId: hit,
+        reason: `Matched by vendor: ${productVendor}.`,
+      };
+    }
   }
 
   for (const t of tagsNorm) {
     const hit = idx.byTag.get(t);
-    if (hit) return hit;
+    if (hit) {
+      return {
+        chartId: hit,
+        reason: `Matched by tag: ${t}.`,
+      };
+    }
   }
 
   for (const rule of idx.keywordRules) {
@@ -341,12 +371,21 @@ function resolveChartIdFromIndex(args: {
         productTags,
       })
     ) {
-      return rule.chartId;
+      return {
+        chartId: rule.chartId,
+        reason: `Matched by keyword rule: ${rule.keyword}.`,
+      };
     }
   }
 
-  if (!includeDefault) return null;
-  return idx.defaultChartId;
+  if (!includeDefault) {
+    return { chartId: null, reason: null };
+  }
+
+  return {
+    chartId: idx.defaultChartId,
+    reason: idx.defaultChartId ? "Using the default size chart." : null,
+  };
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -392,7 +431,7 @@ export async function loader({ request }: { request: Request }) {
 
     const idx = await getRulesIndexCached(dbShop.id);
 
-    const chartId = resolveChartIdFromIndex({
+    const resolution = resolveChartIdFromIndex({
       idx,
       productId,
       productHandle,
@@ -403,6 +442,7 @@ export async function loader({ request }: { request: Request }) {
       productTags,
       includeDefault: true,
     });
+    const chartId = resolution.chartId;
 
     if (mode === "exists") {
       if (!chartId) return new Response(null, { status: 404 });
@@ -458,6 +498,7 @@ export async function loader({ request }: { request: Request }) {
           showGuideImage: chart.showGuideImage,
           tips: chart.tips,
           disclaimer: chart.disclaimer,
+          matchReason: resolution.reason,
         },
       },
       {

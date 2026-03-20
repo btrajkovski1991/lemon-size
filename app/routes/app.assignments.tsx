@@ -48,6 +48,13 @@ type ActionData =
   | { ok: false; message: string }
   | undefined;
 
+function parseBulkTextValues(input: string): string[] {
+  return String(input || "")
+    .split(/[\n,;]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 function normalizeColumns(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
   return input.map((value) => String(value ?? "").trim()).filter(Boolean);
@@ -175,14 +182,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "create") {
     const scope = String(form.get("scope") || "ALL") as Scope;
     const priority = Number(form.get("priority") || 100);
-
-    const scopeValueRaw = String(form.get("scopeValue") || "").trim();
-    const scopeValue = scope === "ALL" ? null : scopeValueRaw;
-
     const chartIdRaw = String(form.get("chartId") || "").trim();
+    const scopeValuesJson = String(form.get("scopeValuesJson") || "[]");
+    let scopeValues: Array<string | null> = [];
 
-    if (scope !== "ALL" && !scopeValue) {
-      return { ok: false, message: "Choose a valid match value before saving the rule." } satisfies ActionData;
+    try {
+      const parsed = JSON.parse(scopeValuesJson);
+      if (Array.isArray(parsed)) {
+        scopeValues = parsed
+          .map((value) => {
+            if (value == null) return null;
+            const normalized = String(value).trim();
+            return normalized || null;
+          })
+          .filter((value, index, arr) => arr.indexOf(value) === index);
+      }
+    } catch (_error) {
+      return { ok: false, message: "Invalid bulk assignment payload." } satisfies ActionData;
+    }
+
+    if (scope === "ALL") {
+      scopeValues = [null];
+    }
+
+    if (scope !== "ALL" && scopeValues.length === 0) {
+      return {
+        ok: false,
+        message: "Choose one or more valid match values before saving the rule.",
+      } satisfies ActionData;
     }
 
     if (!chartIdRaw) {
@@ -192,18 +219,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } satisfies ActionData;
     }
 
-    await prisma.sizeChartAssignment.create({
-      data: {
+    await prisma.sizeChartAssignment.createMany({
+      data: scopeValues.map((scopeValue) => ({
         shopId: shopRow.id,
         chartId: chartIdRaw,
         priority,
         scope,
         scopeValue,
         enabled: true,
-      },
+      })),
     });
 
-    return { ok: true, message: "Assignment rule saved." } satisfies ActionData;
+    return {
+      ok: true,
+      message:
+        scopeValues.length === 1
+          ? "Assignment rule saved."
+          : `${scopeValues.length} assignment rules saved.`,
+    } satisfies ActionData;
   }
 
   // SAFE TOGGLE
@@ -639,8 +672,10 @@ export default function Assignments() {
   const [scope, setScope] = useState<Scope>("PRODUCT");
 
   // Selected values
-  const [productId, setProductId] = useState<string>(products?.[0]?.id || "");
-  const [collectionHandle, setCollectionHandle] = useState<string>(collections?.[0]?.handle || "");
+  const [productIds, setProductIds] = useState<string[]>(products?.[0]?.id ? [products[0].id] : []);
+  const [collectionHandles, setCollectionHandles] = useState<string[]>(
+    collections?.[0]?.handle ? [collections[0].handle] : [],
+  );
   const [textValue, setTextValue] = useState<string>("");
 
   // Pickers
@@ -653,14 +688,14 @@ export default function Assignments() {
   const [chartPickerOpen, setChartPickerOpen] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
 
-  const selectedProduct = useMemo(
-    () => products.find((p) => p.id === productId) || null,
-    [products, productId],
+  const selectedProducts = useMemo(
+    () => products.filter((p) => productIds.includes(p.id)),
+    [products, productIds],
   );
 
-  const selectedCollection = useMemo(
-    () => collections.find((c) => c.handle === collectionHandle) || null,
-    [collections, collectionHandle],
+  const selectedCollections = useMemo(
+    () => collections.filter((c) => collectionHandles.includes(c.handle)),
+    [collections, collectionHandles],
   );
 
   const defaultChartId = useMemo(() => {
@@ -676,13 +711,12 @@ export default function Assignments() {
     [charts, chartId],
   );
 
-  // scopeValue to save
-  const scopeValue = useMemo(() => {
-    if (scope === "ALL") return "";
-    if (scope === "PRODUCT") return productId; // GID from GraphQL
-    if (scope === "COLLECTION") return collectionHandle; // handle
-    return textValue.trim();
-  }, [scope, productId, collectionHandle, textValue]);
+  const scopeValues = useMemo(() => {
+    if (scope === "ALL") return [null];
+    if (scope === "PRODUCT") return productIds;
+    if (scope === "COLLECTION") return collectionHandles;
+    return parseBulkTextValues(textValue);
+  }, [scope, productIds, collectionHandles, textValue]);
 
   const filteredProducts = useMemo(() => {
     const q = productQuery.trim().toLowerCase();
@@ -802,11 +836,11 @@ export default function Assignments() {
             }}
           >
             <div>Showing {Math.min(filteredProducts.length, 100)} products</div>
-            <div style={{ opacity: 0.7 }}>Pick 1 product</div>
+            <div style={{ opacity: 0.7 }}>Select one or more products</div>
           </div>
 
           {filteredProducts.slice(0, 100).map((p) => {
-            const checked = p.id === productId;
+            const checked = productIds.includes(p.id);
             return (
               <label
                 key={p.id}
@@ -820,10 +854,14 @@ export default function Assignments() {
                 }}
               >
                 <input
-                  type="radio"
+                  type="checkbox"
                   name="productPick"
                   checked={checked}
-                  onChange={() => setProductId(p.id)}
+                  onChange={() =>
+                    setProductIds((prev) =>
+                      prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id],
+                    )
+                  }
                   style={{ width: 18, height: 18 }}
                 />
 
@@ -846,7 +884,7 @@ export default function Assignments() {
       {/* Collection picker modal */}
       <ModalShell
         open={collectionPickerOpen}
-        title="Select Collection"
+        title="Select Collections"
         onClose={() => setCollectionPickerOpen(false)}
         footer={
           <>
@@ -897,8 +935,22 @@ export default function Assignments() {
         </div>
 
         <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderBottom: "1px solid #eee",
+              background: "#fafafa",
+              fontSize: 13,
+              color: "#444",
+            }}
+          >
+            <div>Showing {Math.min(filteredCollections.length, 100)} collections</div>
+            <div style={{ opacity: 0.7 }}>Select one or more collections</div>
+          </div>
           {filteredCollections.slice(0, 100).map((c) => {
-            const checked = c.handle === collectionHandle;
+            const checked = collectionHandles.includes(c.handle);
             return (
               <label
                 key={c.id}
@@ -912,10 +964,16 @@ export default function Assignments() {
                 }}
               >
                 <input
-                  type="radio"
+                  type="checkbox"
                   name="collectionPick"
                   checked={checked}
-                  onChange={() => setCollectionHandle(c.handle)}
+                  onChange={() =>
+                    setCollectionHandles((prev) =>
+                      prev.includes(c.handle)
+                        ? prev.filter((handle) => handle !== c.handle)
+                        : [...prev, c.handle],
+                    )
+                  }
                   style={{ width: 18, height: 18 }}
                 />
 
@@ -1043,7 +1101,7 @@ export default function Assignments() {
       <s-section heading="Create rule">
         <Form method="post">
           <input type="hidden" name="intent" value="create" />
-          <input type="hidden" name="scopeValue" value={scopeValue} />
+          <input type="hidden" name="scopeValuesJson" value={JSON.stringify(scopeValues)} />
           <input type="hidden" name="chartId" value={chartsEmpty ? "" : chartId} />
 
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -1057,6 +1115,10 @@ export default function Assignments() {
               }}
             >
               <s-heading>Apply to Products</s-heading>
+              <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72, lineHeight: 1.45 }}>
+                Bulk helper: save one assignment rule for every selected product, collection, or
+                entered match value.
+              </div>
 
               <div style={{ marginTop: 8 }}>
                 <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
@@ -1092,7 +1154,7 @@ export default function Assignments() {
                 ) : scope === "PRODUCT" ? (
                   <>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                      Select product
+                      Select products
                     </label>
 
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1109,21 +1171,35 @@ export default function Assignments() {
                           cursor: "pointer",
                         }}
                       >
-                        {selectedProduct ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <Thumb url={selectedProduct.imageUrl} alt={selectedProduct.imageAlt} />
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {selectedProduct.title}
-                              </div>
-                              <div style={{ fontSize: 12, opacity: 0.75 }}>
-                                {selectedProduct.vendor ? `${selectedProduct.vendor} • ` : ""}
-                                {selectedProduct.handle}
-                              </div>
+                        {selectedProducts.length > 0 ? (
+                          <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ fontWeight: 750, fontSize: 14 }}>
+                              {selectedProducts.length} product(s) selected
+                            </div>
+                            <div style={{ display: "grid", gap: 6 }}>
+                              {selectedProducts.slice(0, 3).map((product) => (
+                                <div key={product.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <Thumb url={product.imageUrl} alt={product.imageAlt} />
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontWeight: 750, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                      {product.title}
+                                    </div>
+                                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                      {product.vendor ? `${product.vendor} • ` : ""}
+                                      {product.handle}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {selectedProducts.length > 3 ? (
+                                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                                  +{selectedProducts.length - 3} more selected
+                                </div>
+                              ) : null}
                             </div>
                           </div>
                         ) : (
-                          "Choose a product…"
+                          "Choose one or more products…"
                         )}
                       </button>
                     </div>
@@ -1131,7 +1207,7 @@ export default function Assignments() {
                 ) : scope === "COLLECTION" ? (
                   <>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
-                      Select collection
+                      Select collections
                     </label>
 
                     <button
@@ -1147,16 +1223,30 @@ export default function Assignments() {
                         cursor: "pointer",
                       }}
                     >
-                      {selectedCollection ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <Thumb url={selectedCollection.imageUrl} alt={selectedCollection.imageAlt} />
-                          <div>
-                            <div style={{ fontWeight: 750, fontSize: 14 }}>{selectedCollection.title}</div>
-                            <div style={{ fontSize: 12, opacity: 0.75 }}>{selectedCollection.handle}</div>
+                      {selectedCollections.length > 0 ? (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <div style={{ fontWeight: 750, fontSize: 14 }}>
+                            {selectedCollections.length} collection(s) selected
+                          </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            {selectedCollections.slice(0, 3).map((collection) => (
+                              <div key={collection.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <Thumb url={collection.imageUrl} alt={collection.imageAlt} />
+                                <div>
+                                  <div style={{ fontWeight: 750, fontSize: 14 }}>{collection.title}</div>
+                                  <div style={{ fontSize: 12, opacity: 0.75 }}>{collection.handle}</div>
+                                </div>
+                              </div>
+                            ))}
+                            {selectedCollections.length > 3 ? (
+                              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                                +{selectedCollections.length - 3} more selected
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       ) : (
-                        "Choose a collection…"
+                        "Choose one or more collections…"
                       )}
                     </button>
 
@@ -1169,24 +1259,30 @@ export default function Assignments() {
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
                       Value ({scope.toLowerCase()})
                     </label>
-                    <input
+                    <textarea
                       value={textValue}
                       onChange={(e) => setTextValue(e.target.value)}
                       placeholder={
                         scope === "TYPE"
-                          ? "e.g. Shoes, Tops (product)"
+                          ? "Shoes\nTops\nDresses"
                           : scope === "VENDOR"
-                            ? "e.g. Nike"
-                            : "e.g. oversized"
+                            ? "Nike\nAdidas"
+                            : "oversized\nsummer"
                       }
                       style={{
                         width: "100%",
+                        minHeight: 108,
                         padding: "10px 12px",
                         borderRadius: 10,
                         border: "1px solid #dfe3e8",
                         background: "white",
+                        resize: "vertical",
+                        fontFamily: "inherit",
                       }}
                     />
+                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6, lineHeight: 1.4 }}>
+                      Enter one or more values separated by commas, semicolons, or new lines.
+                    </div>
                   </>
                 )}
               </div>
@@ -1317,8 +1413,13 @@ export default function Assignments() {
                   </div>
 
                   <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 8 }}>
+                      This save will create{" "}
+                      <strong>{scopeValues.length || 0}</strong>{" "}
+                      assignment rule{scopeValues.length === 1 ? "" : "s"}.
+                    </div>
                     <s-button variant="primary" type="submit">
-                      Save rule
+                      {scopeValues.length > 1 ? "Save bulk rules" : "Save rule"}
                     </s-button>
                   </div>
                 </>

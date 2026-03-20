@@ -15,6 +15,39 @@ export default function AdditionalPage() {
         </s-unordered-list>
       </s-section>
 
+      <s-section heading="Recommended Merchant Flow">
+        <s-unordered-list>
+          <s-list-item>Create the chart first and confirm the unit is correct.</s-list-item>
+          <s-list-item>Add a direct assignment for the first products you want to test.</s-list-item>
+          <s-list-item>Enable the Lemon Size app block in Online Store.</s-list-item>
+          <s-list-item>Open a real product page and verify the chart, guide text, and guide image.</s-list-item>
+          <s-list-item>Add keyword rules only after direct matching is working.</s-list-item>
+        </s-unordered-list>
+      </s-section>
+
+      <s-section heading="Troubleshooting">
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ padding: 14, border: "1px solid #e7e7e7", borderRadius: 12, background: "white" }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>The button does not show</div>
+            <div style={{ fontSize: 13, opacity: 0.76, marginTop: 6 }}>
+              Check that the app block is enabled and that the product resolves to a size chart.
+            </div>
+          </div>
+          <div style={{ padding: 14, border: "1px solid #e7e7e7", borderRadius: 12, background: "white" }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>The wrong chart shows</div>
+            <div style={{ fontSize: 13, opacity: 0.76, marginTop: 6 }}>
+              Review direct assignments first. They take priority over keyword fallback rules.
+            </div>
+          </div>
+          <div style={{ padding: 14, border: "1px solid #e7e7e7", borderRadius: 12, background: "white" }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>The guide image does not appear</div>
+            <div style={{ fontSize: 13, opacity: 0.76, marginTop: 6 }}>
+              Make sure the chart has a guide image URL saved and that Display guide image on storefront is checked.
+            </div>
+          </div>
+        </div>
+      </s-section>
+
       <s-section heading="Merchant Checklist">
         <s-unordered-list>
           <s-list-item>Create at least one chart.</s-list-item>

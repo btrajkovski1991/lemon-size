@@ -33,6 +33,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Index() {
   const { shopDomain, counts } = useLoaderData<typeof loader>();
+  const checklist = [
+    {
+      label: "Create your first size chart",
+      done: counts.charts > 0,
+      href: "/app/size-charts",
+      help: "Add a table with the measurements you want shoppers to see.",
+    },
+    {
+      label: "Assign a chart to products or collections",
+      done: counts.assignments > 0,
+      href: "/app/assignments",
+      help: "Direct assignments decide which chart appears on product pages.",
+    },
+    {
+      label: "Enable the Lemon Size app block in your theme",
+      done: false,
+      href: "/app/additional",
+      help: "Turn on the app block on your product template in the theme customizer.",
+    },
+    {
+      label: "Add fallback keyword rules if needed",
+      done: counts.keywordRules > 0,
+      href: "/app/keyword-rules",
+      help: "Useful when broad catalog matching is easier than direct assignments.",
+    },
+  ];
+  const completedCount = checklist.filter((item) => item.done).length;
 
   return (
     <s-page heading="Lemon Size">
@@ -47,6 +74,9 @@ export default function Index() {
       </s-section>
 
       <s-section heading="Setup Progress">
+        <s-paragraph>
+          {completedCount} of {checklist.length} setup steps completed.
+        </s-paragraph>
         <div
           style={{
             display: "grid",
@@ -92,6 +122,34 @@ export default function Index() {
         </div>
       </s-section>
 
+      <s-section heading="Onboarding Checklist">
+        <div style={{ display: "grid", gap: 12 }}>
+          {checklist.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 16,
+                padding: 14,
+                border: "1px solid #e7e7e7",
+                borderRadius: 12,
+                background: item.done ? "#f3fbf5" : "white",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>
+                  {item.done ? "Complete" : "Pending"}: {item.label}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>{item.help}</div>
+              </div>
+              <s-link href={item.href}>{item.done ? "Review" : "Open"}</s-link>
+            </div>
+          ))}
+        </div>
+      </s-section>
+
       <s-section heading="Recommended Setup">
         <s-unordered-list>
           <s-list-item>Create one or more size charts in Size Charts.</s-list-item>
@@ -108,6 +166,10 @@ export default function Index() {
           <s-link href="/app/assignments">Assignments</s-link>, and finish with{" "}
           <s-link href="/app/keyword-rules">Keyword rules</s-link> if your catalog needs broader
           fallback matching.
+        </s-paragraph>
+        <s-paragraph>
+          After setup, open your theme customizer and enable the Lemon Size app block on the product
+          template before testing the storefront.
         </s-paragraph>
       </s-section>
 

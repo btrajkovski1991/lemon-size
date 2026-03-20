@@ -243,7 +243,11 @@
 
   function setUnitUI(modal, baseUnit, displayUnit) {
     const subEl = modal.querySelector("[data-lemon-size-subtitle]");
-    if (subEl) subEl.textContent = `Units: ${String(displayUnit).toUpperCase()}`;
+    const matchReason = String(modal._lemonMatchReason || "").trim();
+    if (subEl) {
+      const unitText = `Units: ${String(displayUnit).toUpperCase()}`;
+      subEl.textContent = matchReason ? `${unitText} • ${matchReason}` : unitText;
+    }
 
     const unitWrap = modal.querySelector(".lemon-size__unit");
     const canToggle = baseUnit === "cm" || baseUnit === "in";
@@ -455,6 +459,7 @@
 
     const baseUnit = String(chart.unit || "cm").toLowerCase();
     modal._lemonBaseUnit = baseUnit;
+    modal._lemonMatchReason = chart.matchReason || "";
 
     const canToggle = baseUnit === "cm" || baseUnit === "in";
     if (!modal._lemonDisplayUnit || !canToggle) modal._lemonDisplayUnit = baseUnit;

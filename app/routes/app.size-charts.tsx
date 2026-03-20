@@ -21,6 +21,8 @@ type ChartLite = {
   unit?: string | null;
   assignmentCount?: number;
   keywordRuleCount?: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   columns?: string[] | null;
   guideTitle?: string | null;
   guideText?: string | null;
@@ -32,7 +34,7 @@ type ChartLite = {
 };
 
 type ActionData =
-  | { ok: true; message: string }
+  | { ok: true; message: string; intent?: "save" | "delete" | "duplicate"; chartId?: string }
   | { ok: false; message: string }
   | undefined;
 
@@ -51,6 +53,17 @@ type EditorChart = {
   rows: ChartRowLite[];
 };
 
+const GUIDE_IMAGE_PRESETS = [
+  {
+    label: "Tops",
+    value: "/images/size-guides/tops.png",
+  },
+  {
+    label: "Dress",
+    value: "/images/size-guides/dress.png",
+  },
+];
+
 function normalizeUnitValue(input: unknown): "cm" | "in" | null {
   const raw = String(input ?? "")
     .trim()
@@ -60,6 +73,91 @@ function normalizeUnitValue(input: unknown): "cm" | "in" | null {
   if (["cm", "cms", "centimeter", "centimeters"].includes(raw)) return "cm";
   if (["in", "inch", "inches"].includes(raw)) return "in";
   return null;
+}
+
+function buildDuplicateTitle(sourceTitle: string, existingTitles: string[]): string {
+  const baseTitle = `${String(sourceTitle || "").trim() || "Untitled"} Copy`;
+  if (!existingTitles.includes(baseTitle)) return baseTitle;
+
+  let counter = 2;
+  let candidate = `${baseTitle} ${counter}`;
+  while (existingTitles.includes(candidate)) {
+    counter += 1;
+    candidate = `${baseTitle} ${counter}`;
+  }
+
+  return candidate;
+}
+
+function parseDelimitedLine(line: string, delimiter: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseTableText(input: string): { columns: string[]; rows: ChartRowLite[] } | null {
+  const normalized = String(input || "").replace(/\r\n/g, "\n").trim();
+  if (!normalized) return null;
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) return null;
+
+  const sample = lines[0];
+  const delimiter = sample.includes("\t") ? "\t" : sample.includes(";") ? ";" : ",";
+
+  const columns = parseDelimitedLine(lines[0], delimiter)
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+
+  if (columns.length === 0) return null;
+
+  const sizeColumn =
+    columns.find((col) => String(col).trim().toUpperCase().includes("SIZE")) || columns[0];
+
+  const rows = lines.slice(1).map((line, index) => {
+    const cells = parseDelimitedLine(line, delimiter);
+    const values = Object.fromEntries(
+      columns.map((column, cellIndex) => [column, String(cells[cellIndex] ?? "").trim()]),
+    );
+
+    return {
+      label: String(values[sizeColumn] ?? cells[0] ?? `Row ${index + 1}`).trim() || `Row ${index + 1}`,
+      sortOrder: index + 1,
+      values,
+    };
+  });
+
+  return { columns, rows };
 }
 
 function normalizeChartLite(chart: any): ChartLite {
@@ -72,6 +170,8 @@ function normalizeChartLite(chart: any): ChartLite {
     unit: chart?.unit ? String(chart.unit) : null,
     assignmentCount: Number(chart?._count?.assigns ?? 0),
     keywordRuleCount: Number(chart?._count?.keywordAssignments ?? 0),
+    createdAt: chart?.createdAt ? String(chart.createdAt) : null,
+    updatedAt: chart?.updatedAt ? String(chart.updatedAt) : null,
     guideTitle: chart?.guideTitle ? String(chart.guideTitle) : null,
     guideText: chart?.guideText ? String(chart.guideText) : null,
     guideImage: chart?.guideImage ? String(chart.guideImage) : null,
@@ -187,6 +287,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       title: true,
       isDefault: true,
       unit: true,
+      createdAt: true,
+      updatedAt: true,
       _count: {
         select: {
           assigns: true,
@@ -325,7 +427,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         })),
       });
 
-      return { ok: true, message: "Table updated." } satisfies ActionData;
+      return { ok: true, message: "Table updated.", intent: "save", chartId } satisfies ActionData;
     }
 
     await prisma.sizeChart.create({
@@ -353,7 +455,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return { ok: true, message: "Table created." } satisfies ActionData;
+    return { ok: true, message: "Table created.", intent: "save" } satisfies ActionData;
   }
 
   if (intent === "delete") {
@@ -366,10 +468,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { chartId, shopId: shopRow.id },
     });
 
-    if (usageCount > 0) {
+    const keywordUsageCount = await prisma.sizeKeywordRule.count({
+      where: { chartId, shopId: shopRow.id },
+    });
+
+    if (usageCount > 0 || keywordUsageCount > 0) {
       return {
         ok: false,
-        message: `This table is used in ${usageCount} assignment(s). Remove those assignments first.`,
+        message:
+          `This table is still in use by ${usageCount} assignment(s) and ` +
+          `${keywordUsageCount} keyword rule(s). Remove those links first.`,
       } satisfies ActionData;
     }
 
@@ -381,7 +489,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: chartId, shopId: shopRow.id },
     });
 
-    return { ok: true, message: "Table deleted." } satisfies ActionData;
+    return { ok: true, message: "Table deleted.", intent: "delete" } satisfies ActionData;
   }
 
   if (intent === "duplicate") {
@@ -403,10 +511,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { ok: false, message: "Source table not found." } satisfies ActionData;
     }
 
-    await prisma.sizeChart.create({
+    const existingTitles = (
+      await prisma.sizeChart.findMany({
+        where: { shopId: shopRow.id },
+        select: { title: true },
+      })
+    ).map((chart) => String(chart.title || "").trim());
+
+    const duplicated = await prisma.sizeChart.create({
       data: {
         shopId: shopRow.id,
-        title: `${source.title} Copy`,
+        title: buildDuplicateTitle(source.title, existingTitles),
         unit: source.unit,
         isDefault: false,
         guideTitle: source.guideTitle,
@@ -426,7 +541,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return { ok: true, message: "Table duplicated." } satisfies ActionData;
+    return {
+      ok: true,
+      message: "Table duplicated. You can rename or adjust the copy now.",
+      intent: "duplicate",
+      chartId: duplicated.id,
+    } satisfies ActionData;
   }
 
   return { ok: false, message: "Unknown action." } satisfies ActionData;
@@ -730,6 +850,8 @@ function ChartCard({
   chart: ChartLite;
   onEdit: (chart: ChartLite) => void;
 }) {
+  const usageCount = (chart.assignmentCount || 0) + (chart.keywordRuleCount || 0);
+
   return (
     <div
       style={{
@@ -773,6 +895,10 @@ function ChartCard({
             Usage: {chart.assignmentCount || 0} assignment(s) • {chart.keywordRuleCount || 0} keyword rule(s)
           </div>
 
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+            Updated: {chart.updatedAt ? new Date(chart.updatedAt).toLocaleDateString() : "—"}
+          </div>
+
           {chart.guideImage ? (
             <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
               Storefront image: {chart.showGuideImage ? "visible" : "hidden"}
@@ -813,7 +939,7 @@ function ChartCard({
               fontWeight: 700,
             }}
           >
-            Duplicate
+            Duplicate table
           </button>
         </Form>
 
@@ -823,14 +949,21 @@ function ChartCard({
             <input type="hidden" name="chartId" value={chart.id} />
             <button
               type="submit"
+              disabled={usageCount > 0}
+              title={
+                usageCount > 0
+                  ? "This chart is still used by assignments or keyword rules."
+                  : undefined
+              }
               style={{
                 padding: "10px 14px",
                 borderRadius: 10,
                 border: "1px solid #d32f2f",
                 background: "white",
                 color: "#d32f2f",
-                cursor: "pointer",
+                cursor: usageCount > 0 ? "not-allowed" : "pointer",
                 fontWeight: 700,
+                opacity: usageCount > 0 ? 0.5 : 1,
               }}
             >
               Delete
@@ -838,6 +971,12 @@ function ChartCard({
           </Form>
         ) : null}
       </div>
+
+      {usageCount > 0 ? (
+        <div style={{ fontSize: 12, opacity: 0.72, marginTop: 10 }}>
+          Remove linked assignments and keyword rules before deleting this table.
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -860,16 +999,32 @@ export default function SizeChartsPage() {
   const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [unitFilter, setUnitFilter] = useState("all");
   const [editorInitialJson, setEditorInitialJson] = useState(JSON.stringify(emptyEditor()));
+  const [importText, setImportText] = useState("");
+  const [importMessage, setImportMessage] = useState<string | null>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const sortedCharts = useMemo(() => charts ?? [], [charts]);
 
   useEffect(() => {
-    if (actionData?.ok) {
+    if (actionData?.ok && actionData.intent === "save") {
       setEditorOpen(false);
       setEditorInitialJson(JSON.stringify(emptyEditor()));
     }
   }, [actionData]);
+
+  useEffect(() => {
+    if (!actionData?.ok || actionData.intent !== "duplicate" || !actionData.chartId) return;
+
+    const duplicatedChart = charts.find((chart) => chart.id === actionData.chartId);
+    if (!duplicatedChart) return;
+
+    const next = buildEditorFromChart(duplicatedChart);
+    setEditor(next);
+    setEditorInitialJson(JSON.stringify(next));
+    setImportText("");
+    setImportMessage("Duplicated table loaded. Update the copy and save when you're ready.");
+    setEditorOpen(true);
+  }, [actionData, charts]);
 
   const editorDirty = useMemo(
     () => JSON.stringify(editor) !== editorInitialJson,
@@ -900,6 +1055,8 @@ export default function SizeChartsPage() {
     const next = emptyEditor();
     setEditor(next);
     setEditorInitialJson(JSON.stringify(next));
+    setImportText("");
+    setImportMessage(null);
     setEditorOpen(true);
   }
 
@@ -907,7 +1064,25 @@ export default function SizeChartsPage() {
     const next = buildEditorFromChart(chart);
     setEditor(next);
     setEditorInitialJson(JSON.stringify(next));
+    setImportText("");
+    setImportMessage(null);
     setEditorOpen(true);
+  }
+
+  function importTableFromText() {
+    const parsed = parseTableText(importText);
+
+    if (!parsed) {
+      setImportMessage("Paste a table with a header row and at least one data row.");
+      return;
+    }
+
+    setEditor((prev) => ({
+      ...prev,
+      columns: parsed.columns,
+      rows: parsed.rows.length > 0 ? parsed.rows : prev.rows,
+    }));
+    setImportMessage(`Imported ${parsed.rows.length} row(s) and ${parsed.columns.length} column(s).`);
   }
 
   function setColumnName(index: number, value: string) {
@@ -1408,6 +1583,49 @@ export default function SizeChartsPage() {
                   placeholder="https://cdn.shopify.com/... or /images/size-guides/shoes.png"
                   style={inputStyle}
                 />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                  {GUIDE_IMAGE_PRESETS.map((preset) => {
+                    const active = editor.guideImage === preset.value;
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => setEditor((prev) => ({ ...prev, guideImage: preset.value }))}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: 999,
+                          border: active ? "1px solid #2e7d32" : "1px solid #dfe3e8",
+                          background: active ? "#f3fbf5" : "white",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                  {editor.guideImage ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditor((prev) => ({ ...prev, guideImage: "" }))}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 999,
+                        border: "1px solid #dfe3e8",
+                        background: "white",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Clear image
+                    </button>
+                  ) : null}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
+                  Quick pick from built-in guide images or paste your own URL/path.
+                </div>
               </div>
 
               <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1519,6 +1737,40 @@ export default function SizeChartsPage() {
             </div>
 
             <div style={{ marginTop: 14 }}>
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  border: "1px solid #e7e7e7",
+                  background: "#fafafa",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>CSV / paste import</div>
+                <textarea
+                  value={importText}
+                  onChange={(e) => {
+                    setImportText(e.target.value);
+                    if (importMessage) setImportMessage(null);
+                  }}
+                  rows={6}
+                  placeholder={`SIZE,CHEST,LENGTH\nS,88,62\nM,94,65`}
+                  style={textareaStyle}
+                />
+                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 8, lineHeight: 1.4 }}>
+                  Paste CSV, tab-separated, or semicolon-separated data. The first row should be the
+                  column headers.
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+                  <button type="button" onClick={importTableFromText} style={secondaryBtnStyle}>
+                    Import into table
+                  </button>
+                  {importMessage ? (
+                    <div style={{ fontSize: 12, opacity: 0.78 }}>{importMessage}</div>
+                  ) : null}
+                </div>
+              </div>
+
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Columns</div>
 
               <div style={{ display: "grid", gap: 8 }}>

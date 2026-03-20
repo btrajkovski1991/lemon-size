@@ -11,18 +11,18 @@
 
 ## Phase 2: Merchant Setup Improvements
 
-- [ ] In-app onboarding checklist.
-- [ ] Better help/support page with setup troubleshooting.
-- [ ] Fallback explanation for why a chart matched.
-- [ ] Safer delete UX for charts used across rules.
-- [ ] Display created/updated timestamps for charts.
+- [x] In-app onboarding checklist.
+- [x] Better help/support page with setup troubleshooting.
+- [x] Fallback explanation for why a chart matched.
+- [x] Safer delete UX for charts used across rules.
+- [x] Display created/updated timestamps for charts.
 
 ## Phase 3: Chart Management
 
-- [ ] Duplicate chart polish.
-- [ ] Built-in guide image picker.
-- [ ] CSV / paste import for table creation.
-- [ ] Bulk assignment helpers.
+- [x] Duplicate chart polish.
+- [x] Built-in guide image picker.
+- [x] CSV / paste import for table creation.
+- [x] Bulk assignment helpers.
 
 ## Phase 4: Matching & Debugging Tools
 
