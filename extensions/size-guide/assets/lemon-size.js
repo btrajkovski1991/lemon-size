@@ -70,6 +70,7 @@
   function normalizeGuideImageUrl(trigger, rawUrl) {
     if (!rawUrl || !String(rawUrl).trim()) return "";
 
+    const base = getGuideBase(trigger);
     const clean = String(rawUrl).trim();
 
     if (/^https?:\/\//i.test(clean)) return clean;
@@ -78,11 +79,11 @@
       return window.location.protocol + clean;
     }
 
-    if (clean.startsWith("/")) {
-      return `${window.location.origin}${clean}`;
+    try {
+      return new URL(clean, `${base.replace(/\/+$/, "")}/`).toString();
+    } catch (error) {
+      return clean;
     }
-
-    return clean;
   }
 
   function buildProxyUrl(trigger, mode) {
