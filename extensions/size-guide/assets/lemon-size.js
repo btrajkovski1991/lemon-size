@@ -311,12 +311,17 @@
     const cols = Array.isArray(chart.columns) ? chart.columns : [];
     const rows = Array.isArray(chart.rows) ? chart.rows : [];
 
-    const head = cols.map((c) => `<th>${escapeHtml(String(c))}</th>`).join("");
+    const head = cols
+      .map((c, index) => {
+        const classes = index === 0 ? ' class="lemon-size__stickyCol"' : "";
+        return `<th${classes}>${escapeHtml(String(c))}</th>`;
+      })
+      .join("");
 
     const body = rows
       .map((r) => {
         const cells = cols
-          .map((c) => {
+          .map((c, index) => {
             let raw =
               r && r.values && r.values[c] != null
                 ? r.values[c]
@@ -333,7 +338,8 @@
               raw = convertMeasurementText(raw, baseUnit, displayUnit);
             }
 
-            return `<td>${escapeHtml(String(raw ?? ""))}</td>`;
+            const classes = index === 0 ? ' class="lemon-size__stickyCol"' : "";
+            return `<td${classes}>${escapeHtml(String(raw ?? ""))}</td>`;
           })
           .join("");
 
@@ -443,6 +449,61 @@
     }
   }
 
+  function renderStateCard(kind, title, message, options) {
+    const note = options && options.note ? `<div class="lemon-size__stateNote">${escapeHtml(String(options.note))}</div>` : "";
+    const actions =
+      options && options.retry
+        ? `<button type="button" class="lemon-size__stateBtn" data-lemon-retry>Try again</button>`
+        : "";
+
+    return `
+      <div class="lemon-size__state lemon-size__state--${escapeHtml(kind)}">
+        <div class="lemon-size__stateEyebrow">${kind === "error" ? "Unable to load" : "Size guide unavailable"}</div>
+        <div class="lemon-size__stateTitle">${escapeHtml(title)}</div>
+        <div class="lemon-size__stateText">${escapeHtml(message)}</div>
+        ${note}
+        ${actions ? `<div class="lemon-size__stateActions">${actions}</div>` : ""}
+      </div>
+    `;
+  }
+
+  async function loadAndRenderChart(modal, content, trigger) {
+    content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
+
+    try {
+      const data = await fetchChart(trigger);
+      modal._lemonData = data;
+      render(modal, content, data);
+    } catch (err) {
+      console.error("[LemonSize] Fetch/render error:", err);
+      const message =
+        err && typeof err.message === "string" && err.message
+          ? err.message
+          : "Couldn’t load the size guide right now.";
+      content.innerHTML = renderStateCard(
+        "error",
+        "We couldn’t open the size guide",
+        message,
+        {
+          note: "Please try again in a moment. If this keeps happening, contact the store for sizing help.",
+          retry: true,
+        },
+      );
+    }
+  }
+
+  function setMeasureExpanded(modal, expanded) {
+    const toggleBtn = modal.querySelector("[data-lemon-measure-toggle]");
+    const body = modal.querySelector("[data-lemon-measure-body]");
+    if (!toggleBtn || !body) return;
+
+    modal._lemonMeasureExpanded = expanded;
+    body.hidden = !expanded;
+    body.classList.toggle("is-hidden", !expanded);
+    toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+    toggleBtn.textContent = expanded ? "Hide guide" : "Show guide";
+  }
+
   function render(modal, contentEl, data) {
     const chart = data && Object.prototype.hasOwnProperty.call(data, "chart") ? data.chart : null;
 
@@ -450,7 +511,14 @@
       const message =
         (data && (data.message || data.error)) ||
         "No size chart is available for this product right now.";
-      contentEl.innerHTML = `<div class="lemon-size__empty">${escapeHtml(String(message))}</div>`;
+      contentEl.innerHTML = renderStateCard(
+        "empty",
+        "No size guide for this product",
+        String(message),
+        {
+          note: "You can still use the product details or contact the store if you need fit advice.",
+        },
+      );
       return;
     }
 
@@ -467,6 +535,10 @@
     setUnitUI(modal, baseUnit, modal._lemonDisplayUnit);
     contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
     renderGuide(modal, chart);
+    if (typeof modal._lemonMeasureExpanded !== "boolean") {
+      modal._lemonMeasureExpanded = true;
+    }
+    setMeasureExpanded(modal, modal._lemonMeasureExpanded);
   }
 
   function init() {
@@ -506,6 +578,20 @@
       const productImg = btn.getAttribute("data-product-image") || "";
       if (img && productImg) img.src = productImg;
 
+      const measureToggle = modal.querySelector("[data-lemon-measure-toggle]");
+      if (measureToggle) {
+        setMeasureExpanded(modal, true);
+        measureToggle.addEventListener("click", () => {
+          setMeasureExpanded(modal, !modal._lemonMeasureExpanded);
+        });
+      }
+
+      content.addEventListener("click", (event) => {
+        const retryBtn = event.target.closest("[data-lemon-retry]");
+        if (!retryBtn) return;
+        loadAndRenderChart(modal, content, btn);
+      });
+
       modal.querySelectorAll("[data-lemon-unit]").forEach((unitBtn) => {
         unitBtn.addEventListener("click", () => {
           const u = (unitBtn.getAttribute("data-lemon-unit") || "").toLowerCase();
@@ -530,20 +616,7 @@
           return;
         }
 
-        content.innerHTML = `<div class="lemon-size__loading">Loading…</div>`;
-
-        try {
-          const data = await fetchChart(btn);
-          modal._lemonData = data;
-          render(modal, content, data);
-        } catch (err) {
-          console.error("[LemonSize] Fetch/render error:", err);
-          const message =
-            err && typeof err.message === "string" && err.message
-              ? err.message
-              : "Couldn’t load the size guide right now.";
-          content.innerHTML = `<div class="lemon-size__error">${escapeHtml(message)}</div>`;
-        }
+        await loadAndRenderChart(modal, content, btn);
       });
 
       root.addEventListener("click", (e) => {

@@ -32,7 +32,7 @@
 
 ## Phase 5: Storefront Polish
 
-- [ ] Sticky first column for wide tables.
-- [ ] Better mobile layout for long guides.
-- [ ] Optional collapsible measure section on mobile.
-- [ ] Improved empty/failure states on storefront.
+- [x] Sticky first column for wide tables.
+- [x] Better mobile layout for long guides.
+- [x] Optional collapsible measure section on mobile.
+- [x] Improved empty/failure states on storefront.

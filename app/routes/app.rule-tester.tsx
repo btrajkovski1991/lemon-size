@@ -220,7 +220,10 @@ export default function RuleTesterPage() {
                 <input
                   name="title"
                   value={form.title}
-                  onChange={(event) => setForm((prev) => ({ ...prev, title: event.currentTarget.value }))}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, title: value }));
+                  }}
                   placeholder="Oversized Summer Dress"
                   style={inputStyle}
                 />
@@ -230,7 +233,10 @@ export default function RuleTesterPage() {
                 <input
                   name="handle"
                   value={form.handle}
-                  onChange={(event) => setForm((prev) => ({ ...prev, handle: event.currentTarget.value }))}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, handle: value }));
+                  }}
                   placeholder="oversized-summer-dress"
                   style={inputStyle}
                 />
@@ -240,9 +246,10 @@ export default function RuleTesterPage() {
                 <input
                   name="productType"
                   value={form.productType}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, productType: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, productType: value }));
+                  }}
                   placeholder="Dress"
                   style={inputStyle}
                 />
@@ -252,7 +259,10 @@ export default function RuleTesterPage() {
                 <input
                   name="vendor"
                   value={form.vendor}
-                  onChange={(event) => setForm((prev) => ({ ...prev, vendor: event.currentTarget.value }))}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, vendor: value }));
+                  }}
                   placeholder="Lemon Studio"
                   style={inputStyle}
                 />
@@ -262,7 +272,10 @@ export default function RuleTesterPage() {
                 <input
                   name="tags"
                   value={form.tags}
-                  onChange={(event) => setForm((prev) => ({ ...prev, tags: event.currentTarget.value }))}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, tags: value }));
+                  }}
                   placeholder="summer, oversized, cotton"
                   style={inputStyle}
                 />
@@ -272,9 +285,10 @@ export default function RuleTesterPage() {
                 <input
                   name="collections"
                   value={form.collections}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, collections: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, collections: value }));
+                  }}
                   placeholder="dresses, summer-collection"
                   style={inputStyle}
                 />
@@ -284,9 +298,10 @@ export default function RuleTesterPage() {
                 <input
                   name="productId"
                   value={form.productId}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, productId: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setForm((prev) => ({ ...prev, productId: value }));
+                  }}
                   placeholder="1234567890"
                   style={inputStyle}
                 />
