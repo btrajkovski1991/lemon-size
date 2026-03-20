@@ -3,6 +3,8 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { InfoCard } from "../components/admin-ui";
+import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
 
 type ChartLite = {
   id: string;
@@ -87,6 +89,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         enabled: true,
       },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: "Keyword rule saved." } satisfies ActionData;
   }
@@ -103,6 +106,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id, shopId: shopRow.id },
       data: { enabled },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: `Keyword rule ${enabled ? "enabled" : "disabled"}.` } satisfies ActionData;
   }
@@ -116,6 +120,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.sizeKeywordRule.deleteMany({
       where: { id, shopId: shopRow.id },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: "Keyword rule deleted." } satisfies ActionData;
   }
@@ -594,22 +599,6 @@ export default function KeywordRulesPage() {
         )}
       </s-section>
     </s-page>
-  );
-}
-
-function InfoCard({ title, text }: { title: string; text: string }) {
-  return (
-    <div
-      style={{
-        padding: 16,
-        borderRadius: 14,
-        border: "1px solid #e7e7e7",
-        background: "white",
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
-    </div>
   );
 }
 

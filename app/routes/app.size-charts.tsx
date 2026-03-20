@@ -4,54 +4,27 @@ import { Form, useActionData, useLoaderData, useNavigation } from "react-router"
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-
-type ChartRowValueMap = Record<string, string>;
-
-type ChartRowLite = {
-  id?: string;
-  label: string;
-  sortOrder: number;
-  values: ChartRowValueMap;
-};
-
-type ChartLite = {
-  id: string;
-  title: string;
-  isDefault: boolean;
-  unit?: string | null;
-  assignmentCount?: number;
-  keywordRuleCount?: number;
-  createdAt?: string | null;
-  updatedAt?: string | null;
-  columns?: string[] | null;
-  guideTitle?: string | null;
-  guideText?: string | null;
-  guideImage?: string | null;
-  showGuideImage?: boolean | null;
-  tips?: string | null;
-  disclaimer?: string | null;
-  rows?: ChartRowLite[];
-};
+import { ChartTitleIcon, InfoCard, ModalShell } from "../components/admin-ui";
+import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
+import {
+  type ChartRowLite,
+  type EditorChart,
+  type SizeChartLite as ChartLite,
+  buildDuplicateTitle,
+  buildEditorFromChart,
+  emptyEditor,
+  normalizeChartColumns,
+  normalizeChartRows,
+  normalizeSizeChartLite,
+  normalizeUnitValue,
+  parseTableText,
+} from "../utils/size-charts";
+import { getOrCreateShopRow } from "../utils/shop.server";
 
 type ActionData =
   | { ok: true; message: string; intent?: "save" | "delete" | "duplicate"; chartId?: string }
   | { ok: false; message: string }
   | undefined;
-
-type EditorChart = {
-  id: string | null;
-  title: string;
-  unit: string;
-  isDefault: boolean;
-  guideTitle: string;
-  guideText: string;
-  guideImage: string;
-  showGuideImage: boolean;
-  tips: string;
-  disclaimer: string;
-  columns: string[];
-  rows: ChartRowLite[];
-};
 
 const GUIDE_IMAGE_PRESETS = [
   {
@@ -220,215 +193,6 @@ const JEWELRY_TABLE_TEMPLATES = [
   },
 ];
 
-function normalizeUnitValue(input: unknown): "cm" | "in" | "mm" | null {
-  const raw = String(input ?? "")
-    .trim()
-    .toLowerCase();
-
-  if (!raw) return null;
-  if (["cm", "cms", "centimeter", "centimeters"].includes(raw)) return "cm";
-  if (["mm", "millimeter", "millimeters"].includes(raw)) return "mm";
-  if (["in", "inch", "inches"].includes(raw)) return "in";
-  return null;
-}
-
-function buildDuplicateTitle(sourceTitle: string, existingTitles: string[]): string {
-  const baseTitle = `${String(sourceTitle || "").trim() || "Untitled"} Copy`;
-  if (!existingTitles.includes(baseTitle)) return baseTitle;
-
-  let counter = 2;
-  let candidate = `${baseTitle} ${counter}`;
-  while (existingTitles.includes(candidate)) {
-    counter += 1;
-    candidate = `${baseTitle} ${counter}`;
-  }
-
-  return candidate;
-}
-
-function parseDelimitedLine(line: string, delimiter: string): string[] {
-  const cells: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        current += '"';
-        i += 1;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === delimiter && !inQuotes) {
-      cells.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  cells.push(current.trim());
-  return cells;
-}
-
-function parseTableText(input: string): { columns: string[]; rows: ChartRowLite[] } | null {
-  const normalized = String(input || "").replace(/\r\n/g, "\n").trim();
-  if (!normalized) return null;
-
-  const lines = normalized
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length < 2) return null;
-
-  const sample = lines[0];
-  const delimiter = sample.includes("\t") ? "\t" : sample.includes(";") ? ";" : ",";
-
-  const columns = parseDelimitedLine(lines[0], delimiter)
-    .map((cell) => cell.trim())
-    .filter(Boolean);
-
-  if (columns.length === 0) return null;
-
-  const sizeColumn =
-    columns.find((col) => String(col).trim().toUpperCase().includes("SIZE")) || columns[0];
-
-  const rows = lines.slice(1).map((line, index) => {
-    const cells = parseDelimitedLine(line, delimiter);
-    const values = Object.fromEntries(
-      columns.map((column, cellIndex) => [column, String(cells[cellIndex] ?? "").trim()]),
-    );
-
-    return {
-      label: String(values[sizeColumn] ?? cells[0] ?? `Row ${index + 1}`).trim() || `Row ${index + 1}`,
-      sortOrder: index + 1,
-      values,
-    };
-  });
-
-  return { columns, rows };
-}
-
-function normalizeChartLite(chart: any): ChartLite {
-  const columns = normalizeColumns(chart?.columns);
-
-  return {
-    id: String(chart?.id ?? ""),
-    title: String(chart?.title ?? ""),
-    isDefault: Boolean(chart?.isDefault),
-    unit: chart?.unit ? String(chart.unit) : null,
-    assignmentCount: Number(chart?._count?.assigns ?? 0),
-    keywordRuleCount: Number(chart?._count?.keywordAssignments ?? 0),
-    createdAt: chart?.createdAt ? String(chart.createdAt) : null,
-    updatedAt: chart?.updatedAt ? String(chart.updatedAt) : null,
-    guideTitle: chart?.guideTitle ? String(chart.guideTitle) : null,
-    guideText: chart?.guideText ? String(chart.guideText) : null,
-    guideImage: chart?.guideImage ? String(chart.guideImage) : null,
-    showGuideImage:
-      typeof chart?.showGuideImage === "boolean" ? chart.showGuideImage : Boolean(chart?.showGuideImage),
-    tips: chart?.tips ? String(chart.tips) : null,
-    disclaimer: chart?.disclaimer ? String(chart.disclaimer) : null,
-    columns,
-    rows: normalizeRows(chart?.rows ?? [], columns),
-  };
-}
-
-function emptyEditor(): EditorChart {
-  return {
-    id: null,
-    title: "",
-    unit: "cm",
-    isDefault: false,
-    guideTitle: "",
-    guideText: "",
-    guideImage: "",
-    showGuideImage: true,
-    tips: "",
-    disclaimer: "",
-    columns: ["SIZE", "VALUE"],
-    rows: [
-      {
-        label: "Row 1",
-        sortOrder: 1,
-        values: {
-          SIZE: "S",
-          VALUE: "",
-        },
-      },
-    ],
-  };
-}
-
-function normalizeColumns(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  return input.map((x) => String(x || "").trim()).filter(Boolean);
-}
-
-function normalizeRows(input: unknown, columns: string[]): ChartRowLite[] {
-  if (!Array.isArray(input)) return [];
-
-  return input.map((row: any, index) => {
-    const values: Record<string, string> = {};
-    const rawValues = row?.values && typeof row.values === "object" ? row.values : {};
-
-    for (const col of columns) {
-      values[col] = String(rawValues[col] ?? "");
-    }
-
-    return {
-      id: row?.id ? String(row.id) : undefined,
-      label: String(row?.label ?? ""),
-      sortOrder: Number(row?.sortOrder ?? index + 1),
-      values,
-    };
-  });
-}
-
-function buildEditorFromChart(chart?: ChartLite | null): EditorChart {
-  if (!chart) return emptyEditor();
-
-  const cols = normalizeColumns(chart.columns);
-  const rows = normalizeRows(chart.rows ?? [], cols);
-
-  return {
-    id: chart.id,
-    title: chart.title || "",
-    unit: chart.unit || "cm",
-    isDefault: !!chart.isDefault,
-    guideTitle: chart.guideTitle || "",
-    guideText: chart.guideText || "",
-    guideImage: chart.guideImage || "",
-    showGuideImage: chart.showGuideImage ?? true,
-    tips: chart.tips || "",
-    disclaimer: chart.disclaimer || "",
-    columns: cols.length ? cols : ["SIZE", "VALUE"],
-    rows: rows.length
-      ? rows
-      : [
-          {
-            label: "Row 1",
-            sortOrder: 1,
-            values: Object.fromEntries((cols.length ? cols : ["SIZE", "VALUE"]).map((c) => [c, ""])),
-          },
-        ],
-  };
-}
-
-async function getOrCreateShopRow(shopDomain: string) {
-  return prisma.shop.upsert({
-    where: { shop: shopDomain },
-    update: {},
-    create: { shop: shopDomain },
-  });
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -499,8 +263,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let rows: ChartRowLite[] = [];
 
     try {
-      columns = normalizeColumns(JSON.parse(String(form.get("columnsJson") || "[]")));
-      rows = normalizeRows(JSON.parse(String(form.get("rowsJson") || "[]")), columns);
+      columns = normalizeChartColumns(JSON.parse(String(form.get("columnsJson") || "[]")));
+      rows = normalizeChartRows(JSON.parse(String(form.get("rowsJson") || "[]")), columns);
     } catch (error) {
       return { ok: false, message: "Invalid table payload." } satisfies ActionData;
     }
@@ -583,6 +347,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           ),
         })),
       });
+      invalidateShopSizeChartCache(shopRow.id);
 
       return { ok: true, message: "Table updated.", intent: "save", chartId } satisfies ActionData;
     }
@@ -611,6 +376,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: "Table created.", intent: "save" } satisfies ActionData;
   }
@@ -645,6 +411,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.sizeChart.deleteMany({
       where: { id: chartId, shopId: shopRow.id },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: "Table deleted.", intent: "delete" } satisfies ActionData;
   }
@@ -697,6 +464,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return {
       ok: true,
@@ -708,181 +476,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
-
-function ModalShell({
-  open,
-  title,
-  onClose,
-  children,
-  footer,
-  wide,
-}: {
-  open: boolean;
-  title: string;
-  onClose: () => void;
-  children: any;
-  footer?: any;
-  wide?: boolean;
-}) {
-  if (!open) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "rgba(0,0,0,.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        style={{
-          width: wide ? "min(1280px, 96vw)" : "min(920px, 96vw)",
-          maxHeight: "90vh",
-          background: "white",
-          borderRadius: 16,
-          boxShadow: "0 12px 30px rgba(0,0,0,.20)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 18px",
-            borderBottom: "1px solid #eee",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 800 }}>{title}</div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              border: "none",
-              background: "transparent",
-              fontSize: 24,
-              lineHeight: 1,
-              cursor: "pointer",
-              padding: 6,
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: 16, overflow: "auto" }}>{children}</div>
-
-        <div
-          style={{
-            padding: 16,
-            borderTop: "1px solid #eee",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10,
-          }}
-        >
-          {footer}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function IconForChartTitle({ title }: { title: string }) {
-  const common = { width: 42, height: 42, viewBox: "0 0 48 48", fill: "none" as const };
-  const stroke = "#2a2a2a";
-  const muted = "#9aa0a6";
-  const t = String(title || "").toLowerCase();
-
-  if (t.includes("shoe") || t.includes("sock")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M9 30c7 0 12-6 13-10l8 6c3 2 6 3 9 3h2v6H9v-5z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M10 35h32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  if (t.includes("tops")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M16 14l8-4 8 4 4 8-6 4v20H18V26l-6-4 4-8z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  if (t.includes("bottom")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M18 10h12l2 28-7-2-3 8-3-8-7 2 2-28z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  if (t.includes("blazer") || t.includes("jacket")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M16 12l8-2 8 2 4 10-6 6v14H18V28l-6-6 4-10z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M24 10v32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  if (t.includes("dress")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M20 10h8l2 8-2 4 6 18H14l6-18-2-4 2-8z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...common}>
-      <rect x="12" y="12" width="24" height="24" rx="6" stroke={stroke} strokeWidth="2" />
-      <path d="M16 20h16M16 26h16M16 32h10" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function ChartPreview({ chart }: { chart: EditorChart | ChartLite | null }) {
   if (!chart) return null;
@@ -1033,7 +626,7 @@ function ChartCard({
             flex: "0 0 auto",
           }}
         >
-          <IconForChartTitle title={chart.title} />
+          <ChartTitleIcon title={chart.title} />
         </div>
 
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1211,27 +804,11 @@ function ChartCard({
   );
 }
 
-function InfoCard({ title, text }: { title: string; text: string }) {
-  return (
-    <div
-      style={{
-        padding: 16,
-        borderRadius: 14,
-        border: "1px solid #e7e7e7",
-        background: "white",
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
-    </div>
-  );
-}
-
 export default function SizeChartsPage() {
   const loaderData = useLoaderData<typeof loader>();
   const { shopDomain } = loaderData;
   const charts = useMemo<ChartLite[]>(
-    () => (loaderData.charts ?? []).map((chart) => normalizeChartLite(chart)),
+    () => (loaderData.charts ?? []).map((chart) => normalizeSizeChartLite(chart)),
     [loaderData.charts],
   );
   const actionData = useActionData<ActionData>();

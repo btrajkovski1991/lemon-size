@@ -24,6 +24,7 @@ Status key:
 - [~] Test extension UX on desktop and mobile themes.
 - [ ] Verify install, uninstall, reinstall, and app block enablement on a dev store.
 - [x] Replace template README content with Lemon Size project documentation.
+- [x] Create a dev-store QA checklist for manual release testing.
 
 ## Shopify App Review Readiness
 
@@ -57,6 +58,9 @@ Target guidance:
 2. Test the theme extension on real desktop and mobile storefront themes.
 3. Prepare Partner Dashboard assets and legal/support links.
 4. Write review instructions and record the review screencast.
+
+Manual QA guide:
+- `docs/DEV_STORE_QA_CHECKLIST.md`
 
 ## Current Status Summary
 

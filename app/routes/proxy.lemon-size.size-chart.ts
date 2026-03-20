@@ -2,6 +2,7 @@ import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
 import { buildRulesIndex, resolveChartIdFromIndex, type RulesIndex } from "../utils/size-chart-matching.server";
+import { getCachedChart, getCachedRulesIndex } from "../utils/size-chart-cache.server";
 
 function parseCsv(value?: string | null) {
   if (!value) return [];
@@ -101,12 +102,9 @@ function unique(arr: string[]) {
   return Array.from(new Set(arr));
 }
 
-function nowMs() {
-  return Date.now();
-}
-
 type ChartWithRows = {
   id: string;
+  shopId: string;
   title: string;
   unit: string;
   columns: any;
@@ -119,35 +117,6 @@ type ChartWithRows = {
   rows: Array<{ label: string; values: any; sortOrder: number }>;
 };
 
-const RULES_TTL_MS = 60_000;
-const rulesCache = new Map<string, { exp: number; value: RulesIndex }>();
-const rulesInflight = new Map<string, Promise<RulesIndex>>();
-
-const CHART_TTL_MS = 60_000;
-const chartCache = new Map<string, { exp: number; value: ChartWithRows | null }>();
-const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
-
-async function getRulesIndexCached(shopId: string): Promise<RulesIndex> {
-  const cached = rulesCache.get(shopId);
-  if (cached && cached.exp > nowMs()) return cached.value;
-
-  const inflight = rulesInflight.get(shopId);
-  if (inflight) return inflight;
-
-  const p = (async () => {
-    try {
-      const idx = await buildRulesIndex(shopId);
-      rulesCache.set(shopId, { exp: nowMs() + RULES_TTL_MS, value: idx });
-      return idx;
-    } finally {
-      rulesInflight.delete(shopId);
-    }
-  })();
-
-  rulesInflight.set(shopId, p);
-  return p;
-}
-
 async function fetchChartWithRows(chartId: string): Promise<ChartWithRows | null> {
   const chart = await prisma.sizeChart.findFirst({
     where: { id: chartId },
@@ -155,27 +124,6 @@ async function fetchChartWithRows(chartId: string): Promise<ChartWithRows | null
   });
 
   return (chart as any) ?? null;
-}
-
-async function getChartCached(chartId: string): Promise<ChartWithRows | null> {
-  const cached = chartCache.get(chartId);
-  if (cached && cached.exp > nowMs()) return cached.value;
-
-  const inflight = chartInflight.get(chartId);
-  if (inflight) return inflight;
-
-  const p = (async () => {
-    try {
-      const chart = await fetchChartWithRows(chartId);
-      chartCache.set(chartId, { exp: nowMs() + CHART_TTL_MS, value: chart });
-      return chart;
-    } finally {
-      chartInflight.delete(chartId);
-    }
-  })();
-
-  chartInflight.set(chartId, p);
-  return p;
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -213,13 +161,18 @@ export async function loader({ request }: { request: Request }) {
       .map((v) => normalizeSizeValue(v))
       .filter(Boolean);
 
-    const dbShop = await prisma.shop.upsert({
+    const dbShop = await prisma.shop.findUnique({
       where: { shop },
-      update: {},
-      create: { shop },
+      select: { id: true },
     });
+    if (!dbShop) {
+      return json(
+        { ok: true, chart: null, message: "Shop not configured" },
+        { headers: { "Cache-Control": "public, max-age=30, s-maxage=120" } },
+      );
+    }
 
-    const idx = await getRulesIndexCached(dbShop.id);
+    const idx = await getCachedRulesIndex<RulesIndex>(dbShop.id, () => buildRulesIndex(dbShop.id));
 
     const resolution = resolveChartIdFromIndex({
       idx,
@@ -246,7 +199,7 @@ export async function loader({ request }: { request: Request }) {
       );
     }
 
-    const chart = await getChartCached(chartId);
+    const chart = await getCachedChart(chartId, () => fetchChartWithRows(chartId));
     if (!chart) {
       return json(
         { ok: true, chart: null, message: "Size chart not found" },

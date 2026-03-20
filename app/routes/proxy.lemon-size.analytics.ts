@@ -32,11 +32,13 @@ export async function loader({ request }: { request: Request }) {
       return new Response(null, { status: 204 });
     }
 
-    const shop = await prisma.shop.upsert({
+    const shop = await prisma.shop.findUnique({
       where: { shop: shopDomain },
-      update: {},
-      create: { shop: shopDomain },
+      select: { id: true },
     });
+    if (!shop) {
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+    }
 
     await prisma.$executeRaw`
       INSERT INTO "SizeGuideViewEvent" (

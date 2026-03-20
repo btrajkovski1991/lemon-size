@@ -4,93 +4,25 @@ import { Form, useActionData, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-
-type Scope = "ALL" | "PRODUCT" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG";
-
-type ChartPreviewRow = { label: string; sortOrder: number; values: Record<string, any> };
-type ChartLite = {
-  id: string;
-  title: string;
-  isDefault: boolean;
-  unit?: string | null;
-  columns?: string[] | null;
-  rows?: ChartPreviewRow[]; // preview rows
-};
-
-type RuleLite = {
-  id: string;
-  priority: number;
-  scope: string;
-  scopeValue: string | null;
-  enabled: boolean;
-  chart: { title: string };
-};
-
-type ProductLite = {
-  id: string;
-  title: string;
-  handle: string;
-  vendor?: string;
-  imageUrl?: string | null;
-  imageAlt?: string | null;
-};
-
-type CollectionLite = {
-  id: string;
-  title: string;
-  handle: string;
-  imageUrl?: string | null;
-  imageAlt?: string | null;
-};
+import { ChartTitleIcon, InfoCard, ModalShell, Thumb } from "../components/admin-ui";
+import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
+import {
+  type AssignmentChartLite as ChartLite,
+  type AssignmentRuleLite as RuleLite,
+  type CollectionLite,
+  type ProductLite,
+  type Scope,
+  getRulePresentation,
+  normalizeAssignmentChartLite,
+  parseBulkTextValues,
+  ruleLabel,
+} from "../utils/assignments";
+import { getOrCreateShopRow } from "../utils/shop.server";
 
 type ActionData =
   | { ok: true; message: string }
   | { ok: false; message: string }
   | undefined;
-
-function parseBulkTextValues(input: string): string[] {
-  return String(input || "")
-    .split(/[\n,;]+/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-}
-
-function normalizeColumns(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  return input.map((value) => String(value ?? "").trim()).filter(Boolean);
-}
-
-function normalizePreviewRows(input: unknown): ChartPreviewRow[] {
-  if (!Array.isArray(input)) return [];
-
-  return input.map((row: any, index) => ({
-    label: String(row?.label ?? ""),
-    sortOrder: Number(row?.sortOrder ?? index + 1),
-    values:
-      row?.values && typeof row.values === "object" && !Array.isArray(row.values)
-        ? (row.values as Record<string, any>)
-        : {},
-  }));
-}
-
-function normalizeChartLite(chart: any): ChartLite {
-  return {
-    id: String(chart?.id ?? ""),
-    title: String(chart?.title ?? ""),
-    isDefault: Boolean(chart?.isDefault),
-    unit: chart?.unit ? String(chart.unit) : null,
-    columns: normalizeColumns(chart?.columns),
-    rows: normalizePreviewRows(chart?.rows),
-  };
-}
-
-async function getOrCreateShopRow(shopDomain: string) {
-  return prisma.shop.upsert({
-    where: { shop: shopDomain },
-    update: {},
-    create: { shop: shopDomain },
-  });
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -229,6 +161,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         enabled: true,
       })),
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return {
       ok: true,
@@ -249,6 +182,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id, shopId: shopRow.id },
       data: { enabled },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return {
       ok: true,
@@ -264,381 +198,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const result = await prisma.sizeChartAssignment.deleteMany({
       where: { id, shopId: shopRow.id },
     });
+    invalidateShopSizeChartCache(shopRow.id);
 
     return { ok: true, message: "Assignment rule deleted." } satisfies ActionData;
   }
 
   return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
-
-function ruleLabel(scope: string, scopeValue: string | null) {
-  if (scope === "ALL") return "All products";
-  if (scope === "PRODUCT") return `Product: ${scopeValue || ""}`;
-  if (scope === "COLLECTION") return `Collection: ${scopeValue || ""}`;
-  if (scope === "TYPE") return `Type: ${scopeValue || ""}`;
-  if (scope === "VENDOR") return `Vendor: ${scopeValue || ""}`;
-  if (scope === "TAG") return `Tag: ${scopeValue || ""}`;
-  return `${scope}${scopeValue ? `: ${scopeValue}` : ""}`;
-}
-
-function extractShopifyResourceId(scopeValue: string | null) {
-  const raw = String(scopeValue || "").trim();
-  if (!raw) return "";
-  if (raw.includes("/")) return raw.split("/").pop() || raw;
-  return raw;
-}
-
-function getRulePresentation(
-  rule: RuleLite,
-  products: ProductLite[],
-  collections: CollectionLite[],
-) {
-  const scope = String(rule.scope || "").toUpperCase();
-  const scopeValueId = extractShopifyResourceId(rule.scopeValue);
-
-  if (scope === "PRODUCT") {
-    const product =
-      products.find((item) => item.id === rule.scopeValue) ||
-      products.find((item) => extractShopifyResourceId(item.id) === scopeValueId);
-    return {
-      title: product ? product.title : `Product #${scopeValueId}`,
-      subtitle: product
-        ? [product.vendor, product.handle ? `/${product.handle}` : null].filter(Boolean).join(" • ")
-        : "Direct product assignment",
-      imageUrl: product?.imageUrl || null,
-      imageAlt: product?.title || "Product image",
-      summary: `Priority ${rule.priority} • ${scope}`,
-    };
-  }
-
-  if (scope === "COLLECTION") {
-    const collection = collections.find((item) => item.handle === rule.scopeValue);
-    return {
-      title: collection ? collection.title : `Collection: ${rule.scopeValue || ""}`,
-      subtitle: collection?.handle || "Collection assignment",
-      imageUrl: null,
-      imageAlt: null,
-      summary: `Priority ${rule.priority} • ${scope}`,
-    };
-  }
-
-  return {
-    title: ruleLabel(rule.scope, rule.scopeValue),
-    subtitle: `Priority ${rule.priority} • ${scope}`,
-    imageUrl: null,
-    imageAlt: null,
-    summary: null,
-  };
-}
-
-function Thumb({ url, alt }: { url?: string | null; alt?: string | null }) {
-  return (
-    <div
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: 10,
-        border: "1px solid #e7e7e7",
-        background: "#fafafa",
-        overflow: "hidden",
-        flex: "0 0 auto",
-      }}
-    >
-      {url ? (
-        // eslint-disable-next-line jsx-a11y/img-redundant-alt
-        <img
-          src={url}
-          alt={alt || "image"}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function ModalShell({
-  open,
-  title,
-  onClose,
-  children,
-  footer,
-  wide,
-}: {
-  open: boolean;
-  title: string;
-  onClose: () => void;
-  children: any;
-  footer?: any;
-  wide?: boolean;
-}) {
-  if (!open) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "rgba(0,0,0,.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        style={{
-          width: wide ? "min(980px, 96vw)" : "min(900px, 96vw)",
-          maxHeight: "86vh",
-          background: "white",
-          borderRadius: 16,
-          boxShadow: "0 12px 30px rgba(0,0,0,.20)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 18px",
-            borderBottom: "1px solid #eee",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 800 }}>{title}</div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: "transparent",
-              fontSize: 24,
-              lineHeight: 1,
-              cursor: "pointer",
-              padding: 6,
-            }}
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: 16, overflow: "auto" }}>{children}</div>
-
-        <div
-          style={{
-            padding: 16,
-            borderTop: "1px solid #eee",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10,
-          }}
-        >
-          {footer}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** ✅ Simple SVG icon set per template title (admin UI only). */
-function IconForChartTitle({ title }: { title: string }) {
-  const common = { width: 42, height: 42, viewBox: "0 0 48 48", fill: "none" as const };
-
-  const stroke = "#2a2a2a";
-  const muted = "#9aa0a6";
-
-  const t = title.toLowerCase();
-
-  // shoes
-  if (t.includes("shoe")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M9 30c7 0 12-6 13-10l8 6c3 2 6 3 9 3h2v6H9v-5z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M10 35h32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  // tops
-  if (t.includes("tops")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M16 14l8-4 8 4 4 8-6 4v20H18V26l-6-4 4-8z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  // bottoms
-  if (t.includes("bottom")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M18 10h12l2 28-7-2-3 8-3-8-7 2 2-28z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  // blazer / jacket
-  if (t.includes("blazer") || t.includes("jacket")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M16 12l8-2 8 2 4 10-6 6v14H18V28l-6-6 4-10z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M24 10v32" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  // dress
-  if (t.includes("dress")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M20 10h8l2 8-2 4 6 18H14l6-18-2-4 2-8z"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  // bra
-  if (t.includes("bra")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M14 22c2-6 8-8 10-8s8 2 10 8"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M14 22c0 6 2 10 6 10m22-10c0 6-2 10-6 10"
-          stroke={muted}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    );
-  }
-
-  // bikini / brief
-  if (t.includes("bikini") || t.includes("brief")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M16 18c2 4 4 6 8 6s6-2 8-6"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M16 18l-2 20h24l-2-20"
-          stroke={muted}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  // pet clothing / collar
-  if (t.includes("pet")) {
-    return (
-      <svg {...common}>
-        <circle cx="24" cy="20" r="8" stroke={stroke} strokeWidth="2" />
-        <path d="M16 36c2-6 14-6 16 0" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  // headwear
-  if (t.includes("headwear")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M12 28c2-8 8-12 12-12s10 4 12 12"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M12 28h24v6H12v-6z" stroke={muted} strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  // bracelet
-  if (t.includes("bracelet")) {
-    return (
-      <svg {...common}>
-        <circle cx="24" cy="24" r="10" stroke={stroke} strokeWidth="2" />
-        <path d="M18 24h12" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  // ring
-  if (t.includes("ring")) {
-    return (
-      <svg {...common}>
-        <circle cx="24" cy="26" r="10" stroke={stroke} strokeWidth="2" />
-        <path d="M19 14l5-6 5 6" stroke={muted} strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  // necklace
-  if (t.includes("necklace")) {
-    return (
-      <svg {...common}>
-        <path
-          d="M14 18c3-4 7-6 10-6s7 2 10 6"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <path d="M24 18v10" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-        <circle cx="24" cy="32" r="3" stroke={muted} strokeWidth="2" />
-      </svg>
-    );
-  }
-
-  // default
-  return (
-    <svg {...common}>
-      <rect x="12" y="12" width="24" height="24" rx="6" stroke={stroke} strokeWidth="2" />
-      <path d="M16 20h16M16 26h16M16 32h10" stroke={muted} strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function ChartPreview({ chart }: { chart: ChartLite | null }) {
   if (!chart) return null;
@@ -713,7 +279,7 @@ export default function Assignments() {
   const loaderData = useLoaderData<typeof loader>();
   const { shopDomain, rules, products, collections } = loaderData;
   const charts = useMemo<ChartLite[]>(
-    () => (loaderData.charts ?? []).map((chart) => normalizeChartLite(chart)),
+    () => (loaderData.charts ?? []).map((chart) => normalizeAssignmentChartLite(chart)),
     [loaderData.charts],
   );
   const chartsEmpty = charts.length === 0;
@@ -1178,7 +744,7 @@ export default function Assignments() {
                         flex: "0 0 auto",
                       }}
                     >
-                      <IconForChartTitle title={c.title} />
+                      <ChartTitleIcon title={c.title} />
                     </div>
 
                     <div style={{ minWidth: 0 }}>
@@ -1473,7 +1039,7 @@ export default function Assignments() {
                             flex: "0 0 auto",
                           }}
                         >
-                          <IconForChartTitle title={selectedChart?.title || ""} />
+                          <ChartTitleIcon title={selectedChart?.title || ""} />
                         </div>
 
                         <div style={{ minWidth: 0 }}>
@@ -1792,22 +1358,6 @@ export default function Assignments() {
         )}
       </s-section>
     </s-page>
-  );
-}
-
-function InfoCard({ title, text }: { title: string; text: string }) {
-  return (
-    <div
-      style={{
-        padding: 16,
-        borderRadius: 14,
-        border: "1px solid #e7e7e7",
-        background: "white",
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-      <div style={{ fontSize: 13, opacity: 0.76, marginTop: 8, lineHeight: 1.5 }}>{text}</div>
-    </div>
   );
 }
 

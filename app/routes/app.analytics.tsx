@@ -5,6 +5,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
+import { InfoCard } from "../components/admin-ui";
 
 type RangeOption = 7 | 14 | 30 | 90;
 
@@ -888,33 +889,6 @@ export default function AnalyticsPage() {
         )}
       </s-section>
     </s-page>
-  );
-}
-
-function InfoCard({
-  title,
-  text,
-  preserveLineBreaks,
-}: {
-  title: string;
-  text: string;
-  preserveLineBreaks?: boolean;
-}) {
-  return (
-    <div style={cardStyle}>
-      <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-      <div
-        style={{
-          fontSize: 13,
-          opacity: 0.76,
-          marginTop: 8,
-          lineHeight: 1.5,
-          whiteSpace: preserveLineBreaks ? "pre-line" : "normal",
-        }}
-      >
-        {text}
-      </div>
-    </div>
   );
 }
 

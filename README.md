@@ -88,6 +88,15 @@ The repo includes:
 
 Use those files to track code readiness, UX improvements, and Shopify App Store submission work.
 
+## Support documentation
+
+For merchant-facing support and website help content, see:
+
+- `docs/LEMON_SIZE_SUPPORT_GUIDE.md`
+- `docs/README.md`
+- `docs/PRIVACY_POLICY.md`
+- `docs/TERMS_OF_SERVICE.md`
+
 ## Remaining non-code work
 
 Before public App Store submission, you still need:
