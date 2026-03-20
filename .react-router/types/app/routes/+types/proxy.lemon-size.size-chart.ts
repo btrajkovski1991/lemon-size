@@ -13,9 +13,6 @@ type Matches = [{
   id: "root";
   module: typeof import("../../root.js");
 }, {
-  id: "routes/proxy.lemon-size";
-  module: typeof import("../proxy.lemon-size.js");
-}, {
   id: "routes/proxy.lemon-size.size-chart";
   module: typeof import("../proxy.lemon-size.size-chart.js");
 }];

@@ -43,26 +43,33 @@ type CollectionLite = {
   imageAlt?: string | null;
 };
 
-async function requireShopFromDb() {
-  const online = await prisma.session.findFirst({
-    where: { isOnline: true },
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
-  if (online?.shop) return online.shop;
+function normalizeColumns(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input.map((value) => String(value ?? "").trim()).filter(Boolean);
+}
 
-  const any = await prisma.session.findFirst({
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
+function normalizePreviewRows(input: unknown): ChartPreviewRow[] {
+  if (!Array.isArray(input)) return [];
 
-  if (!any?.shop) {
-    throw new Response(
-      "No Shopify session found. Re-open the app from Shopify Admin and re-auth.",
-      { status: 401 },
-    );
-  }
-  return any.shop;
+  return input.map((row: any, index) => ({
+    label: String(row?.label ?? ""),
+    sortOrder: Number(row?.sortOrder ?? index + 1),
+    values:
+      row?.values && typeof row.values === "object" && !Array.isArray(row.values)
+        ? (row.values as Record<string, any>)
+        : {},
+  }));
+}
+
+function normalizeChartLite(chart: any): ChartLite {
+  return {
+    id: String(chart?.id ?? ""),
+    title: String(chart?.title ?? ""),
+    isDefault: Boolean(chart?.isDefault),
+    unit: chart?.unit ? String(chart.unit) : null,
+    columns: normalizeColumns(chart?.columns),
+    rows: normalizePreviewRows(chart?.rows),
+  };
 }
 
 async function getOrCreateShopRow(shopDomain: string) {
@@ -74,9 +81,9 @@ async function getOrCreateShopRow(shopDomain: string) {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   // ✅ include preview data (small + cheap): columns + first 5 rows
@@ -152,9 +159,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   const form = await request.formData();
@@ -610,7 +617,12 @@ function ChartPreview({ chart }: { chart: ChartLite | null }) {
 }
 
 export default function Assignments() {
-  const { shopDomain, charts, rules, products, collections } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const { shopDomain, rules, products, collections } = loaderData;
+  const charts = useMemo<ChartLite[]>(
+    () => (loaderData.charts ?? []).map((chart) => normalizeChartLite(chart)),
+    [loaderData.charts],
+  );
   const chartsEmpty = charts.length === 0;
 
   // UI state
@@ -642,7 +654,7 @@ export default function Assignments() {
   );
 
   const defaultChartId = useMemo(() => {
-    const d = charts.find((c: ChartLite) => c.isDefault);
+    const d = charts.find((c) => c.isDefault);
     return d?.id || charts?.[0]?.id || "";
   }, [charts]);
 
@@ -650,7 +662,7 @@ export default function Assignments() {
   const [priority, setPriority] = useState<string>("100");
 
   const selectedChart = useMemo(
-    () => charts.find((c: ChartLite) => c.id === chartId) || null,
+    () => charts.find((c) => c.id === chartId) || null,
     [charts, chartId],
   );
 
@@ -685,7 +697,7 @@ export default function Assignments() {
   const filteredCharts = useMemo(() => {
     const q = chartQuery.trim().toLowerCase();
     if (!q) return charts;
-    return charts.filter((c: ChartLite) => c.title.toLowerCase().includes(q));
+    return charts.filter((c) => c.title.toLowerCase().includes(q));
   }, [charts, chartQuery]);
 
   return (
@@ -943,7 +955,7 @@ export default function Assignments() {
                 gap: 12,
               }}
             >
-              {filteredCharts.map((c: ChartLite) => {
+              {filteredCharts.map((c) => {
                 const active = c.id === chartId;
                 return (
                   <button
@@ -1006,9 +1018,16 @@ export default function Assignments() {
           <input type="hidden" name="scopeValue" value={scopeValue} />
           <input type="hidden" name="chartId" value={chartsEmpty ? "" : chartId} />
 
-          <s-stack direction="inline" gap="base" style={{ alignItems: "flex-start" }}>
-            {/* LEFT */}
-            <s-box padding="base" borderWidth="base" borderRadius="base" style={{ flex: 1 }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div
+              style={{
+                flex: "1 1 420px",
+                padding: 16,
+                border: "1px solid #e7e7e7",
+                borderRadius: 12,
+                background: "white",
+              }}
+            >
               <s-heading>Apply to Products</s-heading>
 
               <div style={{ marginTop: 8 }}>
@@ -1113,9 +1132,9 @@ export default function Assignments() {
                       )}
                     </button>
 
-                    <s-paragraph style={{ marginTop: 8 }}>
-                      Applies to all products in this collection.
-                    </s-paragraph>
+                    <div style={{ marginTop: 8 }}>
+                      <s-paragraph>Applies to all products in this collection.</s-paragraph>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -1143,21 +1162,33 @@ export default function Assignments() {
                   </>
                 )}
               </div>
-            </s-box>
+            </div>
 
-            {/* RIGHT */}
-            <s-box padding="base" borderWidth="base" borderRadius="base" style={{ width: 460 }}>
+            <div
+              style={{
+                width: 460,
+                maxWidth: "100%",
+                padding: 16,
+                border: "1px solid #e7e7e7",
+                borderRadius: 12,
+                background: "white",
+              }}
+            >
               <s-heading>Select size table</s-heading>
 
               {chartsEmpty ? (
                 <>
-                  <s-paragraph style={{ marginTop: 8 }}>
-                    <strong>No size tables found.</strong> Seed/create charts first.
-                  </s-paragraph>
+                  <div style={{ marginTop: 8 }}>
+                    <s-paragraph>
+                      <strong>No size tables found.</strong> Seed/create charts first.
+                    </s-paragraph>
+                  </div>
 
-                  <s-paragraph style={{ marginTop: 8 }}>
-                    Run: <code>SEED_SHOP="{shopDomain}" node prisma/seed.mjs</code>
-                  </s-paragraph>
+                  <div style={{ marginTop: 8 }}>
+                    <s-paragraph>
+                      Run: <code>SEED_SHOP="{shopDomain}" node prisma/seed.mjs</code>
+                    </s-paragraph>
+                  </div>
 
                   <div style={{ marginTop: 12 }}>
                     <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
@@ -1264,8 +1295,8 @@ export default function Assignments() {
                   </div>
                 </>
               )}
-            </s-box>
-          </s-stack>
+            </div>
+          </div>
         </Form>
       </s-section>
 

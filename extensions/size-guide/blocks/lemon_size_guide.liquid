@@ -6,6 +6,7 @@
   data-proxy-base="/apps/lemon-size/size-chart"
   data-product-id="{{ product.id }}"
   data-product-handle="{{ product.handle | escape }}"
+  data-product-title="{{ product.title | escape }}"
   data-collection-handles="{{ product.collections | map: 'handle' | join: ',' | escape }}"
   data-product-type="{{ product.type | escape }}"
   data-product-vendor="{{ product.vendor | escape }}"

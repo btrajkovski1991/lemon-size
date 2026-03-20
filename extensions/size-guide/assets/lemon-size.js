@@ -85,7 +85,7 @@
     return clean;
   }
 
-  function buildProxyUrl(trigger, mode, options) {
+  function buildProxyUrl(trigger, mode) {
     const proxyBase = trigger.getAttribute("data-proxy-base") || "/apps/lemon-size/size-chart";
 
     const productId = trigger.getAttribute("data-product-id") || "";
@@ -108,9 +108,6 @@
     if (productVendor) url.searchParams.set("product_vendor", productVendor);
     if (productTags) url.searchParams.set("product_tags", productTags);
     if (availableSizes) url.searchParams.set("available_sizes", availableSizes);
-
-    if (options && options.heightCm) url.searchParams.set("height_cm", String(options.heightCm));
-    if (options && options.weightKg) url.searchParams.set("weight_kg", String(options.weightKg));
 
     return url;
   }
@@ -135,8 +132,8 @@
     return payload;
   }
 
-  async function fetchChart(trigger, options) {
-    const url = buildProxyUrl(trigger, null, options);
+  async function fetchChart(trigger) {
+    const url = buildProxyUrl(trigger, null);
     return requestJson(url);
   }
 
@@ -322,31 +319,6 @@
     `;
   }
 
-  function renderRecommendation(modal, recommendation) {
-    const box = modal.querySelector("[data-lemon-recommend-box]");
-    if (!box) return;
-
-    if (!recommendation || !recommendation.size) {
-      box.hidden = true;
-      box.innerHTML = "";
-      return;
-    }
-
-    box.hidden = false;
-    box.innerHTML = `
-      <div class="lemon-size__recommendCard">
-        <div class="lemon-size__recommendBadge">Recommended size</div>
-        <div class="lemon-size__recommendSize">${escapeHtml(recommendation.size)}</div>
-        <div class="lemon-size__recommendText">${escapeHtml(recommendation.message || "")}</div>
-        <div class="lemon-size__recommendMeta">
-          Confidence: ${escapeHtml(recommendation.confidence || "Low")}
-          <span>•</span>
-          Sample: ${escapeHtml(String(recommendation.sampleSize || 0))}
-        </div>
-      </div>
-    `;
-  }
-
   function renderGuide(modal, chart) {
     const guide = chart || {};
     const fallback = defaultGuideFor(guide.title);
@@ -366,12 +338,6 @@
     if (showGuideImageFlag && trigger) {
       imgUrl = normalizeGuideImageUrl(trigger, guide.guideImage);
     }
-
-    console.log("[LemonSize] full guide object:", guide);
-    console.log("[LemonSize] guide.showGuideImage:", guide.showGuideImage);
-    console.log("[LemonSize] guide.guideImage:", guide.guideImage);
-    console.log("[LemonSize] showGuideImageFlag:", showGuideImageFlag);
-    console.log("[LemonSize] final imgUrl:", imgUrl);
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");
     const textEl = modal.querySelector("[data-lemon-guide-text]");
@@ -440,7 +406,6 @@
 
     if (!chart) {
       contentEl.innerHTML = `<div class="lemon-size__empty">No size chart configured.</div>`;
-      renderRecommendation(modal, null);
       return;
     }
 
@@ -456,56 +421,6 @@
     setUnitUI(modal, baseUnit, modal._lemonDisplayUnit);
     contentEl.innerHTML = renderTable(chart, modal._lemonDisplayUnit);
     renderGuide(modal, chart);
-    renderRecommendation(modal, data.recommendation || null);
-  }
-
-  async function runRecommendation(modal, btn, content) {
-    const hEl = modal.querySelector("[data-lemon-height]");
-    const wEl = modal.querySelector("[data-lemon-weight]");
-    const heightCm = hEl ? Number(hEl.value || "") : null;
-    const weightKg = wEl ? Number(wEl.value || "") : null;
-
-    if (!Number.isFinite(heightCm) || !Number.isFinite(weightKg)) {
-      const box = modal.querySelector("[data-lemon-recommend-box]");
-      if (box) {
-        box.hidden = false;
-        box.innerHTML = `
-          <div class="lemon-size__recommendError">
-            Please enter both height and weight.
-          </div>
-        `;
-      }
-      return;
-    }
-
-    const recBtn = modal.querySelector("[data-lemon-recommend-btn]");
-    if (recBtn) {
-      recBtn.disabled = true;
-      recBtn.textContent = "Checking…";
-    }
-
-    try {
-      const data = await fetchChart(btn, { heightCm, weightKg });
-      console.log("[LemonSize] fetched recommendation chart data:", data);
-      modal._lemonData = data;
-      render(modal, content, data);
-    } catch (error) {
-      console.error("[LemonSize] recommendation error:", error);
-      const box = modal.querySelector("[data-lemon-recommend-box]");
-      if (box) {
-        box.hidden = false;
-        box.innerHTML = `
-          <div class="lemon-size__recommendError">
-            Couldn’t calculate recommendation right now.
-          </div>
-        `;
-      }
-    } finally {
-      if (recBtn) {
-        recBtn.disabled = false;
-        recBtn.textContent = "Recommend size";
-      }
-    }
   }
 
   function init() {
@@ -522,8 +437,6 @@
       const modal = root.querySelector("[data-lemon-size-modal]");
       const content = root.querySelector("[data-lemon-size-chart]");
       const img = root.querySelector("[data-lemon-productimg]");
-      const recommendBtn = root.querySelector("[data-lemon-recommend-btn]");
-
       if (!btn || !modal || !content) {
         root.remove();
         return;
@@ -575,7 +488,6 @@
 
         try {
           const data = await fetchChart(btn);
-          console.log("[LemonSize] fetched chart data:", data);
           modal._lemonData = data;
           render(modal, content, data);
         } catch (err) {
@@ -583,12 +495,6 @@
           content.innerHTML = `<div class="lemon-size__error">Couldn’t load size chart.</div>`;
         }
       });
-
-      if (recommendBtn) {
-        recommendBtn.addEventListener("click", () => {
-          runRecommendation(modal, btn, content);
-        });
-      }
 
       root.addEventListener("click", (e) => {
         const close = e.target.closest("[data-lemon-size-close]");

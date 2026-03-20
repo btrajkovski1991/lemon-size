@@ -49,6 +49,26 @@ type EditorChart = {
   rows: ChartRowLite[];
 };
 
+function normalizeChartLite(chart: any): ChartLite {
+  const columns = normalizeColumns(chart?.columns);
+
+  return {
+    id: String(chart?.id ?? ""),
+    title: String(chart?.title ?? ""),
+    isDefault: Boolean(chart?.isDefault),
+    unit: chart?.unit ? String(chart.unit) : null,
+    guideTitle: chart?.guideTitle ? String(chart.guideTitle) : null,
+    guideText: chart?.guideText ? String(chart.guideText) : null,
+    guideImage: chart?.guideImage ? String(chart.guideImage) : null,
+    showGuideImage:
+      typeof chart?.showGuideImage === "boolean" ? chart.showGuideImage : Boolean(chart?.showGuideImage),
+    tips: chart?.tips ? String(chart.tips) : null,
+    disclaimer: chart?.disclaimer ? String(chart.disclaimer) : null,
+    columns,
+    rows: normalizeRows(chart?.rows ?? [], columns),
+  };
+}
+
 function emptyEditor(): EditorChart {
   return {
     id: null,
@@ -130,30 +150,6 @@ function buildEditorFromChart(chart?: ChartLite | null): EditorChart {
   };
 }
 
-async function requireShopFromDb() {
-  const online = await prisma.session.findFirst({
-    where: { isOnline: true },
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
-
-  if (online?.shop) return online.shop;
-
-  const any = await prisma.session.findFirst({
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
-
-  if (!any?.shop) {
-    throw new Response(
-      "No Shopify session found. Re-open the app from Shopify Admin and re-auth.",
-      { status: 401 },
-    );
-  }
-
-  return any.shop;
-}
-
 async function getOrCreateShopRow(shopDomain: string) {
   return prisma.shop.upsert({
     where: { shop: shopDomain },
@@ -163,9 +159,9 @@ async function getOrCreateShopRow(shopDomain: string) {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   const charts = await prisma.sizeChart.findMany({
@@ -199,9 +195,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   const form = await request.formData();
@@ -814,7 +810,12 @@ function ChartCard({
 }
 
 export default function SizeChartsPage() {
-  const { shopDomain, charts } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const { shopDomain } = loaderData;
+  const charts = useMemo<ChartLite[]>(
+    () => (loaderData.charts ?? []).map((chart) => normalizeChartLite(chart)),
+    [loaderData.charts],
+  );
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
 
@@ -984,20 +985,20 @@ export default function SizeChartsPage() {
     return values.sort();
   }, [sortedCharts]);
 
-        const filteredCharts = useMemo(() => {
-          return sortedCharts.filter((chart: ChartLite) => {
-            const title = String(chart.title || "").trim().toLowerCase();
-            const unit = String(chart.unit || "").trim().toLowerCase();
-            const hasImage = !!String(chart.guideImage || "").trim();
+  const filteredCharts = useMemo(() => {
+    return sortedCharts.filter((chart) => {
+      const title = String(chart.title || "").trim().toLowerCase();
+      const unit = String(chart.unit || "").trim().toLowerCase();
+      const hasImage = !!String(chart.guideImage || "").trim();
 
-            if (search && title !== search.trim().toLowerCase()) return false;
-            if (onlyDefault && !chart.isDefault) return false;
-            if (onlyWithImage && !hasImage) return false;
-            if (unitFilter !== "all" && unit !== unitFilter) return false;
+      if (search && title !== search.trim().toLowerCase()) return false;
+      if (onlyDefault && !chart.isDefault) return false;
+      if (onlyWithImage && !hasImage) return false;
+      if (unitFilter !== "all" && unit !== unitFilter) return false;
 
-            return true;
-          });
-        }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
+      return true;
+    });
+  }, [sortedCharts, search, onlyDefault, onlyWithImage, unitFilter]);
 
   const columnsJson = JSON.stringify(editor.columns);
   const rowsJson = JSON.stringify(
@@ -1093,7 +1094,7 @@ export default function SizeChartsPage() {
                     style={inputStyle}
                   >
                     <option value="">All tables</option>
-                    {sortedCharts.map((chart: ChartLite) => (
+                    {sortedCharts.map((chart) => (
                       <option key={chart.id} value={chart.title}>
                         {chart.title}
                       </option>
@@ -1204,7 +1205,7 @@ export default function SizeChartsPage() {
               gap: 18,
             }}
           >
-            {filteredCharts.map((chart: ChartLite) => (
+            {filteredCharts.map((chart) => (
               <ChartCard key={chart.id} chart={chart} onEdit={openEdit} />
             ))}
           </div>

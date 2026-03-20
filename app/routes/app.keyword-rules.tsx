@@ -20,30 +20,6 @@ type KeywordRuleLite = {
   chart: { title: string };
 };
 
-async function requireShopFromDb() {
-  const online = await prisma.session.findFirst({
-    where: { isOnline: true },
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
-
-  if (online?.shop) return online.shop;
-
-  const any = await prisma.session.findFirst({
-    orderBy: [{ expires: "desc" }],
-    select: { shop: true },
-  });
-
-  if (!any?.shop) {
-    throw new Response(
-      "No Shopify session found. Re-open the app from Shopify Admin and re-auth.",
-      { status: 401 },
-    );
-  }
-
-  return any.shop;
-}
-
 async function getOrCreateShopRow(shopDomain: string) {
   return prisma.shop.upsert({
     where: { shop: shopDomain },
@@ -53,9 +29,9 @@ async function getOrCreateShopRow(shopDomain: string) {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   const [charts, keywordRules] = await Promise.all([
@@ -75,9 +51,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  const shopDomain = await requireShopFromDb();
+  const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
   const form = await request.formData();

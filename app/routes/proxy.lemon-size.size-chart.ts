@@ -75,24 +75,6 @@ function nowMs() {
   return Date.now();
 }
 
-function heightBucket(height?: number | null) {
-  if (!Number.isFinite(height as number)) return null;
-  const start = Math.floor((height as number) / 5) * 5;
-  return `${start}-${start + 4}`;
-}
-
-function weightBucket(weight?: number | null) {
-  if (!Number.isFinite(weight as number)) return null;
-  const start = Math.floor((weight as number) / 5) * 5;
-  return `${start}-${start + 4}`;
-}
-
-function confidenceLabel(sampleSize: number, winRate: number) {
-  if (sampleSize >= 20 && winRate >= 0.85) return "High";
-  if (sampleSize >= 8 && winRate >= 0.7) return "Medium";
-  return "Low";
-}
-
 type AssignmentLite = {
   scope: "PRODUCT" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG" | "ALL" | string;
   scopeValue: string | null;
@@ -367,74 +349,6 @@ function resolveChartIdFromIndex(args: {
   return idx.defaultChartId;
 }
 
-async function getRecommendation(args: {
-  shopId: string;
-  chartId: string;
-  productId?: string;
-  productHandle?: string;
-  heightCm?: number | null;
-  weightKg?: number | null;
-}) {
-  const { shopId, chartId, productId, productHandle, heightCm, weightKg } = args;
-
-  const hBucket = heightBucket(heightCm);
-  const wBucket = weightBucket(weightKg);
-
-  if (!hBucket && !wBucket) return null;
-
-  const rows = await prisma.sizePurchaseSignal.findMany({
-    where: {
-      shopId,
-      kept: true,
-      returned: false,
-      refunded: false,
-      OR: [
-        productId ? { productId } : undefined,
-        productHandle ? { productHandle } : undefined,
-        { chartId },
-      ].filter(Boolean) as any,
-    },
-    select: {
-      sizeLabel: true,
-      heightCm: true,
-      weightKg: true,
-    },
-    take: 500,
-  });
-
-  const filtered = rows.filter((row) => {
-    const sameHeight = !hBucket || heightBucket(row.heightCm) === hBucket;
-    const sameWeight = !wBucket || weightBucket(row.weightKg) === wBucket;
-    return sameHeight && sameWeight;
-  });
-
-  if (!filtered.length) return null;
-
-  const counts = new Map<string, number>();
-  for (const row of filtered) {
-    const key = String(row.sizeLabel || "").trim();
-    if (!key) continue;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-
-  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  if (!ranked.length) return null;
-
-  const [size, winCount] = ranked[0];
-  const sampleSize = filtered.length;
-  const keptRate = winCount / sampleSize;
-  const confidence = confidenceLabel(sampleSize, keptRate);
-  const percent = Math.round(keptRate * 100);
-
-  return {
-    size,
-    confidence,
-    keptRate,
-    sampleSize,
-    message: `${percent}% of customers with similar height and weight kept size ${size}`,
-  };
-}
-
 export async function loader({ request }: { request: Request }) {
   try {
     const url = new URL(request.url);
@@ -470,11 +384,6 @@ export async function loader({ request }: { request: Request }) {
       .map((v) => normalizeSizeValue(v))
       .filter(Boolean);
 
-    const heightCmRaw = Number(url.searchParams.get("height_cm") || "");
-    const weightKgRaw = Number(url.searchParams.get("weight_kg") || "");
-    const heightCm = Number.isFinite(heightCmRaw) ? heightCmRaw : null;
-    const weightKg = Number.isFinite(weightKgRaw) ? weightKgRaw : null;
-
     const dbShop = await prisma.shop.upsert({
       where: { shop },
       update: {},
@@ -502,7 +411,7 @@ export async function loader({ request }: { request: Request }) {
 
     if (!chartId) {
       return json(
-        { ok: true, chart: null, recommendation: null, message: "No size chart configured" },
+        { ok: true, chart: null, message: "No size chart configured" },
         { headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
       );
     }
@@ -510,19 +419,10 @@ export async function loader({ request }: { request: Request }) {
     const chart = await getChartCached(chartId);
     if (!chart) {
       return json(
-        { ok: true, chart: null, recommendation: null, message: "Size chart not found" },
+        { ok: true, chart: null, message: "Size chart not found" },
         { headers: { "Cache-Control": "public, max-age=30, s-maxage=120" } },
       );
     }
-
-    const recommendation = await getRecommendation({
-      shopId: dbShop.id,
-      chartId,
-      productId,
-      productHandle,
-      heightCm,
-      weightKg,
-    });
 
     const columns = Array.isArray(chart.columns) ? (chart.columns as string[]) : [];
 
@@ -543,24 +443,23 @@ export async function loader({ request }: { request: Request }) {
       }
     }
 
-return json(
-  {
-    ok: true,
-    chart: {
-      id: chart.id,
-      title: chart.title,
-      unit: chart.unit,
-      columns,
-      rows: filteredRows,
-      guideTitle: chart.guideTitle,
-      guideText: chart.guideText,
-      guideImage: chart.guideImage,
-      showGuideImage: chart.showGuideImage,
-      tips: chart.tips,
-      disclaimer: chart.disclaimer,
-    },
-    recommendation,
-  },
+    return json(
+      {
+        ok: true,
+        chart: {
+          id: chart.id,
+          title: chart.title,
+          unit: chart.unit,
+          columns,
+          rows: filteredRows,
+          guideTitle: chart.guideTitle,
+          guideText: chart.guideText,
+          guideImage: chart.guideImage,
+          showGuideImage: chart.showGuideImage,
+          tips: chart.tips,
+          disclaimer: chart.disclaimer,
+        },
+      },
       {
         headers: { "Cache-Control": "public, max-age=60, s-maxage=300" },
       },
