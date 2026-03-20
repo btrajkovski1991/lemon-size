@@ -49,6 +49,9 @@ type Pages = {
   "/app/assignments": {
     params: {};
   };
+  "/app/rule-tester": {
+    params: {};
+  };
   "/app/size-charts": {
     params: {};
   };
@@ -60,7 +63,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/customers/data_request" | "/proxy/lemon-size/size-chart" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/auth/login" | "/auth/*" | "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/size-charts" | "/app/additional";
+    page: "/" | "/webhooks/customers/data_request" | "/proxy/lemon-size/size-chart" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/auth/login" | "/auth/*" | "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/rule-tester" | "/app/size-charts" | "/app/additional";
   };
   "routes/webhooks.customers.data_request.tsx": {
     id: "routes/webhooks.customers.data_request";
@@ -100,7 +103,7 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/size-charts" | "/app/additional";
+    page: "/app" | "/app/keyword-rules" | "/app/assignments" | "/app/rule-tester" | "/app/size-charts" | "/app/additional";
   };
   "routes/app.keyword-rules.tsx": {
     id: "routes/app.keyword-rules";
@@ -109,6 +112,10 @@ type RouteFiles = {
   "routes/app.assignments.tsx": {
     id: "routes/app.assignments";
     page: "/app/assignments";
+  };
+  "routes/app.rule-tester.tsx": {
+    id: "routes/app.rule-tester";
+    page: "/app/rule-tester";
   };
   "routes/app.size-charts.tsx": {
     id: "routes/app.size-charts";
@@ -138,6 +145,7 @@ type RouteModules = {
   "routes/app": typeof import("./app/routes/app.tsx");
   "routes/app.keyword-rules": typeof import("./app/routes/app.keyword-rules.tsx");
   "routes/app.assignments": typeof import("./app/routes/app.assignments.tsx");
+  "routes/app.rule-tester": typeof import("./app/routes/app.rule-tester.tsx");
   "routes/app.size-charts": typeof import("./app/routes/app.size-charts.tsx");
   "routes/app.additional": typeof import("./app/routes/app.additional.tsx");
   "routes/app._index": typeof import("./app/routes/app._index.tsx");

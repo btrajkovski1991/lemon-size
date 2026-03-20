@@ -1,6 +1,7 @@
 import prisma from "../db.server";
 import { verifyShopifyAppProxy } from "../untils/verifyAppProxy";
 import { json } from "../untils/http";
+import { buildRulesIndex, resolveChartIdFromIndex, type RulesIndex } from "../utils/size-chart-matching.server";
 
 function parseCsv(value?: string | null) {
   if (!value) return [];
@@ -12,14 +13,6 @@ function parseCsv(value?: string | null) {
 
 function normalize(value?: string | null) {
   return String(value || "").trim();
-}
-
-function normalizeLower(value?: string | null) {
-  return normalize(value).toLowerCase();
-}
-
-function normalizeTag(value?: string | null) {
-  return normalize(value).toLowerCase();
 }
 
 function normalizeSizeValue(value?: string | null) {
@@ -75,35 +68,6 @@ function nowMs() {
   return Date.now();
 }
 
-type AssignmentLite = {
-  scope: "PRODUCT" | "COLLECTION" | "TYPE" | "VENDOR" | "TAG" | "ALL" | string;
-  scopeValue: string | null;
-  chartId: string;
-  priority: number;
-};
-
-type KeywordRuleLite = {
-  keyword: string;
-  field: string;
-  chartId: string;
-  priority: number;
-};
-
-type RulesIndex = {
-  byProduct: Map<string, string>;
-  byCollection: Map<string, string>;
-  byType: Map<string, string>;
-  byVendor: Map<string, string>;
-  byTag: Map<string, string>;
-  keywordRules: KeywordRuleLite[];
-  defaultChartId: string | null;
-};
-
-type ChartResolution = {
-  chartId: string | null;
-  reason: string | null;
-};
-
 type ChartWithRows = {
   id: string;
   title: string;
@@ -125,73 +89,6 @@ const rulesInflight = new Map<string, Promise<RulesIndex>>();
 const CHART_TTL_MS = 60_000;
 const chartCache = new Map<string, { exp: number; value: ChartWithRows | null }>();
 const chartInflight = new Map<string, Promise<ChartWithRows | null>>();
-
-async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
-  const [assignments, keywordRules, def] = await Promise.all([
-    prisma.sizeChartAssignment.findMany({
-      where: { shopId, enabled: true },
-      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
-      select: { scope: true, scopeValue: true, chartId: true, priority: true },
-    }) as Promise<AssignmentLite[]>,
-    prisma.sizeKeywordRule.findMany({
-      where: { shopId, enabled: true },
-      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
-      select: { keyword: true, field: true, chartId: true, priority: true },
-    }) as Promise<KeywordRuleLite[]>,
-    prisma.sizeChart.findFirst({
-      where: { shopId, isDefault: true },
-      select: { id: true },
-    }),
-  ]);
-
-  const byProduct = new Map<string, string>();
-  const byCollection = new Map<string, string>();
-  const byType = new Map<string, string>();
-  const byVendor = new Map<string, string>();
-  const byTag = new Map<string, string>();
-
-  for (const a of assignments) {
-    const scope = String(a.scope || "").toUpperCase();
-    const v = normalize(a.scopeValue);
-
-    if (scope !== "ALL" && !v) continue;
-
-    if (scope === "PRODUCT") {
-      if (!byProduct.has(v)) byProduct.set(v, a.chartId);
-      continue;
-    }
-    if (scope === "COLLECTION") {
-      const key = v.toLowerCase();
-      if (!byCollection.has(key)) byCollection.set(key, a.chartId);
-      continue;
-    }
-    if (scope === "TYPE") {
-      const key = v.toLowerCase();
-      if (!byType.has(key)) byType.set(key, a.chartId);
-      continue;
-    }
-    if (scope === "VENDOR") {
-      const key = v.toLowerCase();
-      if (!byVendor.has(key)) byVendor.set(key, a.chartId);
-      continue;
-    }
-    if (scope === "TAG") {
-      const key = v.toLowerCase();
-      if (!byTag.has(key)) byTag.set(key, a.chartId);
-      continue;
-    }
-  }
-
-  return {
-    byProduct,
-    byCollection,
-    byType,
-    byVendor,
-    byTag,
-    keywordRules,
-    defaultChartId: def?.id ?? null,
-  };
-}
 
 async function getRulesIndexCached(shopId: string): Promise<RulesIndex> {
   const cached = rulesCache.get(shopId);
@@ -242,150 +139,6 @@ async function getChartCached(chartId: string): Promise<ChartWithRows | null> {
 
   chartInflight.set(chartId, p);
   return p;
-}
-
-function keywordRuleMatches(args: {
-  keyword: string;
-  field: string;
-  productTitle?: string;
-  productHandle?: string;
-  productType?: string;
-  productVendor?: string;
-  productTags?: string[];
-}) {
-  const keyword = normalizeLower(args.keyword);
-  if (!keyword) return false;
-
-  const inText = (value?: string | null) => normalizeLower(value).includes(keyword);
-
-  const field = String(args.field || "ANY").toUpperCase();
-  if (field === "TITLE") return inText(args.productTitle);
-  if (field === "HANDLE") return inText(args.productHandle);
-  if (field === "TYPE") return inText(args.productType);
-  if (field === "VENDOR") return inText(args.productVendor);
-  if (field === "TAG") {
-    return (args.productTags || []).some((tag) => normalizeLower(tag).includes(keyword));
-  }
-
-  return (
-    inText(args.productTitle) ||
-    inText(args.productHandle) ||
-    inText(args.productType) ||
-    inText(args.productVendor) ||
-    (args.productTags || []).some((tag) => normalizeLower(tag).includes(keyword))
-  );
-}
-
-function resolveChartIdFromIndex(args: {
-  idx: RulesIndex;
-  productId?: string;
-  collectionHandles?: string[];
-  productType?: string;
-  productVendor?: string;
-  productTags?: string[];
-  productTitle?: string;
-  productHandle?: string;
-  includeDefault?: boolean;
-}): ChartResolution {
-  const {
-    idx,
-    productId,
-    collectionHandles = [],
-    productType = "",
-    productVendor = "",
-    productTags = [],
-    productTitle = "",
-    productHandle = "",
-    includeDefault = true,
-  } = args;
-
-  const productGid = productId ? `gid://shopify/Product/${productId}` : "";
-  const collections = unique(
-    collectionHandles
-      .map((h) => h.trim())
-      .filter((h) => h && h.toLowerCase() !== "all"),
-  );
-  const typeNorm = normalizeLower(productType);
-  const vendorNorm = normalizeLower(productVendor);
-  const tagsNorm = unique(productTags.map(normalizeTag).filter(Boolean));
-
-  if (productGid) {
-    const hit = idx.byProduct.get(productGid);
-    if (hit) {
-      return {
-        chartId: hit,
-        reason: "Matched by direct product assignment.",
-      };
-    }
-  }
-
-  for (const h of collections) {
-    const hit = idx.byCollection.get(h.toLowerCase());
-    if (hit) {
-      return {
-        chartId: hit,
-        reason: `Matched by collection: ${h}.`,
-      };
-    }
-  }
-
-  if (typeNorm) {
-    const hit = idx.byType.get(typeNorm);
-    if (hit) {
-      return {
-        chartId: hit,
-        reason: `Matched by product type: ${productType}.`,
-      };
-    }
-  }
-
-  if (vendorNorm) {
-    const hit = idx.byVendor.get(vendorNorm);
-    if (hit) {
-      return {
-        chartId: hit,
-        reason: `Matched by vendor: ${productVendor}.`,
-      };
-    }
-  }
-
-  for (const t of tagsNorm) {
-    const hit = idx.byTag.get(t);
-    if (hit) {
-      return {
-        chartId: hit,
-        reason: `Matched by tag: ${t}.`,
-      };
-    }
-  }
-
-  for (const rule of idx.keywordRules) {
-    if (
-      keywordRuleMatches({
-        keyword: rule.keyword,
-        field: rule.field,
-        productTitle,
-        productHandle,
-        productType,
-        productVendor,
-        productTags,
-      })
-    ) {
-      return {
-        chartId: rule.chartId,
-        reason: `Matched by keyword rule: ${rule.keyword}.`,
-      };
-    }
-  }
-
-  if (!includeDefault) {
-    return { chartId: null, reason: null };
-  }
-
-  return {
-    chartId: idx.defaultChartId,
-    reason: idx.defaultChartId ? "Using the default size chart." : null,
-  };
 }
 
 export async function loader({ request }: { request: Request }) {

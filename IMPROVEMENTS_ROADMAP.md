@@ -26,9 +26,9 @@
 
 ## Phase 4: Matching & Debugging Tools
 
-- [ ] Preview matched chart for a product.
-- [ ] Rule conflict / winner explanation.
-- [ ] Rule testing utility page.
+- [x] Preview matched chart for a product.
+- [x] Rule conflict / winner explanation.
+- [x] Rule testing utility page.
 
 ## Phase 5: Storefront Polish
 
