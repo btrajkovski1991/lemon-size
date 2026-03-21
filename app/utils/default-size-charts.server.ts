@@ -315,37 +315,44 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
     where: { shopId },
   });
 
-  if (existingCount > 0) return;
-
-  const createdCharts = [];
-
-  for (const template of DEFAULT_CHART_TEMPLATES) {
-    const chart = await prisma.sizeChart.create({
-      data: {
-        shopId,
-        title: template.title,
-        unit: template.unit,
-        isDefault: Boolean(template.isDefault),
-        guideTitle: template.guideTitle,
-        guideText: template.guideText,
-        guideImage: template.guideImage || null,
-        showGuideImage: true,
-        tips: template.tips || null,
-        disclaimer: template.disclaimer || null,
-        columns: template.columns,
-        rows: {
-          create: template.rows.map((row) => ({
-            label: row.label,
-            sortOrder: row.sortOrder,
-            values: row.values,
-          })),
+  if (existingCount === 0) {
+    for (const template of DEFAULT_CHART_TEMPLATES) {
+      await prisma.sizeChart.create({
+        data: {
+          shopId,
+          title: template.title,
+          unit: template.unit,
+          isDefault: Boolean(template.isDefault),
+          guideTitle: template.guideTitle,
+          guideText: template.guideText,
+          guideImage: template.guideImage || null,
+          showGuideImage: true,
+          tips: template.tips || null,
+          disclaimer: template.disclaimer || null,
+          columns: template.columns,
+          rows: {
+            create: template.rows.map((row) => ({
+              label: row.label,
+              sortOrder: row.sortOrder,
+              values: row.values,
+            })),
+          },
         },
-      },
-    });
-    createdCharts.push(chart);
+      });
+    }
   }
 
-  const chartByTitle = new Map(createdCharts.map((chart) => [chart.title, chart.id]));
+  const existingKeywordRuleCount = await prisma.sizeKeywordRule.count({
+    where: { shopId },
+  });
+
+  if (existingKeywordRuleCount > 0) return;
+
+  const charts = await prisma.sizeChart.findMany({
+    where: { shopId },
+    select: { id: true, title: true },
+  });
+  const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
 
   for (const rule of DEFAULT_KEYWORD_RULES) {
     const chartId = chartByTitle.get(rule.chartTitle);
