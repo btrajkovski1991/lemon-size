@@ -125,19 +125,6 @@ export default function AdditionalPage() {
         </s-unordered-list>
       </s-section>
 
-      <s-section slot="aside" heading="Navigation">
-        <s-unordered-list>
-          <s-list-item>
-            <s-link href="/app/size-charts">Manage size charts</s-link>
-          </s-list-item>
-          <s-list-item>
-            <s-link href="/app/assignments">Manage assignments</s-link>
-          </s-list-item>
-          <s-list-item>
-            <s-link href="/app/keyword-rules">Manage keyword rules</s-link>
-          </s-list-item>
-        </s-unordered-list>
-      </s-section>
 
       <s-section heading="App Store Readiness">
         <s-paragraph>
