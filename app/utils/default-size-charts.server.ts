@@ -1,4 +1,5 @@
 import prisma from "../db.server";
+import { invalidateShopSizeChartCache } from "./size-chart-cache.server";
 
 type DefaultChartTemplate = {
   title: string;
@@ -179,10 +180,17 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE US", "SIZE EUR", "FOOT LENGTH"],
     rows: [
-      { label: "6", sortOrder: 1, values: { "SIZE US": "6", "SIZE EUR": "38", "FOOT LENGTH": "9.45 in" } },
-      { label: "7", sortOrder: 2, values: { "SIZE US": "7", "SIZE EUR": "40", "FOOT LENGTH": "9.84 in" } },
-      { label: "8", sortOrder: 3, values: { "SIZE US": "8", "SIZE EUR": "41", "FOOT LENGTH": "10.20 in" } },
-      { label: "9", sortOrder: 4, values: { "SIZE US": "9", "SIZE EUR": "43", "FOOT LENGTH": "10.60 in" } },
+      { label: "4", sortOrder: 1, values: { "SIZE US": "4", "SIZE EUR": "36", "FOOT LENGTH": "8.86 in" } },
+      { label: "5", sortOrder: 2, values: { "SIZE US": "5", "SIZE EUR": "37", "FOOT LENGTH": "9.13 in" } },
+      { label: "6", sortOrder: 3, values: { "SIZE US": "6", "SIZE EUR": "38", "FOOT LENGTH": "9.45 in" } },
+      { label: "7", sortOrder: 4, values: { "SIZE US": "7", "SIZE EUR": "40", "FOOT LENGTH": "9.84 in" } },
+      { label: "8", sortOrder: 5, values: { "SIZE US": "8", "SIZE EUR": "41", "FOOT LENGTH": "10.20 in" } },
+      { label: "9", sortOrder: 6, values: { "SIZE US": "9", "SIZE EUR": "43", "FOOT LENGTH": "10.60 in" } },
+      { label: "10", sortOrder: 7, values: { "SIZE US": "10", "SIZE EUR": "44", "FOOT LENGTH": "10.94 in" } },
+      { label: "11", sortOrder: 8, values: { "SIZE US": "11", "SIZE EUR": "45", "FOOT LENGTH": "11.26 in" } },
+      { label: "12", sortOrder: 9, values: { "SIZE US": "12", "SIZE EUR": "46", "FOOT LENGTH": "11.57 in" } },
+      { label: "13", sortOrder: 10, values: { "SIZE US": "13", "SIZE EUR": "47", "FOOT LENGTH": "11.89 in" } },
+      { label: "14", sortOrder: 11, values: { "SIZE US": "14", "SIZE EUR": "48", "FOOT LENGTH": "12.20 in" } },
     ],
   },
   {
@@ -310,7 +318,59 @@ const DEFAULT_KEYWORD_RULES: DefaultKeywordRule[] = [
   { keyword: "cap", field: "ANY", chartTitle: "Headwear", priority: 500 },
 ];
 
+async function upgradeLegacyStarterCharts(shopId: string) {
+  const shoesChart = await prisma.sizeChart.findFirst({
+    where: { shopId, title: "Shoes" },
+    include: {
+      rows: {
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  if (!shoesChart) return;
+
+  const legacyLabels = shoesChart.rows.map((row) => String(row.label || "").trim());
+  const isLegacyStarterShoes =
+    legacyLabels.length === 4 &&
+    legacyLabels.every((label, index) => ["6", "7", "8", "9"][index] === label);
+
+  if (!isLegacyStarterShoes) return;
+
+  const template = DEFAULT_CHART_TEMPLATES.find((item) => item.title === "Shoes");
+  if (!template) return;
+
+  await prisma.sizeChart.update({
+    where: { id: shoesChart.id },
+    data: {
+      unit: template.unit,
+      guideTitle: template.guideTitle,
+      guideText: template.guideText,
+      guideImage: template.guideImage || null,
+      tips: template.tips || null,
+      disclaimer: template.disclaimer || null,
+      columns: template.columns,
+    },
+  });
+
+  await prisma.sizeChartRow.deleteMany({
+    where: { chartId: shoesChart.id },
+  });
+
+  await prisma.sizeChartRow.createMany({
+    data: template.rows.map((row) => ({
+      chartId: shoesChart.id,
+      label: row.label,
+      sortOrder: row.sortOrder,
+      values: row.values,
+    })),
+  });
+
+  invalidateShopSizeChartCache(shopId);
+}
+
 export async function ensureDefaultSizeChartsForShop(shopId: string) {
+  let chartsChanged = false;
   const existingCount = await prisma.sizeChart.count({
     where: { shopId },
   });
@@ -340,33 +400,43 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
         },
       });
     }
+
+    chartsChanged = true;
   }
 
   const existingKeywordRuleCount = await prisma.sizeKeywordRule.count({
     where: { shopId },
   });
 
-  if (existingKeywordRuleCount > 0) return;
-
-  const charts = await prisma.sizeChart.findMany({
-    where: { shopId },
-    select: { id: true, title: true },
-  });
-  const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
-
-  for (const rule of DEFAULT_KEYWORD_RULES) {
-    const chartId = chartByTitle.get(rule.chartTitle);
-    if (!chartId) continue;
-
-    await prisma.sizeKeywordRule.create({
-      data: {
-        shopId,
-        chartId,
-        keyword: rule.keyword,
-        field: rule.field,
-        priority: rule.priority,
-        enabled: true,
-      },
+  if (existingKeywordRuleCount === 0) {
+    const charts = await prisma.sizeChart.findMany({
+      where: { shopId },
+      select: { id: true, title: true },
     });
+    const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
+
+    for (const rule of DEFAULT_KEYWORD_RULES) {
+      const chartId = chartByTitle.get(rule.chartTitle);
+      if (!chartId) continue;
+
+      await prisma.sizeKeywordRule.create({
+        data: {
+          shopId,
+          chartId,
+          keyword: rule.keyword,
+          field: rule.field,
+          priority: rule.priority,
+          enabled: true,
+        },
+      });
+    }
+
+    chartsChanged = true;
+  }
+
+  await upgradeLegacyStarterCharts(shopId);
+
+  if (chartsChanged) {
+    invalidateShopSizeChartCache(shopId);
   }
 }
