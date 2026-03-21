@@ -6,6 +6,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 import { buildRulesIndex, explainChartResolution } from "../utils/size-chart-matching.server";
+import { getOrCreateShopRow } from "../utils/shop.server";
 
 type ProductLite = {
   id: string;
@@ -78,10 +79,11 @@ async function fetchPickerProducts(admin: any): Promise<ProductLite[]> {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
+  const shopRow = await getOrCreateShopRow(session.shop);
 
   const [shop, products] = await Promise.all([
     prisma.shop.findUnique({
-      where: { shop: session.shop },
+      where: { id: shopRow.id },
       select: {
         _count: {
           select: {
@@ -121,11 +123,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: false, message: "Choose a product before previewing the match." } satisfies ActionData;
   }
 
-  const shop = await prisma.shop.upsert({
-    where: { shop: session.shop },
-    update: {},
-    create: { shop: session.shop },
-  });
+  const shop = await getOrCreateShopRow(session.shop);
 
   const response = await admin.graphql(
     `#graphql

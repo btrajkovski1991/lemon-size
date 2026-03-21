@@ -681,7 +681,7 @@ export default function Assignments() {
       >
         {chartsEmpty ? (
           <s-paragraph>
-            No charts found. Seed/create charts first.
+            No size tables are available for this shop yet. Refresh the page or create one manually.
           </s-paragraph>
         ) : (
           <>
@@ -970,13 +970,7 @@ export default function Assignments() {
                 <>
                   <div style={{ marginTop: 8 }}>
                     <s-paragraph>
-                      <strong>No size tables found.</strong> Seed/create charts first.
-                    </s-paragraph>
-                  </div>
-
-                  <div style={{ marginTop: 8 }}>
-                    <s-paragraph>
-                      Run: <code>SEED_SHOP="{shopDomain}" node prisma/seed.mjs</code>
+                      <strong>No size tables found.</strong> Refresh the page to load the default starter charts, or create one manually.
                     </s-paragraph>
                   </div>
 

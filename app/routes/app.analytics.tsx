@@ -6,6 +6,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 import { InfoCard } from "../components/admin-ui";
+import { getOrCreateShopRow } from "../utils/shop.server";
 
 type RangeOption = 7 | 14 | 30 | 90;
 
@@ -154,11 +155,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const recentEventsPageSize = 10;
   const recentEventsOffset = (recentEventsPage - 1) * recentEventsPageSize;
 
-  const shop = await prisma.shop.upsert({
-    where: { shop: session.shop },
-    update: {},
-    create: { shop: session.shop },
-  });
+  const shop = await getOrCreateShopRow(session.shop);
 
   const since = daysAgo(rangeDays - 1);
   const previousSince = daysAgo(rangeDays * 2 - 1);

@@ -5,6 +5,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { InfoCard } from "../components/admin-ui";
 import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
+import { getOrCreateShopRow } from "../utils/shop.server";
 
 type ChartLite = {
   id: string;
@@ -26,14 +27,6 @@ type ActionData =
   | { ok: true; message: string }
   | { ok: false; message: string }
   | undefined;
-
-async function getOrCreateShopRow(shopDomain: string) {
-  return prisma.shop.upsert({
-    where: { shop: shopDomain },
-    update: {},
-    create: { shop: shopDomain },
-  });
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -228,7 +221,7 @@ export default function KeywordRulesPage() {
         </s-paragraph>
         {charts.length === 0 ? (
           <s-banner tone="critical">
-            No size charts found. Create or seed a size chart first.
+            No size charts are available for this shop yet. Refresh the page or create a new one manually.
           </s-banner>
         ) : (
           <Form method="post">
