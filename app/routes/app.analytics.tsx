@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useLocation } from "react-router";
+import { Form, Link, useLoaderData, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import prisma from "../db.server";
@@ -570,6 +570,33 @@ export default function AnalyticsPage() {
     return `/app/analytics${query ? `?${query}` : ""}`;
   };
 
+  const downloadCsv = () => {
+    const csv = toCsv([
+      ...topCharts.map((item) => ({
+        type: "chart",
+        label: item.chartTitle,
+        hint: item.chartId || "",
+        views: item.views,
+      })),
+      ...topProducts.map((item) => ({
+        type: "product",
+        label: item.productLabel,
+        hint: item.productHandle || "",
+        views: item.views,
+      })),
+    ]);
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `lemon-size-analytics-${rangeDays}d.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   return (
     <s-page heading="Analytics">
       <s-section>
@@ -607,7 +634,7 @@ export default function AnalyticsPage() {
 
       <s-section heading="Filters">
         <div style={panelStyle}>
-          <form method="get">
+          <Form method="get">
             {preservedParams.map(([key, value], index) => (
               <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
             ))}
@@ -645,19 +672,16 @@ export default function AnalyticsPage() {
                 <button type="submit" style={primaryBtnStyle}>
                   Apply filters
                 </button>
-                <a
-                  href={buildAnalyticsHref({
-                    range: String(rangeDays),
-                    chartId: selectedChartId || null,
-                    format: "csv",
-                  })}
+                <button
+                  type="button"
+                  onClick={downloadCsv}
                   style={secondaryLinkStyle}
                 >
                   Export CSV
-                </a>
+                </button>
               </div>
             </div>
-          </form>
+          </Form>
         </div>
       </s-section>
 
@@ -759,7 +783,7 @@ export default function AnalyticsPage() {
           </div>
         ) : (
           <div style={panelStyle}>
-            <form method="get" style={{ marginBottom: 16 }}>
+            <Form method="get" style={{ marginBottom: 16 }}>
               {preservedParams.map(([key, value], index) => (
                 <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
               ))}
@@ -795,18 +819,18 @@ export default function AnalyticsPage() {
                   <button type="submit" style={primaryBtnStyle}>
                     Filter events
                   </button>
-                  <a
-                    href={buildAnalyticsHref({
+                  <Link
+                    to={buildAnalyticsHref({
                       range: String(rangeDays),
                       chartId: selectedChartId || null,
                     })}
                     style={secondaryLinkStyle}
                   >
                     Clear event filter
-                  </a>
+                  </Link>
                 </div>
               </div>
-            </form>
+            </Form>
             <div style={{ display: "grid", gap: 10 }}>
               {recentEvents.map((event, index) => (
                 <div
@@ -863,8 +887,8 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {recentEventsPage > 1 ? (
-                    <a
-                      href={buildAnalyticsHref({
+                    <Link
+                      to={buildAnalyticsHref({
                         range: String(rangeDays),
                         chartId: selectedChartId || null,
                         eventsFrom: recentEventsFromInput || null,
@@ -874,11 +898,11 @@ export default function AnalyticsPage() {
                       style={secondaryLinkStyle}
                     >
                       Previous
-                    </a>
+                    </Link>
                   ) : null}
                   {recentEventsPage < recentEventsTotalPages ? (
-                    <a
-                      href={buildAnalyticsHref({
+                    <Link
+                      to={buildAnalyticsHref({
                         range: String(rangeDays),
                         chartId: selectedChartId || null,
                         eventsFrom: recentEventsFromInput || null,
@@ -888,7 +912,7 @@ export default function AnalyticsPage() {
                       style={secondaryLinkStyle}
                     >
                       Next
-                    </a>
+                    </Link>
                   ) : null}
                 </div>
               </div>
@@ -1030,7 +1054,9 @@ function RankList({
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.35, wordBreak: "break-word" }}>
                 {item.href ? (
-                  <s-link href={item.href}>{item.label}</s-link>
+                  <Link to={item.href} style={{ color: "inherit", textDecoration: "none" }}>
+                    {item.label}
+                  </Link>
                 ) : (
                   item.label
                 )}
