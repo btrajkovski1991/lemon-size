@@ -31,6 +31,8 @@ const GLOBAL_DISCLAIMER =
 const GLOBAL_TIPS =
   "Use a soft measuring tape and compare your measurements carefully with the chart.";
 
+const STARTER_LETTER_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
 const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
   {
     title: "Tops (product)",
@@ -44,10 +46,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "CHEST", "LENGTH"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", CHEST: "92 cm", LENGTH: "68 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", CHEST: "100 cm", LENGTH: "70 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", CHEST: "108 cm", LENGTH: "72 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", CHEST: "116 cm", LENGTH: "74 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", CHEST: "84 cm", LENGTH: "66 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", CHEST: "92 cm", LENGTH: "68 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", CHEST: "100 cm", LENGTH: "70 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", CHEST: "108 cm", LENGTH: "72 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", CHEST: "116 cm", LENGTH: "74 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", CHEST: "124 cm", LENGTH: "76 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", CHEST: "132 cm", LENGTH: "78 cm" } },
     ],
   },
   {
@@ -61,10 +66,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "WAIST", "HIP", "INSEAM"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", WAIST: "76 cm", HIP: "92 cm", INSEAM: "78 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", WAIST: "82 cm", HIP: "98 cm", INSEAM: "79 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", WAIST: "88 cm", HIP: "104 cm", INSEAM: "80 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", WAIST: "94 cm", HIP: "110 cm", INSEAM: "81 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", WAIST: "70 cm", HIP: "88 cm", INSEAM: "77 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", WAIST: "76 cm", HIP: "92 cm", INSEAM: "78 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", WAIST: "82 cm", HIP: "98 cm", INSEAM: "79 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", WAIST: "88 cm", HIP: "104 cm", INSEAM: "80 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", WAIST: "94 cm", HIP: "110 cm", INSEAM: "81 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", WAIST: "100 cm", HIP: "116 cm", INSEAM: "82 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", WAIST: "106 cm", HIP: "122 cm", INSEAM: "83 cm" } },
     ],
   },
   {
@@ -78,10 +86,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "CHEST", "WAIST", "SHOULDER"],
     rows: [
-      { label: "46", sortOrder: 1, values: { SIZE: "46", CHEST: "92 cm", WAIST: "80 cm", SHOULDER: "42 cm" } },
-      { label: "48", sortOrder: 2, values: { SIZE: "48", CHEST: "96 cm", WAIST: "84 cm", SHOULDER: "44 cm" } },
-      { label: "50", sortOrder: 3, values: { SIZE: "50", CHEST: "100 cm", WAIST: "88 cm", SHOULDER: "46 cm" } },
-      { label: "52", sortOrder: 4, values: { SIZE: "52", CHEST: "104 cm", WAIST: "92 cm", SHOULDER: "47 cm" } },
+      { label: "44", sortOrder: 1, values: { SIZE: "44", CHEST: "88 cm", WAIST: "76 cm", SHOULDER: "41 cm" } },
+      { label: "46", sortOrder: 2, values: { SIZE: "46", CHEST: "92 cm", WAIST: "80 cm", SHOULDER: "42 cm" } },
+      { label: "48", sortOrder: 3, values: { SIZE: "48", CHEST: "96 cm", WAIST: "84 cm", SHOULDER: "44 cm" } },
+      { label: "50", sortOrder: 4, values: { SIZE: "50", CHEST: "100 cm", WAIST: "88 cm", SHOULDER: "46 cm" } },
+      { label: "52", sortOrder: 5, values: { SIZE: "52", CHEST: "104 cm", WAIST: "92 cm", SHOULDER: "47 cm" } },
+      { label: "54", sortOrder: 6, values: { SIZE: "54", CHEST: "108 cm", WAIST: "96 cm", SHOULDER: "48 cm" } },
+      { label: "56", sortOrder: 7, values: { SIZE: "56", CHEST: "112 cm", WAIST: "100 cm", SHOULDER: "49 cm" } },
     ],
   },
   {
@@ -95,10 +106,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "CHEST", "LENGTH", "SLEEVE"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", CHEST: "96 cm", LENGTH: "66 cm", SLEEVE: "62 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", CHEST: "104 cm", LENGTH: "68 cm", SLEEVE: "63 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", CHEST: "112 cm", LENGTH: "70 cm", SLEEVE: "64 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", CHEST: "120 cm", LENGTH: "72 cm", SLEEVE: "65 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", CHEST: "88 cm", LENGTH: "64 cm", SLEEVE: "61 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", CHEST: "96 cm", LENGTH: "66 cm", SLEEVE: "62 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", CHEST: "104 cm", LENGTH: "68 cm", SLEEVE: "63 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", CHEST: "112 cm", LENGTH: "70 cm", SLEEVE: "64 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", CHEST: "120 cm", LENGTH: "72 cm", SLEEVE: "65 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", CHEST: "128 cm", LENGTH: "74 cm", SLEEVE: "66 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", CHEST: "136 cm", LENGTH: "76 cm", SLEEVE: "67 cm" } },
     ],
   },
   {
@@ -112,10 +126,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "BUST", "WAIST", "HIP"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", BUST: "86 cm", WAIST: "68 cm", HIP: "94 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", BUST: "92 cm", WAIST: "74 cm", HIP: "100 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", BUST: "98 cm", WAIST: "80 cm", HIP: "106 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", BUST: "104 cm", WAIST: "86 cm", HIP: "112 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", BUST: "80 cm", WAIST: "62 cm", HIP: "90 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", BUST: "86 cm", WAIST: "68 cm", HIP: "94 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", BUST: "92 cm", WAIST: "74 cm", HIP: "100 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", BUST: "98 cm", WAIST: "80 cm", HIP: "106 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", BUST: "104 cm", WAIST: "86 cm", HIP: "112 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", BUST: "110 cm", WAIST: "92 cm", HIP: "118 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", BUST: "116 cm", WAIST: "98 cm", HIP: "124 cm" } },
     ],
   },
   {
@@ -129,10 +146,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "BUST", "WAIST", "HIP"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", BUST: "84-90 cm", WAIST: "66-72 cm", HIP: "90-96 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", BUST: "91-97 cm", WAIST: "73-79 cm", HIP: "97-103 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", BUST: "98-104 cm", WAIST: "80-86 cm", HIP: "104-110 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", BUST: "105-111 cm", WAIST: "87-93 cm", HIP: "111-117 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", BUST: "78-84 cm", WAIST: "60-66 cm", HIP: "84-90 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", BUST: "84-90 cm", WAIST: "66-72 cm", HIP: "90-96 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", BUST: "91-97 cm", WAIST: "73-79 cm", HIP: "97-103 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", BUST: "98-104 cm", WAIST: "80-86 cm", HIP: "104-110 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", BUST: "105-111 cm", WAIST: "87-93 cm", HIP: "111-117 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", BUST: "112-118 cm", WAIST: "94-100 cm", HIP: "118-124 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", BUST: "119-125 cm", WAIST: "101-107 cm", HIP: "125-131 cm" } },
     ],
   },
   {
@@ -146,10 +166,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "UNDERBUST", "BUST"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", UNDERBUST: "68-73 cm", BUST: "82-88 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", UNDERBUST: "74-79 cm", BUST: "89-95 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", UNDERBUST: "80-85 cm", BUST: "96-102 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", UNDERBUST: "86-91 cm", BUST: "103-109 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", UNDERBUST: "63-67 cm", BUST: "77-81 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", UNDERBUST: "68-73 cm", BUST: "82-88 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", UNDERBUST: "74-79 cm", BUST: "89-95 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", UNDERBUST: "80-85 cm", BUST: "96-102 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", UNDERBUST: "86-91 cm", BUST: "103-109 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", UNDERBUST: "92-97 cm", BUST: "110-116 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", UNDERBUST: "98-103 cm", BUST: "117-123 cm" } },
     ],
   },
   {
@@ -163,10 +186,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "WAIST", "HIP"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", WAIST: "72-78 cm", HIP: "90-96 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", WAIST: "79-85 cm", HIP: "97-103 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", WAIST: "86-92 cm", HIP: "104-110 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", WAIST: "93-99 cm", HIP: "111-117 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", WAIST: "66-72 cm", HIP: "84-90 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", WAIST: "72-78 cm", HIP: "90-96 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", WAIST: "79-85 cm", HIP: "97-103 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", WAIST: "86-92 cm", HIP: "104-110 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", WAIST: "93-99 cm", HIP: "111-117 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", WAIST: "100-106 cm", HIP: "118-124 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", WAIST: "107-113 cm", HIP: "125-131 cm" } },
     ],
   },
   {
@@ -220,10 +246,13 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "HEAD CIRCUMFERENCE"],
     rows: [
-      { label: "S", sortOrder: 1, values: { SIZE: "S", "HEAD CIRCUMFERENCE": "54-55 cm" } },
-      { label: "M", sortOrder: 2, values: { SIZE: "M", "HEAD CIRCUMFERENCE": "56-57 cm" } },
-      { label: "L", sortOrder: 3, values: { SIZE: "L", "HEAD CIRCUMFERENCE": "58-59 cm" } },
-      { label: "XL", sortOrder: 4, values: { SIZE: "XL", "HEAD CIRCUMFERENCE": "60-61 cm" } },
+      { label: "XS", sortOrder: 1, values: { SIZE: "XS", "HEAD CIRCUMFERENCE": "52-53 cm" } },
+      { label: "S", sortOrder: 2, values: { SIZE: "S", "HEAD CIRCUMFERENCE": "54-55 cm" } },
+      { label: "M", sortOrder: 3, values: { SIZE: "M", "HEAD CIRCUMFERENCE": "56-57 cm" } },
+      { label: "L", sortOrder: 4, values: { SIZE: "L", "HEAD CIRCUMFERENCE": "58-59 cm" } },
+      { label: "XL", sortOrder: 5, values: { SIZE: "XL", "HEAD CIRCUMFERENCE": "60-61 cm" } },
+      { label: "XXL", sortOrder: 6, values: { SIZE: "XXL", "HEAD CIRCUMFERENCE": "62-63 cm" } },
+      { label: "XXXL", sortOrder: 7, values: { SIZE: "XXXL", "HEAD CIRCUMFERENCE": "64-65 cm" } },
     ],
   },
   {
@@ -318,9 +347,27 @@ const DEFAULT_KEYWORD_RULES: DefaultKeywordRule[] = [
   { keyword: "cap", field: "ANY", chartTitle: "Headwear", priority: 500 },
 ];
 
+const STARTER_LEGACY_ROW_LABELS = new Map<string, string[]>([
+  ["Tops (product)", ["S", "M", "L", "XL"]],
+  ["Bottoms", ["S", "M", "L", "XL"]],
+  ["Blazer", ["46", "48", "50", "52"]],
+  ["Jacket", ["S", "M", "L", "XL"]],
+  ["Dress", ["S", "M", "L", "XL"]],
+  ["Bikini", ["S", "M", "L", "XL"]],
+  ["Bra", ["S", "M", "L", "XL"]],
+  ["Brief", ["S", "M", "L", "XL"]],
+  ["Shoes", ["6", "7", "8", "9"]],
+  ["Headwear", ["S", "M", "L", "XL"]],
+]);
+
 async function upgradeLegacyStarterCharts(shopId: string) {
-  const shoesChart = await prisma.sizeChart.findFirst({
-    where: { shopId, title: "Shoes" },
+  const starterCharts = await prisma.sizeChart.findMany({
+    where: {
+      shopId,
+      title: {
+        in: Array.from(STARTER_LEGACY_ROW_LABELS.keys()),
+      },
+    },
     include: {
       rows: {
         orderBy: { sortOrder: "asc" },
@@ -328,45 +375,54 @@ async function upgradeLegacyStarterCharts(shopId: string) {
     },
   });
 
-  if (!shoesChart) return;
+  let upgradedAny = false;
 
-  const legacyLabels = shoesChart.rows.map((row) => String(row.label || "").trim());
-  const isLegacyStarterShoes =
-    legacyLabels.length === 4 &&
-    legacyLabels.every((label, index) => ["6", "7", "8", "9"][index] === label);
+  for (const chart of starterCharts) {
+    const expectedLegacyLabels = STARTER_LEGACY_ROW_LABELS.get(chart.title);
+    if (!expectedLegacyLabels) continue;
 
-  if (!isLegacyStarterShoes) return;
+    const legacyLabels = chart.rows.map((row) => String(row.label || "").trim());
+    const isLegacyStarterChart =
+      legacyLabels.length === expectedLegacyLabels.length &&
+      legacyLabels.every((label, index) => expectedLegacyLabels[index] === label);
 
-  const template = DEFAULT_CHART_TEMPLATES.find((item) => item.title === "Shoes");
-  if (!template) return;
+    if (!isLegacyStarterChart) continue;
 
-  await prisma.sizeChart.update({
-    where: { id: shoesChart.id },
-    data: {
-      unit: template.unit,
-      guideTitle: template.guideTitle,
-      guideText: template.guideText,
-      guideImage: template.guideImage || null,
-      tips: template.tips || null,
-      disclaimer: template.disclaimer || null,
-      columns: template.columns,
-    },
-  });
+    const template = DEFAULT_CHART_TEMPLATES.find((item) => item.title === chart.title);
+    if (!template) continue;
 
-  await prisma.sizeChartRow.deleteMany({
-    where: { chartId: shoesChart.id },
-  });
+    await prisma.sizeChart.update({
+      where: { id: chart.id },
+      data: {
+        unit: template.unit,
+        guideTitle: template.guideTitle,
+        guideText: template.guideText,
+        guideImage: template.guideImage || null,
+        tips: template.tips || null,
+        disclaimer: template.disclaimer || null,
+        columns: template.columns,
+      },
+    });
 
-  await prisma.sizeChartRow.createMany({
-    data: template.rows.map((row) => ({
-      chartId: shoesChart.id,
-      label: row.label,
-      sortOrder: row.sortOrder,
-      values: row.values,
-    })),
-  });
+    await prisma.sizeChartRow.deleteMany({
+      where: { chartId: chart.id },
+    });
 
-  invalidateShopSizeChartCache(shopId);
+    await prisma.sizeChartRow.createMany({
+      data: template.rows.map((row) => ({
+        chartId: chart.id,
+        label: row.label,
+        sortOrder: row.sortOrder,
+        values: row.values,
+      })),
+    });
+
+    upgradedAny = true;
+  }
+
+  if (upgradedAny) {
+    invalidateShopSizeChartCache(shopId);
+  }
 }
 
 export async function ensureDefaultSizeChartsForShop(shopId: string) {

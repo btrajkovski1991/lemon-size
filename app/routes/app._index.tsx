@@ -580,13 +580,6 @@ export default function Index() {
           template before testing the storefront.
         </s-paragraph>
       </s-section>
-
-      <s-section slot="aside" heading="Need help?">
-        <s-paragraph>
-          Open the <s-link href="/app/additional">Help</s-link> page for theme setup notes,
-          troubleshooting, and App Store readiness guidance.
-        </s-paragraph>
-      </s-section>
     </s-page>
   );
 }
