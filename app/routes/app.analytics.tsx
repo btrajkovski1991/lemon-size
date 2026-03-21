@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import prisma from "../db.server";
@@ -523,6 +523,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AnalyticsPage() {
+  const location = useLocation();
   const {
     shopDomain,
     migrationReady,
@@ -546,6 +547,28 @@ export default function AnalyticsPage() {
     topProducts,
   } = useLoaderData<typeof loader>();
   const recentEventsOffset = (recentEventsPage - 1) * recentEventsPageSize;
+  const preservedParams = Array.from(new URLSearchParams(location.search).entries()).filter(
+    ([key]) => !["range", "chartId", "format", "eventsPage", "eventsFrom", "eventsTo"].includes(key),
+  );
+
+  const buildAnalyticsHref = (next: Record<string, string | null | undefined>) => {
+    const params = new URLSearchParams();
+
+    for (const [key, value] of preservedParams) {
+      params.append(key, value);
+    }
+
+    for (const [key, value] of Object.entries(next)) {
+      if (value == null || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+
+    const query = params.toString();
+    return `/app/analytics${query ? `?${query}` : ""}`;
+  };
 
   return (
     <s-page heading="Analytics">
@@ -585,6 +608,9 @@ export default function AnalyticsPage() {
       <s-section heading="Filters">
         <div style={panelStyle}>
           <form method="get">
+            {preservedParams.map(([key, value], index) => (
+              <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
+            ))}
             <div
               style={{
                 display: "grid",
@@ -620,7 +646,11 @@ export default function AnalyticsPage() {
                   Apply filters
                 </button>
                 <a
-                  href={`/app/analytics?range=${rangeDays}${selectedChartId ? `&chartId=${selectedChartId}` : ""}&format=csv`}
+                  href={buildAnalyticsHref({
+                    range: String(rangeDays),
+                    chartId: selectedChartId || null,
+                    format: "csv",
+                  })}
                   style={secondaryLinkStyle}
                 >
                   Export CSV
@@ -730,6 +760,9 @@ export default function AnalyticsPage() {
         ) : (
           <div style={panelStyle}>
             <form method="get" style={{ marginBottom: 16 }}>
+              {preservedParams.map(([key, value], index) => (
+                <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
+              ))}
               <div
                 style={{
                   display: "grid",
@@ -763,7 +796,10 @@ export default function AnalyticsPage() {
                     Filter events
                   </button>
                   <a
-                    href={`/app/analytics?range=${rangeDays}${selectedChartId ? `&chartId=${selectedChartId}` : ""}`}
+                    href={buildAnalyticsHref({
+                      range: String(rangeDays),
+                      chartId: selectedChartId || null,
+                    })}
                     style={secondaryLinkStyle}
                   >
                     Clear event filter
@@ -828,7 +864,13 @@ export default function AnalyticsPage() {
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {recentEventsPage > 1 ? (
                     <a
-                      href={`/app/analytics?range=${rangeDays}${selectedChartId ? `&chartId=${selectedChartId}` : ""}${recentEventsFromInput ? `&eventsFrom=${encodeURIComponent(recentEventsFromInput)}` : ""}${recentEventsToInput ? `&eventsTo=${encodeURIComponent(recentEventsToInput)}` : ""}&eventsPage=${recentEventsPage - 1}`}
+                      href={buildAnalyticsHref({
+                        range: String(rangeDays),
+                        chartId: selectedChartId || null,
+                        eventsFrom: recentEventsFromInput || null,
+                        eventsTo: recentEventsToInput || null,
+                        eventsPage: String(recentEventsPage - 1),
+                      })}
                       style={secondaryLinkStyle}
                     >
                       Previous
@@ -836,7 +878,13 @@ export default function AnalyticsPage() {
                   ) : null}
                   {recentEventsPage < recentEventsTotalPages ? (
                     <a
-                      href={`/app/analytics?range=${rangeDays}${selectedChartId ? `&chartId=${selectedChartId}` : ""}${recentEventsFromInput ? `&eventsFrom=${encodeURIComponent(recentEventsFromInput)}` : ""}${recentEventsToInput ? `&eventsTo=${encodeURIComponent(recentEventsToInput)}` : ""}&eventsPage=${recentEventsPage + 1}`}
+                      href={buildAnalyticsHref({
+                        range: String(rangeDays),
+                        chartId: selectedChartId || null,
+                        eventsFrom: recentEventsFromInput || null,
+                        eventsTo: recentEventsToInput || null,
+                        eventsPage: String(recentEventsPage + 1),
+                      })}
                       style={secondaryLinkStyle}
                     >
                       Next
@@ -863,7 +911,12 @@ export default function AnalyticsPage() {
                     : "Tracked size table"
                   : "Referenced table",
                 value: item.views,
-                href: item.chartId ? `/app/analytics?range=${rangeDays}&chartId=${item.chartId}` : undefined,
+                href: item.chartId
+                  ? buildAnalyticsHref({
+                      range: String(rangeDays),
+                      chartId: item.chartId,
+                    })
+                  : undefined,
               }))}
             />
           </div>
