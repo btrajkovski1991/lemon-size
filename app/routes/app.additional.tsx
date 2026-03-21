@@ -65,6 +65,34 @@ export default function AdditionalPage() {
         </s-unordered-list>
       </s-section>
 
+      <s-section heading="Starter Tables Included On Fresh Install">
+        <s-paragraph>
+          Lemon Size now creates a built-in starter chart library automatically for a new install or
+          reinstall when the shop has no saved charts yet. These are real starter tables, not just
+          suggestions.
+        </s-paragraph>
+        <s-unordered-list>
+          <s-list-item>Tops (product)</s-list-item>
+          <s-list-item>Bottoms</s-list-item>
+          <s-list-item>Blazer</s-list-item>
+          <s-list-item>Jacket</s-list-item>
+          <s-list-item>Dress</s-list-item>
+          <s-list-item>Bikini</s-list-item>
+          <s-list-item>Bra</s-list-item>
+          <s-list-item>Brief</s-list-item>
+          <s-list-item>Shoes</s-list-item>
+          <s-list-item>Socks</s-list-item>
+          <s-list-item>Headwear</s-list-item>
+          <s-list-item>Ring Size</s-list-item>
+          <s-list-item>Necklace Size</s-list-item>
+          <s-list-item>Bracelet Size</s-list-item>
+        </s-unordered-list>
+        <s-paragraph>
+          Built-in fallback keyword rules are also added automatically for these fashion categories
+          so the app works faster on first setup.
+        </s-paragraph>
+      </s-section>
+
       <s-section heading="Troubleshooting">
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ padding: 14, border: "1px solid #e7e7e7", borderRadius: 12, background: "white" }}>

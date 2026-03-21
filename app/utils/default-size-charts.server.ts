@@ -17,6 +17,13 @@ type DefaultChartTemplate = {
   }>;
 };
 
+type DefaultKeywordRule = {
+  keyword: string;
+  field: "ANY" | "TITLE" | "HANDLE" | "TYPE" | "VENDOR" | "TAG";
+  chartTitle: string;
+  priority: number;
+};
+
 const GLOBAL_DISCLAIMER =
   "Sizes can vary slightly depending on brand and measuring method. If you are between sizes, choose the larger size for comfort.";
 
@@ -60,6 +67,40 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     ],
   },
   {
+    title: "Blazer",
+    unit: "cm",
+    guideTitle: "How to measure blazers",
+    guideText:
+      "Measure chest at the fullest point, waist at the natural waist, and shoulder width from seam to seam.",
+    guideImage: "/images/size-guides/tops.png",
+    tips: GLOBAL_TIPS,
+    disclaimer: GLOBAL_DISCLAIMER,
+    columns: ["SIZE", "CHEST", "WAIST", "SHOULDER"],
+    rows: [
+      { label: "46", sortOrder: 1, values: { SIZE: "46", CHEST: "92 cm", WAIST: "80 cm", SHOULDER: "42 cm" } },
+      { label: "48", sortOrder: 2, values: { SIZE: "48", CHEST: "96 cm", WAIST: "84 cm", SHOULDER: "44 cm" } },
+      { label: "50", sortOrder: 3, values: { SIZE: "50", CHEST: "100 cm", WAIST: "88 cm", SHOULDER: "46 cm" } },
+      { label: "52", sortOrder: 4, values: { SIZE: "52", CHEST: "104 cm", WAIST: "92 cm", SHOULDER: "47 cm" } },
+    ],
+  },
+  {
+    title: "Jacket",
+    unit: "cm",
+    guideTitle: "How to measure jackets",
+    guideText:
+      "Measure chest flat from armpit to armpit, jacket length from shoulder to hem, and sleeve from shoulder seam to cuff.",
+    guideImage: "/images/size-guides/tops.png",
+    tips: GLOBAL_TIPS,
+    disclaimer: GLOBAL_DISCLAIMER,
+    columns: ["SIZE", "CHEST", "LENGTH", "SLEEVE"],
+    rows: [
+      { label: "S", sortOrder: 1, values: { SIZE: "S", CHEST: "96 cm", LENGTH: "66 cm", SLEEVE: "62 cm" } },
+      { label: "M", sortOrder: 2, values: { SIZE: "M", CHEST: "104 cm", LENGTH: "68 cm", SLEEVE: "63 cm" } },
+      { label: "L", sortOrder: 3, values: { SIZE: "L", CHEST: "112 cm", LENGTH: "70 cm", SLEEVE: "64 cm" } },
+      { label: "XL", sortOrder: 4, values: { SIZE: "XL", CHEST: "120 cm", LENGTH: "72 cm", SLEEVE: "65 cm" } },
+    ],
+  },
+  {
     title: "Dress",
     unit: "cm",
     guideTitle: "How to measure dresses",
@@ -74,6 +115,23 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
       { label: "M", sortOrder: 2, values: { SIZE: "M", BUST: "92 cm", WAIST: "74 cm", HIP: "100 cm" } },
       { label: "L", sortOrder: 3, values: { SIZE: "L", BUST: "98 cm", WAIST: "80 cm", HIP: "106 cm" } },
       { label: "XL", sortOrder: 4, values: { SIZE: "XL", BUST: "104 cm", WAIST: "86 cm", HIP: "112 cm" } },
+    ],
+  },
+  {
+    title: "Bikini",
+    unit: "cm",
+    guideTitle: "How to measure bikinis",
+    guideText:
+      "Measure bust at the fullest point, waist at the natural waist, and hip at the fullest point for the best swimwear fit.",
+    guideImage: "/images/size-guides/dress.png",
+    tips: GLOBAL_TIPS,
+    disclaimer: GLOBAL_DISCLAIMER,
+    columns: ["SIZE", "BUST", "WAIST", "HIP"],
+    rows: [
+      { label: "S", sortOrder: 1, values: { SIZE: "S", BUST: "84-90 cm", WAIST: "66-72 cm", HIP: "90-96 cm" } },
+      { label: "M", sortOrder: 2, values: { SIZE: "M", BUST: "91-97 cm", WAIST: "73-79 cm", HIP: "97-103 cm" } },
+      { label: "L", sortOrder: 3, values: { SIZE: "L", BUST: "98-104 cm", WAIST: "80-86 cm", HIP: "104-110 cm" } },
+      { label: "XL", sortOrder: 4, values: { SIZE: "XL", BUST: "105-111 cm", WAIST: "87-93 cm", HIP: "111-117 cm" } },
     ],
   },
   {
@@ -94,6 +152,23 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     ],
   },
   {
+    title: "Brief",
+    unit: "cm",
+    guideTitle: "How to measure briefs",
+    guideText:
+      "Measure waist where the waistband sits and hip around the fullest point of the seat.",
+    guideImage: "/images/size-guides/dress.png",
+    tips: GLOBAL_TIPS,
+    disclaimer: GLOBAL_DISCLAIMER,
+    columns: ["SIZE", "WAIST", "HIP"],
+    rows: [
+      { label: "S", sortOrder: 1, values: { SIZE: "S", WAIST: "72-78 cm", HIP: "90-96 cm" } },
+      { label: "M", sortOrder: 2, values: { SIZE: "M", WAIST: "79-85 cm", HIP: "97-103 cm" } },
+      { label: "L", sortOrder: 3, values: { SIZE: "L", WAIST: "86-92 cm", HIP: "104-110 cm" } },
+      { label: "XL", sortOrder: 4, values: { SIZE: "XL", WAIST: "93-99 cm", HIP: "111-117 cm" } },
+    ],
+  },
+  {
     title: "Shoes",
     unit: "in",
     guideTitle: "How to measure shoes",
@@ -108,6 +183,22 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
       { label: "7", sortOrder: 2, values: { "SIZE US": "7", "SIZE EUR": "40", "FOOT LENGTH": "9.84 in" } },
       { label: "8", sortOrder: 3, values: { "SIZE US": "8", "SIZE EUR": "41", "FOOT LENGTH": "10.20 in" } },
       { label: "9", sortOrder: 4, values: { "SIZE US": "9", "SIZE EUR": "43", "FOOT LENGTH": "10.60 in" } },
+    ],
+  },
+  {
+    title: "Socks",
+    unit: "cm",
+    guideTitle: "How to size socks",
+    guideText:
+      "Use your usual shoe size to choose the best sock size range for fit and comfort.",
+    guideImage: null,
+    tips: "If you are between ranges, choose based on your usual shoe size and preferred fit.",
+    disclaimer: GLOBAL_DISCLAIMER,
+    columns: ["SOCK SIZE", "FITS SHOE SIZE"],
+    rows: [
+      { label: "4-6", sortOrder: 1, values: { "SOCK SIZE": "4-6", "FITS SHOE SIZE": "US 4-6 / EU 36-38" } },
+      { label: "6.5-9", sortOrder: 2, values: { "SOCK SIZE": "6.5-9", "FITS SHOE SIZE": "US 6.5-9 / EU 39-42" } },
+      { label: "9.5-13", sortOrder: 3, values: { "SOCK SIZE": "9.5-13", "FITS SHOE SIZE": "US 9.5-13 / EU 43-47" } },
     ],
   },
   {
@@ -177,6 +268,48 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
   },
 ];
 
+const DEFAULT_KEYWORD_RULES: DefaultKeywordRule[] = [
+  { keyword: "top", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "tee", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "shirt", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "hoodie", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "hoodies", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "sweatshirt", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "sweater", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
+  { keyword: "blazer", field: "ANY", chartTitle: "Blazer", priority: 500 },
+  { keyword: "jacket", field: "ANY", chartTitle: "Jacket", priority: 500 },
+  { keyword: "dress", field: "ANY", chartTitle: "Dress", priority: 500 },
+  { keyword: "gown", field: "ANY", chartTitle: "Dress", priority: 500 },
+  { keyword: "bikini", field: "ANY", chartTitle: "Bikini", priority: 500 },
+  { keyword: "bra", field: "ANY", chartTitle: "Bra", priority: 500 },
+  { keyword: "brief", field: "ANY", chartTitle: "Brief", priority: 500 },
+  { keyword: "underwear", field: "ANY", chartTitle: "Brief", priority: 500 },
+  { keyword: "pant", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "pants", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "jean", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "jeans", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "short", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "shorts", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "skirt", field: "ANY", chartTitle: "Bottoms", priority: 500 },
+  { keyword: "shoe", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "shoes", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "boot", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "boots", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "sneaker", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "sandal", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "sandals", field: "ANY", chartTitle: "Shoes", priority: 500 },
+  { keyword: "sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "socks", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "no show sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "crew sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "ankle sock", field: "ANY", chartTitle: "Socks", priority: 500 },
+  { keyword: "ring", field: "ANY", chartTitle: "Ring Size", priority: 500 },
+  { keyword: "bracelet", field: "ANY", chartTitle: "Bracelet Size", priority: 500 },
+  { keyword: "necklace", field: "ANY", chartTitle: "Necklace Size", priority: 500 },
+  { keyword: "hat", field: "ANY", chartTitle: "Headwear", priority: 500 },
+  { keyword: "cap", field: "ANY", chartTitle: "Headwear", priority: 500 },
+];
+
 export async function ensureDefaultSizeChartsForShop(shopId: string) {
   const existingCount = await prisma.sizeChart.count({
     where: { shopId },
@@ -184,8 +317,10 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
 
   if (existingCount > 0) return;
 
+  const createdCharts = [];
+
   for (const template of DEFAULT_CHART_TEMPLATES) {
-    await prisma.sizeChart.create({
+    const chart = await prisma.sizeChart.create({
       data: {
         shopId,
         title: template.title,
@@ -205,6 +340,25 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
             values: row.values,
           })),
         },
+      },
+    });
+    createdCharts.push(chart);
+  }
+
+  const chartByTitle = new Map(createdCharts.map((chart) => [chart.title, chart.id]));
+
+  for (const rule of DEFAULT_KEYWORD_RULES) {
+    const chartId = chartByTitle.get(rule.chartTitle);
+    if (!chartId) continue;
+
+    await prisma.sizeKeywordRule.create({
+      data: {
+        shopId,
+        chartId,
+        keyword: rule.keyword,
+        field: rule.field,
+        priority: rule.priority,
+        enabled: true,
       },
     });
   }
