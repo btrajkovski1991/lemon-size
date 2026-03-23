@@ -32,8 +32,44 @@ const GUIDE_IMAGE_PRESETS = [
     value: "/images/size-guides/tops.png",
   },
   {
+    label: "Bottoms",
+    value: "/images/size-guides/bottoms.png",
+  },
+  {
+    label: "Blazer",
+    value: "/images/size-guides/blazer.png",
+  },
+  {
+    label: "Jacket",
+    value: "/images/size-guides/jacket.png",
+  },
+  {
     label: "Dress",
     value: "/images/size-guides/dress.png",
+  },
+  {
+    label: "Bikini",
+    value: "/images/size-guides/bikini.png",
+  },
+  {
+    label: "Bra",
+    value: "/images/size-guides/bra.png",
+  },
+  {
+    label: "Brief",
+    value: "/images/size-guides/brief.png",
+  },
+  {
+    label: "Shoes",
+    value: "/images/size-guides/shoes.png",
+  },
+  {
+    label: "Socks",
+    value: "/images/size-guides/socks.png",
+  },
+  {
+    label: "Headwear",
+    value: "/images/size-guides/headwear.png",
   },
   {
     label: "Ring",

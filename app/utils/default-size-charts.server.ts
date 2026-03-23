@@ -81,7 +81,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     guideTitle: "How to measure blazers",
     guideText:
       "Measure chest at the fullest point, waist at the natural waist, and shoulder width from seam to seam.",
-    guideImage: "/images/size-guides/tops.png",
+    guideImage: "/images/size-guides/blazer.png",
     tips: GLOBAL_TIPS,
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "CHEST", "WAIST", "SHOULDER"],
@@ -101,7 +101,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     guideTitle: "How to measure jackets",
     guideText:
       "Measure chest flat from armpit to armpit, jacket length from shoulder to hem, and sleeve from shoulder seam to cuff.",
-    guideImage: "/images/size-guides/tops.png",
+    guideImage: "/images/size-guides/jacket.png",
     tips: GLOBAL_TIPS,
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "CHEST", "LENGTH", "SLEEVE"],
@@ -141,7 +141,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     guideTitle: "How to measure bikinis",
     guideText:
       "Measure bust at the fullest point, waist at the natural waist, and hip at the fullest point for the best swimwear fit.",
-    guideImage: "/images/size-guides/dress.png",
+    guideImage: "/images/size-guides/bikini.png",
     tips: GLOBAL_TIPS,
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "BUST", "WAIST", "HIP"],
@@ -181,7 +181,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     guideTitle: "How to measure briefs",
     guideText:
       "Measure waist where the waistband sits and hip around the fullest point of the seat.",
-    guideImage: "/images/size-guides/dress.png",
+    guideImage: "/images/size-guides/brief.png",
     tips: GLOBAL_TIPS,
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SIZE", "WAIST", "HIP"],
@@ -225,7 +225,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
     guideTitle: "How to size socks",
     guideText:
       "Use your usual shoe size to choose the best sock size range for fit and comfort.",
-    guideImage: null,
+    guideImage: "/images/size-guides/socks.png",
     tips: "If you are between ranges, choose based on your usual shoe size and preferred fit.",
     disclaimer: GLOBAL_DISCLAIMER,
     columns: ["SOCK SIZE", "FITS SHOE SIZE"],
@@ -360,6 +360,34 @@ const STARTER_LEGACY_ROW_LABELS = new Map<string, string[]>([
   ["Headwear", ["S", "M", "L", "XL"]],
 ]);
 
+const STARTER_GUIDE_IMAGE_UPDATES = [
+  {
+    title: "Blazer",
+    from: ["/images/size-guides/tops.png"],
+    to: "/images/size-guides/blazer.png",
+  },
+  {
+    title: "Jacket",
+    from: ["/images/size-guides/tops.png"],
+    to: "/images/size-guides/jacket.png",
+  },
+  {
+    title: "Bikini",
+    from: ["/images/size-guides/dress.png"],
+    to: "/images/size-guides/bikini.png",
+  },
+  {
+    title: "Brief",
+    from: ["/images/size-guides/dress.png"],
+    to: "/images/size-guides/brief.png",
+  },
+  {
+    title: "Socks",
+    from: [null, ""],
+    to: "/images/size-guides/socks.png",
+  },
+] as const;
+
 async function upgradeLegacyStarterCharts(shopId: string) {
   const starterCharts = await prisma.sizeChart.findMany({
     where: {
@@ -421,6 +449,31 @@ async function upgradeLegacyStarterCharts(shopId: string) {
   }
 
   if (upgradedAny) {
+    invalidateShopSizeChartCache(shopId);
+  }
+}
+
+async function backfillStarterGuideImages(shopId: string) {
+  let updatedAny = false;
+
+  for (const update of STARTER_GUIDE_IMAGE_UPDATES) {
+    const result = await prisma.sizeChart.updateMany({
+      where: {
+        shopId,
+        title: update.title,
+        OR: update.from.map((guideImage) => ({ guideImage })),
+      },
+      data: {
+        guideImage: update.to,
+      },
+    });
+
+    if (result.count > 0) {
+      updatedAny = true;
+    }
+  }
+
+  if (updatedAny) {
     invalidateShopSizeChartCache(shopId);
   }
 }
@@ -491,6 +544,7 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
   }
 
   await upgradeLegacyStarterCharts(shopId);
+  await backfillStarterGuideImages(shopId);
 
   if (chartsChanged) {
     invalidateShopSizeChartCache(shopId);
