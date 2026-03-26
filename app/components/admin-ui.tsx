@@ -161,7 +161,7 @@ export function ModalShell({
   );
 }
 
-export function ChartTitleIcon({ title }: { title: string }) {
+export function ChartTitleIcon({ title, size = 42 }: { title: string; size?: number }) {
   const value = String(title || "").toLowerCase();
   let iconSrc: string | null = null;
 
@@ -186,13 +186,13 @@ export function ChartTitleIcon({ title }: { title: string }) {
         src={iconSrc}
         alt=""
         aria-hidden="true"
-        style={{ width: 42, height: 42, display: "block", objectFit: "contain" }}
+        style={{ width: size, height: size, display: "block", objectFit: "contain" }}
       />
     );
   }
 
   return (
-    <svg width="42" height="42" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
       <rect x="12" y="12" width="24" height="24" rx="6" stroke="#2a2a2a" strokeWidth="2" />
       <path d="M16 20h16M16 26h16M16 32h10" stroke="#9aa0a6" strokeWidth="2" strokeLinecap="round" />
     </svg>

@@ -230,16 +230,16 @@ export default function Index() {
       help: "Direct assignments decide which chart appears on product pages.",
     },
     {
-      label: "Add the Lemon Size block to your product template",
-      done: false,
-      href: "/app/additional",
-      help: "In the theme customizer, open a product template and add the Lemon Size app block there. This is not an App embed.",
-    },
-    {
       label: "Add fallback keyword rules if needed",
       done: counts.keywordRules > 0,
       href: "/app/keyword-rules",
       help: "Useful when broad catalog matching is easier than direct assignments.",
+    },
+    {
+      label: "Add the Lemon Size block to your product template",
+      done: false,
+      href: "/app/additional",
+      help: "In the theme customizer, open a product template and add the Lemon Size app block there. This is not an App embed.",
     },
   ];
   const completedCount = checklist.filter((item) => item.done).length;
@@ -433,51 +433,101 @@ export default function Index() {
 
             {actionData?.ok ? (
               <div style={resultBoxStyle}>
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, 220px) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
-                  <div style={previewProductCardStyle}>
-                    {actionData.preview.imageUrl ? (
-                      <img
-                        src={actionData.preview.imageUrl}
-                        alt={actionData.preview.productTitle}
-                        style={previewProductImageStyle}
-                      />
-                    ) : (
-                      <div style={previewProductPlaceholderStyle}>No image</div>
-                    )}
-                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>Previewing product</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginTop: 4, lineHeight: 1.35 }}>
-                      {actionData.preview.productTitle}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                      /products/{actionData.preview.productHandle}
-                    </div>
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    border: "1px solid #e4e7ec",
+                    background: "white",
+                  }}
+                >
+                  <div style={{ fontSize: 12, opacity: 0.68, textTransform: "uppercase", letterSpacing: ".08em" }}>
+                    Product data used for matching
                   </div>
 
-                  <div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Product</div>
-                    <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
-                      {actionData.preview.productTitle}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>
-                      /products/{actionData.preview.productHandle}
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "grid",
+                      gridTemplateColumns: "minmax(180px, 220px) minmax(0, 1fr)",
+                      gap: 16,
+                      alignItems: "start",
+                    }}
+                  >
+                    <div style={previewProductCardStyle}>
+                      {actionData.preview.imageUrl ? (
+                        <img
+                          src={actionData.preview.imageUrl}
+                          alt={actionData.preview.productTitle}
+                          style={previewProductImageStyle}
+                        />
+                      ) : (
+                        <div style={previewProductPlaceholderStyle}>No image</div>
+                      )}
+                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>Previewing product</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, marginTop: 4, lineHeight: 1.35 }}>
+                        {actionData.preview.productTitle}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                        /products/{actionData.preview.productHandle}
+                      </div>
                     </div>
 
-                    <div style={{ marginTop: 16, padding: 14, border: "1px solid #e7e7e7", borderRadius: 14, background: "white" }}>
-                      <div style={{ fontSize: 12, opacity: 0.7 }}>Matched table</div>
-                      <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
-                        {actionData.preview.chartTitle || "No chart matched"}
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 850, lineHeight: 1.25 }}>
+                        {actionData.preview.productTitle}
                       </div>
-                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
-                        <strong>Why:</strong>{" "}
-                        {actionData.preview.reason || "No assignment or default chart is currently available for this product."}
+                      <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6 }}>
+                        /products/{actionData.preview.productHandle}
                       </div>
-                      {actionData.preview.chartId ? (
-                        <div style={{ fontSize: 12, opacity: 0.72, marginTop: 10 }}>
-                          <s-link href="/app/size-charts">Open size tables</s-link>
-                        </div>
-                      ) : null}
+
+                      <div
+                        style={{
+                          marginTop: 14,
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <InfoTile label="Vendor" value={actionData.preview.vendor || "—"} />
+                        <InfoTile label="Product type" value={actionData.preview.productType || "—"} />
+                        <InfoTile
+                          label="Collections"
+                          value={actionData.preview.collections.length ? actionData.preview.collections.join(", ") : "—"}
+                        />
+                        <InfoTile
+                          label="Tags"
+                          value={actionData.preview.tags.length ? actionData.preview.tags.slice(0, 6).join(", ") : "—"}
+                        />
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: 16,
+                    border: "1px solid #e7e7e7",
+                    borderRadius: 16,
+                    background: "white",
+                  }}
+                >
+                  <div style={{ fontSize: 12, opacity: 0.68, textTransform: "uppercase", letterSpacing: ".08em" }}>
+                    Match result
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 850, marginTop: 8 }}>
+                    {actionData.preview.chartTitle || "No chart matched"}
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.55 }}>
+                    <strong>Why:</strong>{" "}
+                    {actionData.preview.reason || "No assignment or default chart is currently available for this product."}
+                  </div>
+                  {actionData.preview.chartId ? (
+                    <div style={{ fontSize: 12, opacity: 0.72, marginTop: 12 }}>
+                      <s-link href="/app/size-charts">Open size tables</s-link>
+                    </div>
+                  ) : null}
                 </div>
 
                 {actionData.preview.candidates.length > 1 ? (
@@ -533,25 +583,6 @@ export default function Index() {
                   </div>
                 ) : null}
 
-                <div
-                  style={{
-                    marginTop: 14,
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <InfoTile label="Product type" value={actionData.preview.productType || "—"} />
-                  <InfoTile label="Vendor" value={actionData.preview.vendor || "—"} />
-                  <InfoTile
-                    label="Collections"
-                    value={actionData.preview.collections.length ? actionData.preview.collections.join(", ") : "—"}
-                  />
-                  <InfoTile
-                    label="Tags"
-                    value={actionData.preview.tags.length ? actionData.preview.tags.slice(0, 6).join(", ") : "—"}
-                  />
-                </div>
               </div>
             ) : null}
           </div>

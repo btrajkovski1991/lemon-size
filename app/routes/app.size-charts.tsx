@@ -858,12 +858,37 @@ export default function SizeChartsPage() {
   const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [unitFilter, setUnitFilter] = useState("all");
   const [usageFilter, setUsageFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("recently-updated");
   const [editorInitialJson, setEditorInitialJson] = useState(JSON.stringify(emptyEditor()));
   const [importText, setImportText] = useState("");
   const [importMessage, setImportMessage] = useState<string | null>(null);
 
   const isSubmitting = navigation.state === "submitting";
-  const sortedCharts = useMemo(() => charts ?? [], [charts]);
+  const sortedCharts = useMemo(() => {
+    const items = [...(charts ?? [])];
+
+    items.sort((a, b) => {
+      if (sortOrder === "title-asc") {
+        return String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+          sensitivity: "base",
+        });
+      }
+
+      if (sortOrder === "title-desc") {
+        return String(b.title || "").localeCompare(String(a.title || ""), undefined, {
+          sensitivity: "base",
+        });
+      }
+
+      if (sortOrder === "recently-created") {
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+
+      return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+    });
+
+    return items;
+  }, [charts, sortOrder]);
 
   useEffect(() => {
     if (actionData?.ok && actionData.intent === "save") {
@@ -1220,10 +1245,10 @@ export default function SizeChartsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(220px, 1.2fr) repeat(4, minmax(150px, .75fr))",
-              gap: 12,
-              alignItems: "end",
-            }}
+            gridTemplateColumns: "minmax(220px, 1.2fr) repeat(5, minmax(150px, .75fr))",
+            gap: 12,
+            alignItems: "end",
+          }}
           >
             <div>
               <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
@@ -1263,6 +1288,18 @@ export default function SizeChartsPage() {
                 <option value="all">All tables</option>
                 <option value="linked">Used in rules</option>
                 <option value="unused">Unused tables</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                Sort
+              </label>
+              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={inputStyle}>
+                <option value="recently-updated">Last saved or edited</option>
+                <option value="recently-created">Newest created</option>
+                <option value="title-asc">Title A-Z</option>
+                <option value="title-desc">Title Z-A</option>
               </select>
             </div>
 
@@ -1323,6 +1360,7 @@ export default function SizeChartsPage() {
                 setOnlyWithImage(false);
                 setUnitFilter("all");
                 setUsageFilter("all");
+                setSortOrder("recently-updated");
               }}
               style={secondaryBtnStyle}
             >

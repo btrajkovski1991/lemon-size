@@ -307,6 +307,7 @@ export default function Assignments() {
   const [ruleScopeFilter, setRuleScopeFilter] = useState("ALL");
   const [ruleStatusFilter, setRuleStatusFilter] = useState("all");
   const [ruleChartFilter, setRuleChartFilter] = useState("all");
+  const [chartSelectorHover, setChartSelectorHover] = useState(false);
 
   const selectedProducts = useMemo(
     () => products.filter((p) => productIds.includes(p.id)),
@@ -1005,49 +1006,79 @@ export default function Assignments() {
                     <button
                       type="button"
                       onClick={() => setChartPickerOpen(true)}
+                      onMouseEnter={() => setChartSelectorHover(true)}
+                      onMouseLeave={() => setChartSelectorHover(false)}
+                      onFocus={() => setChartSelectorHover(true)}
+                      onBlur={() => setChartSelectorHover(false)}
                       style={{
                         width: "100%",
                         textAlign: "left",
-                        padding: "12px 12px",
-                        borderRadius: 12,
-                        border: "1px solid #dfe3e8",
+                        padding: "16px 18px",
+                        borderRadius: 16,
+                        border: chartSelectorHover ? "1px solid #3aa655" : "1px solid #cfd8dc",
                         background: "white",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        gap: 10,
+                        gap: 14,
+                        boxShadow: chartSelectorHover
+                          ? "0 14px 30px rgba(58,166,85,.16)"
+                          : "0 6px 16px rgba(15,23,42,.06)",
+                        transform: chartSelectorHover ? "translateY(-1px)" : "translateY(0)",
+                        transition:
+                          "border-color .18s ease, box-shadow .18s ease, transform .18s ease, background-color .18s ease",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
                         <div
                           style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 12,
-                            border: "1px solid #eee",
-                            background: "#fafafa",
+                            width: 60,
+                            height: 60,
+                            borderRadius: 16,
+                            border: chartSelectorHover ? "1px solid #cfe8d5" : "1px solid #eee",
+                            background: chartSelectorHover ? "#f3fbf5" : "#fafafa",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             flex: "0 0 auto",
+                            boxShadow: chartSelectorHover ? "inset 0 0 0 1px rgba(58,166,85,.08)" : "none",
+                            transition:
+                              "border-color .18s ease, background-color .18s ease, box-shadow .18s ease",
                           }}
                         >
-                          <ChartTitleIcon title={selectedChart?.title || ""} />
+                          <ChartTitleIcon title={selectedChart?.title || ""} size={52} />
                         </div>
 
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 850, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div style={{ fontWeight: 850, fontSize: 18, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {selectedChart?.title || "Choose a table…"}
                             {selectedChart?.isDefault ? " (default)" : ""}
                           </div>
-                          <div style={{ fontSize: 12, opacity: 0.7 }}>
-                            Click to change
+                          <div
+                            style={{
+                              fontSize: 13,
+                              marginTop: 4,
+                              fontWeight: 600,
+                              color: chartSelectorHover ? "#226c35" : "rgba(17,24,39,.65)",
+                            }}
+                          >
+                            Click to choose or change
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ fontSize: 18, opacity: 0.7 }}>›</div>
+                      <div
+                        style={{
+                          fontSize: 28,
+                          color: chartSelectorHover ? "#2f855a" : "rgba(17,24,39,.45)",
+                          lineHeight: 1,
+                          transform: chartSelectorHover ? "translateX(2px)" : "translateX(0)",
+                          transition: "transform .18s ease, color .18s ease",
+                        }}
+                      >
+                        ›
+                      </div>
                     </button>
 
                     <ChartPreview chart={selectedChart} />
