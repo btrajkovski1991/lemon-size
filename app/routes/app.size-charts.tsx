@@ -1153,7 +1153,7 @@ export default function SizeChartsPage() {
   );
 
   return (
-    <s-page heading="Size tables">
+    <s-page heading="Size tables" inlineSize="large">
       <s-section>
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}
