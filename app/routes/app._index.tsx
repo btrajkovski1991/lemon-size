@@ -254,7 +254,7 @@ export default function Index() {
   );
 
   return (
-    <s-page heading="Lemon Size">
+    <s-page heading="Lemon Size" inlineSize="large">
       <s-section heading="Overview">
         <s-paragraph>
           Lemon Size helps merchants show the right size guide on the right product page using

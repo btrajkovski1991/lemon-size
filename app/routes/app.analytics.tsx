@@ -598,7 +598,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <s-page heading="Analytics">
+    <s-page heading="Analytics" inlineSize="large">
       <s-section>
         <s-paragraph>
           Understand which size tables shoppers open most often and which products drive the most

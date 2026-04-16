@@ -1,6 +1,6 @@
 export default function AdditionalPage() {
   return (
-    <s-page heading="Help">
+    <s-page heading="Help" inlineSize="large">
       <s-section heading="Support">
         <div
           style={{

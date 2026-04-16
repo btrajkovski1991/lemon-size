@@ -389,7 +389,7 @@ export default function Assignments() {
   }, [rules, ruleSearch, ruleScopeFilter, ruleStatusFilter, ruleChartFilter]);
 
   return (
-    <s-page heading="Size chart assignments">
+    <s-page heading="Size chart assignments" inlineSize="large">
       <s-section>
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}

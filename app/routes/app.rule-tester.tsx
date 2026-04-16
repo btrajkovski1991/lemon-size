@@ -184,7 +184,7 @@ export default function RuleTesterPage() {
   }, [actionData]);
 
   return (
-    <s-page heading="Rule Tester">
+    <s-page heading="Rule Tester" inlineSize="large">
       <s-section>
         <s-paragraph>
           Simulate a product and see which size chart would match before the product is even live.

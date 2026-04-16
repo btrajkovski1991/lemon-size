@@ -163,7 +163,7 @@ export default function KeywordRulesPage() {
   );
 
   return (
-    <s-page heading="Keyword rules">
+    <s-page heading="Keyword rules" inlineSize="large">
       <s-section>
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}
