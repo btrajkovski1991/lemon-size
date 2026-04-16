@@ -34,6 +34,7 @@ model Session {
 model Shop {
   id        String   @id @default(cuid())
   shop      String   @unique
+  keywordRulesEnabled Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -1,0 +1,2 @@
+ALTER TABLE "Shop"
+ADD COLUMN "keywordRulesEnabled" BOOLEAN NOT NULL DEFAULT true;

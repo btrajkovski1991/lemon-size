@@ -38,6 +38,7 @@ export type RulesIndex = {
   byVendor: Map<string, string>;
   byTag: Map<string, string>;
   keywordRules: KeywordRuleLite[];
+  keywordRulesEnabled: boolean;
   defaultChartId: string | null;
 };
 
@@ -65,7 +66,7 @@ export type MatchExplanation = {
 };
 
 export async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
-  const [assignments, keywordRules, def] = await Promise.all([
+  const [assignments, keywordRules, def, shop] = await Promise.all([
     prisma.sizeChartAssignment.findMany({
       where: { shopId, enabled: true },
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
@@ -79,6 +80,10 @@ export async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
     prisma.sizeChart.findFirst({
       where: { shopId, isDefault: true },
       select: { id: true },
+    }),
+    prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { keywordRulesEnabled: true },
     }),
   ]);
 
@@ -124,7 +129,8 @@ export async function buildRulesIndex(shopId: string): Promise<RulesIndex> {
     byType,
     byVendor,
     byTag,
-    keywordRules,
+    keywordRules: shop?.keywordRulesEnabled === false ? [] : keywordRules,
+    keywordRulesEnabled: shop?.keywordRulesEnabled !== false,
     defaultChartId: def?.id ?? null,
   };
 }

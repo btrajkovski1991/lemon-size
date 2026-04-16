@@ -38,7 +38,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
-  const [charts, keywordRules, starterAudit] = await Promise.all([
+  const [shop, charts, keywordRules, starterAudit] = await Promise.all([
+    prisma.shop.findUnique({
+      where: { id: shopRow.id },
+      select: { keywordRulesEnabled: true },
+    }),
     prisma.sizeChart.findMany({
       where: { shopId: shopRow.id },
       orderBy: [{ isDefault: "desc" }, { title: "asc" }],
@@ -52,7 +56,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     auditStarterKeywordRules(shopRow.id),
   ]);
 
-  return { shopDomain, charts, keywordRules, starterAudit };
+  return {
+    shopDomain,
+    charts,
+    keywordRules,
+    starterAudit,
+    keywordRulesEnabled: shop?.keywordRulesEnabled !== false,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -131,12 +141,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } satisfies ActionData;
   }
 
+  if (intent === "toggle-keyword-fallbacks") {
+    const enabled = String(form.get("enabled") || "false") === "true";
+    await prisma.shop.update({
+      where: { id: shopRow.id },
+      data: { keywordRulesEnabled: enabled },
+    });
+    invalidateShopSizeChartCache(shopRow.id);
+
+    return {
+      ok: true,
+      message: enabled
+        ? "Keyword fallback rules are now active."
+        : "Keyword fallback rules are now inactive. Only direct size chart assignments will show tables.",
+    } satisfies ActionData;
+  }
+
   return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
 
 export default function KeywordRulesPage() {
   const actionData = useActionData<ActionData>();
-  const { shopDomain, charts, keywordRules, starterAudit } = useLoaderData<typeof loader>();
+  const { shopDomain, charts, keywordRules, starterAudit, keywordRulesEnabled } =
+    useLoaderData<typeof loader>();
 
   const defaultChartId = useMemo(() => {
     return charts.find((c) => c.isDefault)?.id || charts[0]?.id || "";
@@ -184,6 +211,56 @@ export default function KeywordRulesPage() {
         <s-paragraph>
           Manual rules still win first. These keyword rules are used only as fallback.
         </s-paragraph>
+        <div
+          style={{
+            marginTop: 12,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border: "1px solid #e7e7e7",
+            background: "#fafafa",
+          }}
+        >
+          <Form method="post">
+            <input type="hidden" name="intent" value="toggle-keyword-fallbacks" />
+            <input type="hidden" name="enabled" value={keywordRulesEnabled ? "false" : "true"} />
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 800 }}>
+                  Use keyword rules as fallback
+                </span>
+                <span style={{ display: "block", fontSize: 13, lineHeight: 1.5, marginTop: 4 }}>
+                  {keywordRulesEnabled
+                    ? "Products can match enabled keyword rules after direct assignments are checked."
+                    : "Keyword fallback matching is off. A product will only show a size table if it has a direct size chart assignment."}
+                </span>
+              </span>
+              <button
+                type="submit"
+                aria-pressed={keywordRulesEnabled}
+                style={{
+                  height: 40,
+                  padding: "0 14px",
+                  borderRadius: 999,
+                  border: keywordRulesEnabled ? "1px solid #b7e1c0" : "1px solid #d9d9d9",
+                  background: keywordRulesEnabled ? "#f3fbf5" : "#fff",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}
+              >
+                {keywordRulesEnabled ? "Active" : "Inactive"}
+              </button>
+            </label>
+          </Form>
+        </div>
         <div
           style={{
             marginTop: 12,
