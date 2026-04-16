@@ -1533,8 +1533,12 @@ export default function SizeChartsPage() {
                   checked={editor.isDefault}
                   onChange={(e) => setEditor((prev) => ({ ...prev, isDefault: e.target.checked }))}
                 />
-                <span style={{ fontSize: 13 }}>Set as default table</span>
+                <span style={{ fontSize: 13 }}>Use as global fallback table (optional)</span>
               </label>
+              <div style={{ fontSize: 12, opacity: 0.72, lineHeight: 1.4, marginTop: -2 }}>
+                Leave this unchecked if you only want size tables to appear when a direct assignment
+                or keyword rule matches a product.
+              </div>
 
               <div>
                 <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Guide title</label>

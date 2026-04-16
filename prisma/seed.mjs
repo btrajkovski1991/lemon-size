@@ -404,9 +404,9 @@ const KEYWORD_RULES = [
   { keyword: "ankle sock", field: "ANY", chartTitle: "Socks", priority: 500 },
   { keyword: "ankle socks", field: "ANY", chartTitle: "Socks", priority: 500 },
 
-  { keyword: "ring", field: "ANY", chartTitle: "Ring", priority: 500 },
-  { keyword: "bracelet", field: "ANY", chartTitle: "Bracelet", priority: 500 },
-  { keyword: "necklace", field: "ANY", chartTitle: "Necklace", priority: 500 },
+  { keyword: "ring", field: "ANY", chartTitle: "Ring Size", priority: 500 },
+  { keyword: "bracelet", field: "ANY", chartTitle: "Bracelet Size", priority: 500 },
+  { keyword: "necklace", field: "ANY", chartTitle: "Necklace Size", priority: 500 },
   { keyword: "cap", field: "ANY", chartTitle: "Headwear", priority: 500 },
   { keyword: "hat", field: "ANY", chartTitle: "Headwear", priority: 500 },
 
@@ -465,7 +465,7 @@ async function main() {
         title: t.title,
         unit: t.unit,
         columns: t.columns,
-        isDefault: i === 0,
+        isDefault: false,
         guideTitle: t.guideTitle,
         guideText: t.guideText,
         guideImage: t.guideImage,

@@ -5,6 +5,10 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { InfoCard } from "../components/admin-ui";
 import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
+import {
+  auditStarterKeywordRules,
+  syncStarterKeywordRules,
+} from "../utils/default-size-charts.server";
 import { getOrCreateShopRow } from "../utils/shop.server";
 
 type ChartLite = {
@@ -34,7 +38,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopDomain = session.shop;
   const shopRow = await getOrCreateShopRow(shopDomain);
 
-  const [charts, keywordRules] = await Promise.all([
+  const [charts, keywordRules, starterAudit] = await Promise.all([
     prisma.sizeChart.findMany({
       where: { shopId: shopRow.id },
       orderBy: [{ isDefault: "desc" }, { title: "asc" }],
@@ -45,9 +49,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
       include: { chart: { select: { title: true } } },
     }),
+    auditStarterKeywordRules(shopRow.id),
   ]);
 
-  return { shopDomain, charts, keywordRules };
+  return { shopDomain, charts, keywordRules, starterAudit };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -118,12 +123,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true, message: "Keyword rule deleted." } satisfies ActionData;
   }
 
+  if (intent === "sync-starter-rules") {
+    const result = await syncStarterKeywordRules(shopRow.id);
+    return {
+      ok: true,
+      message: `Starter keyword rules checked. Created ${result.created} and corrected ${result.updated}.`,
+    } satisfies ActionData;
+  }
+
   return { ok: false, message: "Unknown action." } satisfies ActionData;
 };
 
 export default function KeywordRulesPage() {
   const actionData = useActionData<ActionData>();
-  const { shopDomain, charts, keywordRules } = useLoaderData<typeof loader>();
+  const { shopDomain, charts, keywordRules, starterAudit } = useLoaderData<typeof loader>();
 
   const defaultChartId = useMemo(() => {
     return charts.find((c) => c.isDefault)?.id || charts[0]?.id || "";
@@ -171,6 +184,51 @@ export default function KeywordRulesPage() {
         <s-paragraph>
           Manual rules still win first. These keyword rules are used only as fallback.
         </s-paragraph>
+        <div
+          style={{
+            marginTop: 12,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border:
+              starterAudit.missing.length > 0 || starterAudit.mismatched.length > 0
+                ? "1px solid #f2c97d"
+                : "1px solid #b7e1c0",
+            background:
+              starterAudit.missing.length > 0 || starterAudit.mismatched.length > 0
+                ? "#fffaf1"
+                : "#f3fbf5",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 800 }}>Starter keyword-rule check</div>
+          <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+            {starterAudit.missing.length === 0 && starterAudit.mismatched.length === 0
+              ? `Everything looks aligned for the built-in starter rules. ${starterAudit.okCount} starter mappings are already correct.`
+              : `Found ${starterAudit.missing.length} missing and ${starterAudit.mismatched.length} mismatched starter keyword rule(s).`}
+          </div>
+          {starterAudit.mismatched.length > 0 ? (
+            <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>
+              Example: a rule like <strong>Bra</strong> can be repaired so it points to the
+              <strong> Bra</strong> table instead of a leftover example table.
+            </div>
+          ) : null}
+          <Form method="post" style={{ marginTop: 10 }}>
+            <input type="hidden" name="intent" value="sync-starter-rules" />
+            <button
+              type="submit"
+              style={{
+                padding: "10px 14px",
+                borderRadius: 999,
+                border: "1px solid #d9d9d9",
+                background: "white",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 800,
+              }}
+            >
+              Repair starter keyword rules
+            </button>
+          </Form>
+        </div>
       </s-section>
 
       <s-section heading="How Keyword Rules Work">

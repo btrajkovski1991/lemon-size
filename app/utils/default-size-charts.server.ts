@@ -25,6 +25,18 @@ type DefaultKeywordRule = {
   priority: number;
 };
 
+export type StarterKeywordRuleDefinition = DefaultKeywordRule;
+
+export type StarterKeywordRuleAudit = {
+  okCount: number;
+  missing: Array<StarterKeywordRuleDefinition>;
+  mismatched: Array<
+    StarterKeywordRuleDefinition & {
+      foundChartTitles: string[];
+    }
+  >;
+};
+
 const GLOBAL_DISCLAIMER =
   "Sizes can vary slightly depending on brand and measuring method. If you are between sizes, choose the larger size for comfort.";
 
@@ -37,7 +49,6 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
   {
     title: "Tops (product)",
     unit: "cm",
-    isDefault: true,
     guideTitle: "How to measure tops",
     guideText:
       "Measure chest flat from armpit to armpit and length from the highest shoulder point to the hem.",
@@ -305,7 +316,7 @@ const DEFAULT_CHART_TEMPLATES: DefaultChartTemplate[] = [
   },
 ];
 
-const DEFAULT_KEYWORD_RULES: DefaultKeywordRule[] = [
+export const STARTER_KEYWORD_RULES: StarterKeywordRuleDefinition[] = [
   { keyword: "top", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
   { keyword: "tee", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
   { keyword: "shirt", field: "ANY", chartTitle: "Tops (product)", priority: 500 },
@@ -524,7 +535,7 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
     });
     const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
 
-    for (const rule of DEFAULT_KEYWORD_RULES) {
+    for (const rule of STARTER_KEYWORD_RULES) {
       const chartId = chartByTitle.get(rule.chartTitle);
       if (!chartId) continue;
 
@@ -549,4 +560,129 @@ export async function ensureDefaultSizeChartsForShop(shopId: string) {
   if (chartsChanged) {
     invalidateShopSizeChartCache(shopId);
   }
+}
+
+export async function auditStarterKeywordRules(shopId: string): Promise<StarterKeywordRuleAudit> {
+  const [charts, keywordRules] = await Promise.all([
+    prisma.sizeChart.findMany({
+      where: { shopId },
+      select: { id: true, title: true },
+    }),
+    prisma.sizeKeywordRule.findMany({
+      where: { shopId },
+      include: { chart: { select: { title: true } } },
+    }),
+  ]);
+
+  const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
+  const audit: StarterKeywordRuleAudit = {
+    okCount: 0,
+    missing: [],
+    mismatched: [],
+  };
+
+  for (const rule of STARTER_KEYWORD_RULES) {
+    if (!chartByTitle.has(rule.chartTitle)) continue;
+
+    const matches = keywordRules.filter(
+      (keywordRule) =>
+        String(keywordRule.keyword || "").trim().toLowerCase() === rule.keyword.toLowerCase() &&
+        String(keywordRule.field || "").trim().toUpperCase() === rule.field,
+    );
+
+    if (matches.some((match) => String(match.chart?.title || "") === rule.chartTitle)) {
+      audit.okCount += 1;
+      continue;
+    }
+
+    if (matches.length > 0) {
+      audit.mismatched.push({
+        ...rule,
+        foundChartTitles: Array.from(
+          new Set(matches.map((match) => String(match.chart?.title || "")).filter(Boolean)),
+        ),
+      });
+      continue;
+    }
+
+    audit.missing.push(rule);
+  }
+
+  return audit;
+}
+
+export async function syncStarterKeywordRules(shopId: string) {
+  const [charts, keywordRules] = await Promise.all([
+    prisma.sizeChart.findMany({
+      where: { shopId },
+      select: { id: true, title: true },
+    }),
+    prisma.sizeKeywordRule.findMany({
+      where: { shopId },
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+      include: { chart: { select: { title: true } } },
+    }),
+  ]);
+
+  const chartByTitle = new Map(charts.map((chart) => [chart.title, chart.id]));
+  const starterChartTitles = new Set(charts.map((chart) => chart.title));
+
+  let created = 0;
+  let updated = 0;
+
+  for (const rule of STARTER_KEYWORD_RULES) {
+    const targetChartId = chartByTitle.get(rule.chartTitle);
+    if (!targetChartId) continue;
+
+    const matches = keywordRules.filter(
+      (keywordRule) =>
+        String(keywordRule.keyword || "").trim().toLowerCase() === rule.keyword.toLowerCase() &&
+        String(keywordRule.field || "").trim().toUpperCase() === rule.field,
+    );
+
+    const alreadyCorrect = matches.some((match) => match.chartId === targetChartId);
+    const starterMismatches = matches.filter((match) => {
+      const chartTitle = String(match.chart?.title || "");
+      return chartTitle && starterChartTitles.has(chartTitle) && match.chartId !== targetChartId;
+    });
+
+    if (starterMismatches.length > 0) {
+      await prisma.sizeKeywordRule.updateMany({
+        where: { id: { in: starterMismatches.map((match) => match.id) }, shopId },
+        data: {
+          chartId: targetChartId,
+          priority: rule.priority,
+          enabled: true,
+        },
+      });
+      updated += starterMismatches.length;
+      continue;
+    }
+
+    if (alreadyCorrect) {
+      continue;
+    }
+
+    await prisma.sizeKeywordRule.create({
+      data: {
+        shopId,
+        chartId: targetChartId,
+        keyword: rule.keyword,
+        field: rule.field,
+        priority: rule.priority,
+        enabled: true,
+      },
+    });
+    created += 1;
+  }
+
+  if (created > 0 || updated > 0) {
+    invalidateShopSizeChartCache(shopId);
+  }
+
+  return {
+    created,
+    updated,
+    audit: await auditStarterKeywordRules(shopId),
+  };
 }

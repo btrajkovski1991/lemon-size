@@ -2,6 +2,12 @@
   if (window.__LEMON_SIZE_INIT__) return;
   window.__LEMON_SIZE_INIT__ = true;
 
+  function mountModalToBody(modal) {
+    if (!modal || modal.__lemonMountedToBody) return;
+    document.body.appendChild(modal);
+    modal.__lemonMountedToBody = true;
+  }
+
   function openModal(modal, trigger) {
     modal.hidden = false;
     modal._trigger = trigger;
@@ -651,6 +657,7 @@
         return;
       }
 
+      mountModalToBody(modal);
       const productImg = btn.getAttribute("data-product-image") || "";
       if (img && productImg) img.src = productImg;
 
@@ -697,7 +704,7 @@
         if (data) trackChartView(btn, data);
       });
 
-      root.addEventListener("click", (e) => {
+      modal.addEventListener("click", (e) => {
         const close = e.target.closest("[data-lemon-size-close]");
         if (!close) return;
         closeModal(modal);

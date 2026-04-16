@@ -35,14 +35,14 @@ async function main() {
     },
   });
 
-  // Suit chart (default)
+  // Suit chart
   const suit = await prisma.sizeChart.create({
     data: {
       shopId: shopRow.id,
       title: "Suits & Blazers",
       unit: "cm",
       columns: ["Chest", "Waist"],
-      isDefault: true,
+      isDefault: false,
       rows: {
         create: [
           { label: "46", sortOrder: 1, values: { Chest: 92, Waist: 80 } },
