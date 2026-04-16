@@ -3,7 +3,7 @@
 Status key:
 - `[ ]` Not ready
 - `[~]` In progress
-- `[x]` Ready
+- `[x]` Ready 
 
 ## Code Readiness
 
