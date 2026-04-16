@@ -25,10 +25,12 @@
 .lemon-size__modal{
   position: fixed;
   inset: 0;
-  z-index: 999999;
+  z-index: 2147483647 !important;
   display: grid;
   place-items: center;
   padding: 10px;
+  isolation: isolate;
+  pointer-events: none;
 }
 .lemon-size__modal:not([hidden]){ display: grid; }
 
@@ -38,6 +40,7 @@
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(6px);
   z-index: 0;
+  pointer-events: auto;
 }
 
 .lemon-size__dialog{
@@ -52,6 +55,7 @@
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
 }
 
 .lemon-size__header{
