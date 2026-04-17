@@ -187,7 +187,7 @@ export default function RuleTesterPage() {
     <s-page heading="Rule Tester" inlineSize="large">
       <s-section>
         <s-paragraph>
-          Simulate a product and see which size chart would match before the product is even live.
+          Simulate a product and see which size chart would match before the product is published.
         </s-paragraph>
         <s-paragraph>
           <strong>Current shop:</strong> {shopDomain}
@@ -212,7 +212,7 @@ export default function RuleTesterPage() {
           />
           <InfoCard
             title="3. Review the winner"
-            text="See which chart wins, why it wins, and what other rules also matched but lost so you can fix conflicts faster."
+            text="See which chart wins, why it wins, and which other rules also matched but lost so you can fix conflicts faster."
           />
         </div>
       </s-section>
@@ -244,8 +244,8 @@ export default function RuleTesterPage() {
           >
             <div style={{ fontSize: 14, fontWeight: 800 }}>Best use case</div>
             <div style={{ fontSize: 13, opacity: 0.76, lineHeight: 1.5, marginTop: 8 }}>
-              Use this page before creating a real product or when you want to test how a new keyword,
-              collection, vendor, or product type would resolve inside Lemon Size.
+              Use this page before creating a real product, or when you want to test how a new
+              keyword, collection, vendor, or product type would resolve in Lemon Size.
             </div>
           </div>
 
@@ -369,7 +369,7 @@ export default function RuleTesterPage() {
             <div style={resultBoxStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>Matched table</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>Matched size table</div>
                   <div style={{ fontSize: 18, fontWeight: 850, marginTop: 4 }}>
                     {actionData.result.chartTitle || "No chart matched"}
                   </div>
@@ -386,7 +386,7 @@ export default function RuleTesterPage() {
               {actionData.result.candidates.length > 0 ? (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>
-                    Candidate order
+                    Match order
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
                     {actionData.result.candidates.map((candidate, index) => (

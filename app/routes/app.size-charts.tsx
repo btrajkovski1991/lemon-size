@@ -1178,7 +1178,7 @@ export default function SizeChartsPage() {
           />
           <InfoCard
             title="3. Reuse and assign"
-            text="Once saved, the chart can be duplicated, assigned to multiple rules, and filtered here by unit, image, or usage."
+            text="Once saved, the table can be duplicated, assigned to multiple rules, and filtered here by unit, image, or usage."
           />
         </div>
       </s-section>
@@ -1212,7 +1212,7 @@ export default function SizeChartsPage() {
           }}
         >
           <s-paragraph>
-            Create custom size tables, then assign them to products or collections from the Assignments page.
+            Create custom size tables here, then assign them to products, collections, or other matching rules from the Assignments page.
           </s-paragraph>
 
           <button
@@ -1599,7 +1599,7 @@ export default function SizeChartsPage() {
                   ) : null}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.72, marginTop: 6, lineHeight: 1.4 }}>
-                  Quick pick from built-in guide images or paste your own URL/path.
+                  Choose a built-in guide image or paste your own image URL or storefront path.
                 </div>
               </div>
 

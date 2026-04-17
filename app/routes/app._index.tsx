@@ -277,7 +277,7 @@ export default function Index() {
         </div>
         <s-paragraph>
           Lemon Size helps merchants show the right size guide on the right product page using
-          product rules, collections, vendors, tags, and keyword fallbacks.
+          direct assignments, collections, vendors, tags, and keyword fallback rules.
         </s-paragraph>
         <s-paragraph>
           <strong>Current shop:</strong> {shopDomain}
@@ -292,11 +292,11 @@ export default function Index() {
           />
           <GuideCard
             title="2. Preview a real product"
-            text="Pick a product and run the matcher to see which chart will win before you open the storefront."
+            text="Pick a product and preview which chart will win before you open the storefront."
           />
           <GuideCard
             title="3. Fix conflicts faster"
-            text="Review the winning chart, conflict explanation, and product details when a match is not what you expected."
+            text="Review the winning chart, the conflict explanation, and product details when a match is not what you expected."
           />
         </div>
       </s-section>
@@ -622,7 +622,7 @@ export default function Index() {
         <s-paragraph>
           Start in <s-link href="/app/size-charts">Size Charts</s-link>, continue with{" "}
           <s-link href="/app/assignments">Assignments</s-link>, and finish with{" "}
-          <s-link href="/app/keyword-rules">Keyword rules</s-link> if your catalog needs broader
+          <s-link href="/app/keyword-rules">Keyword Rules</s-link> if your catalog needs broader
           fallback matching.
         </s-paragraph>
         <s-paragraph>

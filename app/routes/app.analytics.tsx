@@ -601,7 +601,7 @@ export default function AnalyticsPage() {
     <s-page heading="Analytics" inlineSize="large">
       <s-section>
         <s-paragraph>
-          Understand which size tables shoppers open most often and which products drive the most
+          See which size tables shoppers open most often and which products drive the most
           size-guide views.
         </s-paragraph>
         <s-paragraph>
@@ -688,7 +688,7 @@ export default function AnalyticsPage() {
       {!migrationReady ? (
         <s-section>
           <div style={warningBoxStyle}>
-            Analytics storage is not ready yet. Run your Prisma migration first, then reload this
+            Analytics storage is not ready yet. Run the latest Prisma migration, then reload this
             page.
           </div>
         </s-section>
@@ -715,7 +715,7 @@ export default function AnalyticsPage() {
 
       <s-section heading="Marketing insights">
         {insights.length === 0 ? (
-          <div style={emptyStateStyle}>No insight data yet for this date range.</div>
+          <div style={emptyStateStyle}>No insight data is available yet for this date range.</div>
         ) : (
           <div
             style={{
@@ -779,7 +779,7 @@ export default function AnalyticsPage() {
       <s-section heading="Recent events">
         {recentEvents.length === 0 ? (
           <div style={emptyStateStyle}>
-            No recent size-guide events were tracked in this date range.
+            No recent size-guide events were recorded in this date range.
           </div>
         ) : (
           <div style={panelStyle}>

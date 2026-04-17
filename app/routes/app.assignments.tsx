@@ -410,7 +410,7 @@ export default function Assignments() {
           />
           <InfoCard
             title="2. Pick the size table"
-            text="Select the chart shoppers should see when that condition matches on the storefront."
+            text="Select the size table shoppers should see when that condition matches on the storefront."
           />
           <InfoCard
             title="3. Use priority to break ties"
@@ -783,8 +783,8 @@ export default function Assignments() {
             >
               <s-heading>Apply to Products</s-heading>
               <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72, lineHeight: 1.45 }}>
-                Bulk helper: save one assignment rule for every selected product, collection, or
-                entered match value.
+                Save one assignment rule for every selected product, collection, or entered match
+                value.
               </div>
 
               <div style={{ marginTop: 8 }}>
@@ -918,7 +918,7 @@ export default function Assignments() {
                     </button>
 
                     <div style={{ marginTop: 8 }}>
-                      <s-paragraph>Applies to all products in this collection.</s-paragraph>
+                      <s-paragraph>This rule applies to all products in the selected collection.</s-paragraph>
                     </div>
                   </>
                 ) : (
@@ -1105,7 +1105,7 @@ export default function Assignments() {
 
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 8 }}>
-                      This save will create{" "}
+                      This action will create{" "}
                       <strong>{scopeValues.length || 0}</strong>{" "}
                       assignment rule{scopeValues.length === 1 ? "" : "s"}.
                     </div>

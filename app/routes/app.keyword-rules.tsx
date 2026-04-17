@@ -209,7 +209,7 @@ export default function KeywordRulesPage() {
           <strong>Shop:</strong> {shopDomain}
         </s-paragraph>
         <s-paragraph>
-          Manual rules still win first. These keyword rules are used only as fallback.
+          Direct assignments always win first. Keyword rules are used only as fallback matching.
         </s-paragraph>
         <div
           style={{
@@ -276,16 +276,16 @@ export default function KeywordRulesPage() {
                 : "#f3fbf5",
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 800 }}>Starter keyword-rule check</div>
-          <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
-            {starterAudit.missing.length === 0 && starterAudit.mismatched.length === 0
-              ? `Everything looks aligned for the built-in starter rules. ${starterAudit.okCount} starter mappings are already correct.`
-              : `Found ${starterAudit.missing.length} missing and ${starterAudit.mismatched.length} mismatched starter keyword rule(s).`}
-          </div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>Starter keyword-rule check</div>
+            <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+              {starterAudit.missing.length === 0 && starterAudit.mismatched.length === 0
+                ? `Everything looks aligned for the built-in starter rules. ${starterAudit.okCount} starter mappings are already correct.`
+                : `Found ${starterAudit.missing.length} missing and ${starterAudit.mismatched.length} mismatched starter keyword rule(s).`}
+            </div>
           {starterAudit.mismatched.length > 0 ? (
             <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>
               Example: a rule like <strong>Bra</strong> can be repaired so it points to the
-              <strong> Bra</strong> table instead of a leftover example table.
+              <strong> Bra</strong> table instead of an outdated example table.
             </div>
           ) : null}
           <Form method="post" style={{ marginTop: 10 }}>
@@ -356,7 +356,7 @@ export default function KeywordRulesPage() {
         </s-paragraph>
         {charts.length === 0 ? (
           <s-banner tone="critical">
-            No size charts are available for this shop yet. Refresh the page or create a new one manually.
+            No size charts are available for this shop yet. Refresh the page or create a size chart first.
           </s-banner>
         ) : (
           <Form method="post">
