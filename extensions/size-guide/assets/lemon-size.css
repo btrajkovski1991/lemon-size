@@ -15,13 +15,21 @@
 .lemon-size__btnInner{
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 .lemon-size__btnLogo{
-  width: 18px;
-  height: auto;
-  display: block;
+  width: 16px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
+}
+.lemon-size__btnLogo svg,
+.lemon-size__titleLogo svg{
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .lemon-size__btn:hover{
   border-color: rgba(0,0,0,.28);
@@ -88,12 +96,14 @@
 .lemon-size__titleRow{
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 .lemon-size__titleLogo{
-  width: 24px;
-  height: auto;
-  display: block;
+  width: 20px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
 }
 .lemon-size__title{
