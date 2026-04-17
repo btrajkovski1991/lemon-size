@@ -1,6 +1,6 @@
 # Lemon Size Terms of Service
 
-Last updated: March 20, 2026
+Last updated: April 17, 2026
 
 These Terms of Service ("Terms") govern your access to and use of the Lemon Size Shopify app and related services, documentation, and support materials (collectively, the "Service").
 
@@ -75,11 +75,11 @@ You understand and agree that:
 
 ## 7. Analytics and Operational Data
 
-Lemon Size may collect and process app usage and storefront event data as described in the Privacy Policy, including size-guide open events and related product or chart context.
+Lemon Size may collect and process merchant, shop, session, app usage, and storefront event data as described in the Privacy Policy, including size-guide open events and related product or chart context.
 
 By using the Service, you agree to that processing in accordance with the Privacy Policy.
 
-Lemon Size is not intended to collect customer personal data as part of its normal operation. The Service is designed around merchant configuration data, product matching context, and product- or chart-level analytics.
+Lemon Size is not intended to collect customer personal data as part of its normal operation. The Service is designed primarily around merchant configuration data, product matching context, authentication and session data, and product- or chart-level analytics.
 
 ## 8. Support
 
