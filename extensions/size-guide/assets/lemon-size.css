@@ -12,6 +12,17 @@
   line-height: 1;
   transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
 }
+.lemon-size__btnInner{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lemon-size__btnLogo{
+  width: 18px;
+  height: auto;
+  display: block;
+  flex: 0 0 auto;
+}
 .lemon-size__btn:hover{
   border-color: rgba(0,0,0,.28);
   transform: translateY(-1px);
@@ -73,6 +84,17 @@
 
 .lemon-size__headings{
   min-width: 0;
+}
+.lemon-size__titleRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lemon-size__titleLogo{
+  width: 24px;
+  height: auto;
+  display: block;
+  flex: 0 0 auto;
 }
 .lemon-size__title{
   font-size: 28px;

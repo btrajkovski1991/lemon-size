@@ -124,8 +124,8 @@ export default function App() {
           <div className={styles.brandRow}>
             <img
               className={styles.logo}
-              src="/images/lemondev-logo-black.svg"
-              alt="Lemon.dev"
+              src="/images/lemon-size-mark.svg"
+              alt="Lemon Size"
             />
             <span className={styles.badge}>Shopify Size Guide App</span>
           </div>

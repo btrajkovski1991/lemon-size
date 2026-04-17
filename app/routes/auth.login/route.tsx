@@ -29,6 +29,19 @@ export default function Auth() {
   return (
     <AppProvider embedded={false}>
       <s-page>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 20,
+          }}
+        >
+          <img
+            src="/images/lemon-size-mark.svg"
+            alt="Lemon Size"
+            style={{ width: 64, height: "auto", display: "block" }}
+          />
+        </div>
         <Form method="post">
         <s-section heading="Log in">
           <s-text-field

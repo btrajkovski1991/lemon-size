@@ -44,7 +44,17 @@
   data-guides-base="https://lemon-size.vercel.app"
   data-available-sizes="{{ lemon_size_values }}"
 >
-  {{ block.settings.button_label | default: 'Size guide' }}
+  <span class="lemon-size__btnInner">
+    <img
+      class="lemon-size__btnLogo"
+      src="{{ 'lemon-size-mark.svg' | asset_url }}"
+      alt="Lemon Size"
+      loading="lazy"
+      width="18"
+      height="22"
+    />
+    <span>{{ block.settings.button_label | default: 'Size guide' }}</span>
+  </span>
 </button>
 
   <div class="lemon-size__modal" hidden data-lemon-size-modal>
@@ -53,7 +63,17 @@
     <div class="lemon-size__dialog" role="dialog" aria-modal="true" aria-label="Size guide">
       <div class="lemon-size__header">
         <div class="lemon-size__headings">
-          <div class="lemon-size__title" data-lemon-size-title>Size guide</div>
+          <div class="lemon-size__titleRow">
+            <img
+              class="lemon-size__titleLogo"
+              src="{{ 'lemon-size-mark.svg' | asset_url }}"
+              alt="Lemon Size"
+              loading="lazy"
+              width="24"
+              height="30"
+            />
+            <div class="lemon-size__title" data-lemon-size-title>Size guide</div>
+          </div>
           <div class="lemon-size__sub" data-lemon-size-subtitle></div>
         </div>
 

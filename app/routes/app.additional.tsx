@@ -25,9 +25,9 @@ export default function AdditionalPage() {
             }}
           >
             <img
-              src="/images/lemondev-logo-black.svg"
-              alt="Lemon Dev"
-              style={{ width: "100%", maxWidth: 140, height: "auto", display: "block" }}
+              src="/images/lemon-size-mark.svg"
+              alt="Lemon Size"
+              style={{ width: "100%", maxWidth: 96, height: "auto", display: "block" }}
             />
           </div>
 

@@ -256,6 +256,25 @@ export default function Index() {
   return (
     <s-page heading="Lemon Size" inlineSize="large">
       <s-section heading="Overview">
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 14px",
+            borderRadius: 16,
+            border: "1px solid #e7e7e7",
+            background: "white",
+            marginBottom: 16,
+          }}
+        >
+          <img
+            src="/images/lemon-size-mark.svg"
+            alt="Lemon Size"
+            style={{ width: 24, height: "auto", display: "block", flex: "0 0 auto" }}
+          />
+          <div style={{ fontSize: 13, fontWeight: 800 }}>Manage Lemon Size</div>
+        </div>
         <s-paragraph>
           Lemon Size helps merchants show the right size guide on the right product page using
           product rules, collections, vendors, tags, and keyword fallbacks.
