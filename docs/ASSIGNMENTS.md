@@ -8,7 +8,7 @@ These rules are checked before keyword rules.
 
 ## Assignment Types
 
-You can assign a size table by:
+You can assign a size table by: 
 - Product
 - Collection
 - Product type

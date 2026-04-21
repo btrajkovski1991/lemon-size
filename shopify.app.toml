@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "3f346ff664f04a26a4ead06e841ca0ff"
+client_id = "bd79837b55a716468a13c322ee9bb764"
 name = "Lemon Size"
 handle = "lemon-size"
 application_url = "https://lemon-size.vercel.app"
