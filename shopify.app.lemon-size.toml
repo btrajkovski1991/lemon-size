@@ -1,0 +1,28 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "bd79837b55a716468a13c322ee9bb764"
+name = "Lemon Size"
+handle = "lemon-size-public"
+application_url = "https://lemon-size.vercel.app"
+embedded = true
+
+[webhooks]
+api_version = "2026-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://lemon-size.vercel.app/auth",
+  "https://lemon-size.vercel.app/auth/callback",
+  "https://lemon-size.vercel.app/api/auth"
+]
+
+[app_proxy]
+url = "https://lemon-size.vercel.app/proxy/lemon-size"
+subpath = "lemon-size"
+prefix = "apps"
