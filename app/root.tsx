@@ -1,35 +1,6 @@
-import { useEffect } from "react";
-import {
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-  useNavigate,
-} from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 export default function App() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleNavigate = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-
-      const link = target.closest("[href]");
-      const href = link?.getAttribute("href");
-      if (!href) return;
-
-      navigate(href);
-    };
-
-    document.addEventListener("shopify:navigate", handleNavigate);
-
-    return () => {
-      document.removeEventListener("shopify:navigate", handleNavigate);
-    };
-  }, [navigate]);
-
   return (
     <html lang="en">
       <head>
