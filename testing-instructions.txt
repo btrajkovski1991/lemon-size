@@ -1,0 +1,20 @@
+1. Install the app and open it inside Shopify Admin.
+2. Go to `Size Charts` and create a chart manually or by CSV/paste import.
+3. Go to `Assignments` and assign the chart to a product.
+4. Optional: add a fallback rule in `Keyword Rules`.
+5. On the `Home` page, use `Preview Matched Chart` to confirm the expected chart is selected.
+6. Go to `Online Store > Themes > Customize`.
+7. Open a product template and add the `Lemon Size` app block.
+8. Save the theme and open the assigned product page on the storefront.
+9. Click the size guide button and confirm the modal opens with the correct chart.
+
+Please verify:
+- The button appears only on products with a matching chart
+- Unit switching works for supported measurement columns
+- Guide image appears only when enabled
+- Analytics records a size guide open
+
+Important:
+- Lemon Size uses a theme app block on the product template
+- The app should be tested as an app block, not under `App embeds`
+- No customer login is required

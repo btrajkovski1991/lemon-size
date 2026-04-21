@@ -7,9 +7,9 @@ interface LoginErrorMessage {
 
 export function loginErrorMessage(loginErrors: LoginError): LoginErrorMessage {
   if (loginErrors?.shop === LoginErrorType.MissingShop) {
-    return { shop: "Please enter your shop domain to log in" };
+    return { shop: "Open Lemon Size from Shopify Admin to authenticate." };
   } else if (loginErrors?.shop === LoginErrorType.InvalidShop) {
-    return { shop: "Please enter a valid shop domain to log in" };
+    return { shop: "This authentication link is invalid. Reopen Lemon Size from Shopify Admin." };
   }
 
   return {};

@@ -5,6 +5,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
+import { parseAdminGraphqlResponse } from "../utils/shopify-admin.server";
 import { buildRulesIndex, explainChartResolution } from "../utils/size-chart-matching.server";
 import { getOrCreateShopRow } from "../utils/shop.server";
 
@@ -66,8 +67,11 @@ async function fetchPickerProducts(admin: any): Promise<ProductLite[]> {
     `,
   );
 
-  const json = await response.json();
-  return (json?.data?.products?.nodes ?? []).map((product: any) => ({
+  const data = await parseAdminGraphqlResponse<{
+    products?: { nodes?: any[] };
+  }>(response, "LemonSizePreviewProducts");
+
+  return (data?.products?.nodes ?? []).map((product: any) => ({
     id: String(product?.id ?? ""),
     title: String(product?.title ?? ""),
     handle: String(product?.handle ?? ""),
@@ -81,7 +85,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const shopRow = await getOrCreateShopRow(session.shop);
 
-  const [shop, products] = await Promise.all([
+  const [shop, productsResult] = await Promise.all([
     prisma.shop.findUnique({
       where: { id: shopRow.id },
       select: {
@@ -94,7 +98,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
       },
     }),
-    fetchPickerProducts(admin),
+    fetchPickerProducts(admin)
+      .then((products) => ({ products, apiError: null }))
+      .catch((error) => ({
+        products: [] as ProductLite[],
+        apiError:
+          error instanceof Error ? error.message : "Shopify product data couldn't be loaded.",
+      })),
   ]);
 
   return {
@@ -104,7 +114,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       assignments: shop?._count.sizeAssignments ?? 0,
       keywordRules: shop?._count.keywordRules ?? 0,
     },
-    products,
+    products: productsResult.products,
+    apiError: productsResult.apiError,
   };
 };
 
@@ -150,8 +161,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     { variables: { id: productId } },
   );
 
-  const json = await response.json();
-  const product = json?.data?.product;
+  const data = await parseAdminGraphqlResponse<{
+    product?: any;
+  }>(response, "LemonSizePreviewProduct");
+  const product = data?.product;
 
   if (!product) {
     return { ok: false, message: "Product not found." } satisfies ActionData;
@@ -212,7 +225,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { shopDomain, counts, products } = useLoaderData<typeof loader>();
+  const { shopDomain, counts, products, apiError } = useLoaderData<typeof loader>();
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
 
@@ -255,6 +268,11 @@ export default function Index() {
 
   return (
     <s-page heading="Lemon Size" inlineSize="large">
+      {apiError ? (
+        <s-banner tone="warning">
+          Shopify product data could not be loaded for the live preview. {apiError}
+        </s-banner>
+      ) : null}
       <s-section heading="Overview">
         <div
           style={{

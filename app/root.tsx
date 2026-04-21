@@ -1,12 +1,44 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { useEffect } from "react";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useNavigate,
+} from "react-router";
 
 export default function App() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleNavigate = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const link = target.closest("[href]");
+      const href = link?.getAttribute("href");
+      if (!href) return;
+
+      navigate(href);
+    };
+
+    document.addEventListener("shopify:navigate", handleNavigate);
+
+    return () => {
+      document.removeEventListener("shopify:navigate", handleNavigate);
+    };
+  }, [navigate]);
+
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="shopify-api-key" content={process.env.SHOPIFY_API_KEY || ""} />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+        <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
         <link
           rel="stylesheet"
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"

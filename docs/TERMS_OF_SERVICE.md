@@ -93,7 +93,7 @@ Support contact:
 
 ## 9. Fees and Pricing
 
-If Lemon Size is offered as a free app, you are not charged app subscription fees unless clearly stated otherwise in Shopify or related billing materials.
+Lemon Size is currently offered as a free app. You are not charged app subscription fees unless clearly stated otherwise in Shopify or related billing materials.
 
 If pricing changes in the future, any updated charges or billing terms will be communicated through appropriate channels before they apply.
 

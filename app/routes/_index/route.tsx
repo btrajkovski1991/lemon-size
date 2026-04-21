@@ -1,7 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { Form, useLoaderData } from "react-router";
-
-import { login } from "../../shopify.server";
+import { useLoaderData } from "react-router";
 import styles from "./styles.module.css";
 
 const features = [
@@ -111,11 +109,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  return { showForm: Boolean(login) };
+  return { showInstallCard: true };
 };
 
 export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
+  const { showInstallCard } = useLoaderData<typeof loader>();
 
   return (
     <main className={styles.page}>
@@ -147,31 +145,18 @@ export default function App() {
           </div>
         </div>
 
-        {showForm && (
+        {showInstallCard && (
           <aside className={styles.loginCard}>
-            <h2 className={styles.cardTitle}>Open your store app</h2>
+            <h2 className={styles.cardTitle}>Install from Shopify</h2>
             <p className={styles.cardText}>
-              Enter your Shopify shop domain to sign in and manage your size
-              guides.
+              Open Lemon Size from the Shopify Admin or the Shopify App Store.
+              For security and App Store compliance, manual shop-domain entry is
+              not used here.
             </p>
-
-            <Form className={styles.form} method="post" action="/auth/login">
-              <label className={styles.label}>
-                <span>Shop domain</span>
-                <input
-                  className={styles.input}
-                  type="text"
-                  name="shop"
-                  placeholder="your-store.myshopify.com"
-                />
-                <span className={styles.hint}>
-                  Example: lemon-demo-store.myshopify.com
-                </span>
-              </label>
-              <button className={styles.button} type="submit">
-                Log in
-              </button>
-            </Form>
+            <p className={styles.cardText}>
+              After installation, Shopify will redirect merchants directly into
+              the app.
+            </p>
           </aside>
         )}
       </section>

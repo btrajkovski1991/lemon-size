@@ -75,6 +75,7 @@ Lower priority numbers win within assignment rules or keyword rules of the same 
 ## Project notes
 
 - OAuth scopes are trimmed to `read_products`
+- The current repo assumes Lemon Size is distributed as a free app
 - Recommendation / order-data flow is not part of the current public release
 - The storefront uses an app proxy route plus a theme app extension
 - Compliance webhooks are configured for public-app readiness

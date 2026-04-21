@@ -43,40 +43,8 @@
       .join(",");
   }
 
-  function getGuideBase(trigger) {
-    return trigger.getAttribute("data-guides-base") || "https://lemon-size.vercel.app";
-  }
-
-  function getGuideImage(trigger, chartTitle) {
-    const base = getGuideBase(trigger);
-
-    const map = {
-      tops: `${base}/images/size-guides/tops.png`,
-      bottoms: `${base}/images/size-guides/bottoms.png`,
-      dress: `${base}/images/size-guides/dress.png`,
-      bra: `${base}/images/size-guides/bra.png`,
-      shoes: `${base}/images/size-guides/shoes.png`,
-      ring: `${base}/images/size-guides/ring.png`,
-      bracelet: `${base}/images/size-guides/bracelet.png`,
-      necklace: `${base}/images/size-guides/necklace.png`,
-      headwear: `${base}/images/size-guides/headwear.png`,
-      "pet clothing": `${base}/images/size-guides/pet-clothing.png`,
-      "pet collar": `${base}/images/size-guides/pet-collar.png`,
-    };
-
-    const key = String(chartTitle || "").toLowerCase();
-
-    for (const k in map) {
-      if (key.includes(k)) return map[k];
-    }
-
-    return `${base}/images/size-guides/default.png`;
-  }
-
-  function normalizeGuideImageUrl(trigger, rawUrl) {
+  function normalizeGuideImageUrl(rawUrl) {
     if (!rawUrl || !String(rawUrl).trim()) return "";
-
-    const base = getGuideBase(trigger);
     const clean = String(rawUrl).trim();
 
     if (/^https?:\/\//i.test(clean)) return clean;
@@ -85,11 +53,7 @@
       return window.location.protocol + clean;
     }
 
-    try {
-      return new URL(clean, `${base.replace(/\/+$/, "")}/`).toString();
-    } catch (error) {
-      return clean;
-    }
+    return clean;
   }
 
   function buildProxyUrl(trigger, mode) {
@@ -436,7 +400,6 @@
   function renderGuide(modal, chart) {
     const guide = chart || {};
     const fallback = defaultGuideFor(guide.title);
-    const trigger = modal._lemonTrigger || null;
 
     const title = guide.guideTitle || fallback.guideTitle || "How to measure";
     const text = guide.guideText || fallback.guideText || "";
@@ -447,8 +410,8 @@
       guide.showGuideImage === true || String(guide.showGuideImage).toLowerCase() === "true";
 
     let imgUrl = "";
-    if (showGuideImageFlag && rawGuideImage && trigger) {
-      imgUrl = normalizeGuideImageUrl(trigger, rawGuideImage);
+    if (showGuideImageFlag && rawGuideImage) {
+      imgUrl = normalizeGuideImageUrl(rawGuideImage);
     }
 
     const titleEl = modal.querySelector("[data-lemon-guide-title]");

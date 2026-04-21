@@ -117,6 +117,20 @@ type ChartWithRows = {
   rows: Array<{ label: string; values: any; sortOrder: number }>;
 };
 
+function resolvePublicAssetUrl(request: Request, value?: string | null) {
+  const clean = String(value || "").trim();
+  if (!clean) return null;
+
+  if (/^https?:\/\//i.test(clean)) return clean;
+  if (clean.startsWith("//")) return `${new URL(request.url).protocol}${clean}`;
+
+  try {
+    return new URL(clean, request.url).toString();
+  } catch {
+    return clean;
+  }
+}
+
 async function fetchChartWithRows(chartId: string): Promise<ChartWithRows | null> {
   const chart = await prisma.sizeChart.findFirst({
     where: { id: chartId },
@@ -237,7 +251,7 @@ export async function loader({ request }: { request: Request }) {
           rows: filteredRows,
           guideTitle: chart.guideTitle,
           guideText: chart.guideText,
-          guideImage: chart.guideImage,
+          guideImage: resolvePublicAssetUrl(request, chart.guideImage),
           showGuideImage: chart.showGuideImage,
           tips: chart.tips,
           disclaimer: chart.disclaimer,

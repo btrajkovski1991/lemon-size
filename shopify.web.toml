@@ -1,4 +1,4 @@
-name = "React Router"
+name = "Lemon Size Web"
 roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 

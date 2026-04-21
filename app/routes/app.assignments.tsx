@@ -4,6 +4,7 @@ import { Form, useActionData, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { parseAdminGraphqlResponse } from "../utils/shopify-admin.server";
 import { ChartTitleIcon, InfoCard, ModalShell, Thumb } from "../components/admin-ui";
 import { invalidateShopSizeChartCache } from "../utils/size-chart-cache.server";
 import {
@@ -79,9 +80,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     `,
   );
 
-  const json = await resp.json();
-  const products: ProductLite[] =
-    (json?.data?.products?.nodes ?? []).map((p: any) => ({
+  let products: ProductLite[] = [];
+  let collections: CollectionLite[] = [];
+  let apiError: string | null = null;
+
+  try {
+    const data = await parseAdminGraphqlResponse<{
+      products?: { nodes?: any[] };
+      collections?: { nodes?: any[] };
+    }>(resp, "LemonSizeAssignmentsPickers");
+
+    products = (data?.products?.nodes ?? []).map((p: any) => ({
       id: p.id,
       title: p.title,
       handle: p.handle,
@@ -90,16 +99,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       imageAlt: p.featuredImage?.altText ?? null,
     }));
 
-  const collections: CollectionLite[] =
-    (json?.data?.collections?.nodes ?? []).map((c: any) => ({
+    collections = (data?.collections?.nodes ?? []).map((c: any) => ({
       id: c.id,
       title: c.title,
       handle: c.handle,
       imageUrl: c.image?.url ?? null,
       imageAlt: c.image?.altText ?? null,
     }));
+  } catch (error) {
+    apiError =
+      error instanceof Error ? error.message : "Shopify product and collection data couldn't be loaded.";
+  }
 
-  return { shopDomain, charts, rules, products, collections };
+  return { shopDomain, charts, rules, products, collections, apiError };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -277,7 +289,7 @@ function ChartPreview({ chart }: { chart: ChartLite | null }) {
 export default function Assignments() {
   const actionData = useActionData<ActionData>();
   const loaderData = useLoaderData<typeof loader>();
-  const { shopDomain, rules, products, collections } = loaderData;
+  const { shopDomain, rules, products, collections, apiError } = loaderData;
   const charts = useMemo<ChartLite[]>(
     () => (loaderData.charts ?? []).map((chart) => normalizeAssignmentChartLite(chart)),
     [loaderData.charts],
@@ -390,6 +402,11 @@ export default function Assignments() {
 
   return (
     <s-page heading="Size chart assignments" inlineSize="large">
+      {apiError ? (
+        <s-banner tone="warning">
+          Shopify picker data could not be loaded completely. {apiError}
+        </s-banner>
+      ) : null}
       <s-section>
         <s-paragraph>
           <strong>Shop:</strong> {shopDomain}

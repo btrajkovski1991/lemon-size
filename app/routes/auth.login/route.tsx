@@ -1,7 +1,6 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData } from "react-router";
+import { useActionData, useLoaderData } from "react-router";
 
 import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
@@ -23,8 +22,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Auth() {
   const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const [shop, setShop] = useState("");
   const { errors } = actionData || loaderData;
+  const installMessage =
+    "Install Lemon Size from the Shopify Admin or the Shopify App Store. For security and App Store compliance, this page doesn't support manual shop-domain entry.";
+  const detailMessage = errors.shop
+    ? `${installMessage} ${errors.shop}`
+    : installMessage;
 
   return (
     <AppProvider embedded={false}>
@@ -42,20 +45,16 @@ export default function Auth() {
             style={{ width: 64, height: "auto", display: "block" }}
           />
         </div>
-        <Form method="post">
-        <s-section heading="Log in">
-          <s-text-field
-            name="shop"
-            label="Shop domain"
-            details="example.myshopify.com"
-            value={shop}
-            onChange={(e) => setShop(e.currentTarget.value)}
-            autocomplete="on"
-            error={errors.shop}
-          ></s-text-field>
-          <s-button type="submit">Log in</s-button>
+        <s-section heading="Install from Shopify">
+          <s-paragraph>{detailMessage}</s-paragraph>
+          <s-paragraph>
+            If you already installed the app and were redirected here unexpectedly,
+            reopen Lemon Size from your store's Apps list.
+          </s-paragraph>
+          <s-paragraph>
+            Need help? Contact <a href="mailto:hello@lemon.dev">hello@lemon.dev</a>.
+          </s-paragraph>
         </s-section>
-        </Form>
       </s-page>
     </AppProvider>
   );
